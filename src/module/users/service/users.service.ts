@@ -34,4 +34,18 @@ export class UsersService {
 
     return await this.userRepository.save(user);
   }
+
+  // GET ALL
+  async findAll(): Promise<User[]> {
+    return this.userRepository.find();
+  }
+
+  // GET ONE
+  async findOne(id: number): Promise<User> {
+    const user = await this.userRepository.findOne({ where: { id } });
+    if (!user) {
+      throw new NotFoundException(`User with id ${id} not found`);
+    }
+    return user;
+  }
 }
