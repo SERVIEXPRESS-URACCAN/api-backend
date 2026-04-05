@@ -1,26 +1,48 @@
 import { Injectable } from '@nestjs/common';
-import { CreateGenderDto } from './dto/create-gender.dto';
-import { UpdateGenderDto } from './dto/update-gender.dto';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Gender } from '../entities/gender.entity';
+import { CreateGenderDto } from '../dto/create-gender.dto';
+import { UpdateGenderDto } from '../dto/update-gender.dto';
 
 @Injectable()
 export class GenderService {
-  create(createGenderDto: CreateGenderDto) {
-    return 'This action adds a new gender';
+  genderRepository: any;
+  constructor(
+    @InjectRepository(Gender)
+    private genderRepo: Repository<Gender>,
+  ) {}
+
+  getAll() {
+    return this.genderRepo.find();
   }
 
-  findAll() {
-    return `This action returns all gender`;
+  getOne(id: number) {
+    return this.genderRepo.findOneBy({ id });
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} gender`;
+  async create(genderDto: CreateGenderDto) {
+    try {
+      const gender = this.genderRepo.create(genderDto);
+      return await this.genderRepo.save(gender);
+    } catch (error) {
+      console.error('Error creating gender:', error);
+    }
   }
-
-  update(id: number, updateGenderDto: UpdateGenderDto) {
-    return `This action updates a #${id} gender`;
+  async update(id: number, genderDto: UpdateGenderDto) {
+    try {
+      const gender = await this.genderRepo.findOneBy({ id });
+      if (!gender) {
+        throw new Error('Gender not found');
+      }
+      const updatedGender = this.genderRepo.merge(gender, genderDto);
+      console.log(genderDto);
+      return await this.genderRepo.save(updatedGender);
+    } catch (error) {
+      console.error('Error updating gender:', error);
+    }
   }
-
-  remove(id: number) {
-    return `This action removes a #${id} gender`;
+  async delete(id: number) {
+    return this.genderRepo.delete(id);
   }
 }
