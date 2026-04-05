@@ -3,9 +3,12 @@ import { ConfigModule, ConfigService } from '@nestjs/config'; // 👈 aquí
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { GenderModule } from './module/gender/gender.module';
 
 @Module({
   imports: [
+    GenderModule,
+
     ConfigModule.forRoot({ isGlobal: true }),
 
     TypeOrmModule.forRootAsync({
