@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Gender } from '../entities/gender.entity';
@@ -7,10 +7,9 @@ import { UpdateGenderDto } from '../dto/update-gender.dto';
 
 @Injectable()
 export class GenderService {
-  genderRepository: any;
   constructor(
     @InjectRepository(Gender)
-    private genderRepo: Repository<Gender>,
+    private readonly genderRepo: Repository<Gender>,
   ) {}
 
   getAll() {
@@ -31,18 +30,13 @@ export class GenderService {
   }
   async update(id: number, genderDto: UpdateGenderDto) {
     try {
-      const gender = await this.genderRepo.findOneBy({ id });
-      if (!gender) {
-        throw new Error('Gender not found');
+      const gender = await this.genderRepo.update(id, genderDto);
+      if (gender.affected === 0) {
+        throw new NotFoundException(`Gender #${id} not found`);
       }
-      const updatedGender = this.genderRepo.merge(gender, genderDto);
-      console.log(genderDto);
-      return await this.genderRepo.save(updatedGender);
+      return this.genderRepo.findOneBy({ id });
     } catch (error) {
       console.error('Error updating gender:', error);
     }
-  }
-  async delete(id: number) {
-    return this.genderRepo.delete(id);
   }
 }
