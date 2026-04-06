@@ -1,7 +1,6 @@
 import {
   Body,
   Controller,
-  Delete,
   Get,
   Param,
   ParseIntPipe,
@@ -36,9 +35,5 @@ export class GenderController {
   @Patch(':id')
   update(@Param('id') id: string, @Body() updateGenderDto: UpdateGenderDto) {
     return this.genderService.update(+id, updateGenderDto);
-  }
-  @Delete(':id')
-  async delete(@Param('id', ParseIntPipe) id: number) {
-    return await this.genderService.delete(id);
   }
 }
