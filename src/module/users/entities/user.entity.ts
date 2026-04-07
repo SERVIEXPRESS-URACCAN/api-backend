@@ -1,4 +1,3 @@
-import { IsInt } from 'class-validator';
 import {
   Entity,
   Column,
@@ -8,7 +7,7 @@ import {
 } from 'typeorm';
 
 
-@Entity('users')
+@Entity()
 export class User {
 
   @PrimaryGeneratedColumn()

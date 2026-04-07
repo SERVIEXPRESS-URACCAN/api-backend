@@ -3,7 +3,6 @@ import {
   IsOptional,
   IsString,
   IsInt,
-  IsDate,
   IsBoolean
 } from 'class-validator';
 import { Type } from 'class-transformer';
@@ -27,12 +26,5 @@ export class UpdateUserDto {
   @IsBoolean()
   status?: boolean;
 
-  @Type(() => Date)
-  @IsDate()
-  createdAt: Date;
-
-  @Type(() => Date)
-  @IsDate()
-  updatedAt: Date;
 
 }
