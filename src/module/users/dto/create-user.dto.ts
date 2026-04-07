@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer';
-import { IsEmail, IsString, IsInt, IsOptional, IsDate, IsBoolean } from 'class-validator';
+import { IsEmail, IsString, IsInt, MinLength } from 'class-validator';
 
 
 export class CreateUserDto {
@@ -8,22 +8,10 @@ export class CreateUserDto {
   email: string;
 
   @IsString()
+  @MinLength(8, { message: 'Password must be at least 8 characters long' })
   password: string;
 
   @IsInt()
   role_id: number;
-
-  @IsBoolean()
-  status: boolean;
-
-  @Type(() => Date)
-  @IsDate()
-  createdAt: Date;
-
-  @IsOptional()
-  @Type(() => Date)
-  @IsDate()
-  updatedAt?: Date;
-
 
 }

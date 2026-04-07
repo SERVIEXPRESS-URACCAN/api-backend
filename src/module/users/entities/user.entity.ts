@@ -12,7 +12,6 @@ import {
 export class User {
 
   @PrimaryGeneratedColumn()
-  @IsInt()
   id: number;
 
   @Column({ unique: true, nullable: false })
