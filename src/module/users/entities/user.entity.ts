@@ -1,15 +1,15 @@
+import { Profile } from 'src/module/profile/entities/profile.entity';
 import {
-  Entity,
   Column,
-  PrimaryGeneratedColumn,
   CreateDateColumn,
+  Entity,
+  OneToOne,
+  PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
 
-
 @Entity()
 export class User {
-
   @PrimaryGeneratedColumn('increment')
   id: number;
 
@@ -22,6 +22,9 @@ export class User {
   @Column({ type: 'int4', nullable: false })
   role_id: number;
 
+  @OneToOne(() => Profile, (profile) => profile.user)
+  profile: Profile;
+
   @Column({ default: true, type: 'boolean' })
   status: boolean;
 
@@ -30,5 +33,4 @@ export class User {
 
   @UpdateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   updatedAt: Date;
-
 }
