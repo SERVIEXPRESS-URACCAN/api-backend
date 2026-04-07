@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CreateProfileDto } from '../dto/create-profile.dto';
@@ -35,7 +35,20 @@ export class ProfileService {
     });
   }
 
-  update(id: number, updateProfileDto: UpdateProfileDto) {
-    return `This action updates a #${id} profile`;
+  async update(id: number, profileDto: UpdateProfileDto) {
+    const { gender, user, ...rest } = profileDto;
+
+    const profile = await this.profileRepository.preload({
+      id,
+      ...rest,
+      ...(gender && { gender: { id: gender } }),
+      ...(user && { user: { id: user } }),
+    });
+
+    if (!profile) {
+      throw new NotFoundException(`El perfil con id ${id} no existe`);
+    }
+
+    return await this.profileRepository.save(profile);
   }
 }

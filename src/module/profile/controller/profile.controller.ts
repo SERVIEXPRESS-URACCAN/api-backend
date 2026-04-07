@@ -15,6 +15,16 @@ import { ProfileService } from '../service/profile.service';
 export class ProfileController {
   constructor(private readonly profileService: ProfileService) {}
 
+  @Get()
+  getAll() {
+    return this.profileService.getAll();
+  }
+
+  @Get(':id')
+  getOne(@Param('id', ParseIntPipe) id: number) {
+    return this.profileService.getOne(id);
+  }
+
   @Post()
   async create(@Body() createProfileDto: CreateProfileDto) {
     const profile = await this.profileService.create({
@@ -29,18 +39,11 @@ export class ProfileController {
     };
   }
 
-  @Get()
-  getAll() {
-    return this.profileService.getAll();
-  }
-
-  @Get(':id')
-  getOne(@Param('id', ParseIntPipe) id: number) {
-    return this.profileService.getOne(id);
-  }
-
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateProfileDto: UpdateProfileDto) {
-    return this.profileService.update(+id, updateProfileDto);
+  update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateProfileDto: UpdateProfileDto,
+  ) {
+    return this.profileService.update(id, updateProfileDto);
   }
 }
