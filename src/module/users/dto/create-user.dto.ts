@@ -1,10 +1,6 @@
 import { Type } from 'class-transformer';
-import { IsEmail, IsString, IsInt, IsEnum, IsOptional, IsDate } from 'class-validator';
+import { IsEmail, IsString, IsInt, IsEnum, IsOptional, IsDate, IsBoolean } from 'class-validator';
 
-export enum UserStatus {
-  ACTIVO = 'ACTIVO',
-  INACTIVO = 'INACTIVO',
-}
 
 export class CreateUserDto {
 
@@ -17,8 +13,8 @@ export class CreateUserDto {
   @IsInt()
   role_id: number;
 
-  @IsEnum(UserStatus)
-  status: UserStatus;
+  @IsBoolean()
+  status: boolean;
 
   @IsOptional()
   @Type(() => Date)
@@ -30,9 +26,5 @@ export class CreateUserDto {
   @IsDate()
   updatedAt?: Date;
 
-  @IsOptional()
-  @Type(() => Date)
-  @IsDate()
-  deletedAt?: Date;
 
 }

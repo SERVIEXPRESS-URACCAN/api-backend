@@ -7,7 +7,6 @@ import {
   DeleteDateColumn
 } from 'typeorm';
 
-import { UserStatus } from '../dto/create-user.dto';
 
 @Entity('users')
 export class User {
@@ -24,12 +23,9 @@ export class User {
   @Column()
   role_id: number;
 
-  @Column({
-    type: 'enum',
-    enum: UserStatus,
-    default: UserStatus.ACTIVO
-  })
-  status: UserStatus;
+  @Column({ default: true })
+  status: boolean;
+
 
   @CreateDateColumn()
   createdAt: Date;
