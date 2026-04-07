@@ -4,12 +4,14 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { GenderModule } from './module/gender/gender.module';
+import { ProfileModule } from './module/profile/profile.module';
 import { UsersModule } from './module/users/users.module';
 
 @Module({
   imports: [
     GenderModule,
     UsersModule,
+    ProfileModule,
 
     ConfigModule.forRoot({ isGlobal: true }),
 
@@ -32,4 +34,4 @@ import { UsersModule } from './module/users/users.module';
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule { }
+export class AppModule {}
