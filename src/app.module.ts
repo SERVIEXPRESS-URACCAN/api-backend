@@ -3,6 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { CategoriesBusinessModule } from './module/categories-business/categories-business.module';
 import { GenderModule } from './module/gender/gender.module';
 import { ProfileModule } from './module/profile/profile.module';
 import { UsersModule } from './module/users/users.module';
@@ -12,6 +13,7 @@ import { UsersModule } from './module/users/users.module';
     GenderModule,
     UsersModule,
     ProfileModule,
+    CategoriesBusinessModule,
 
     ConfigModule.forRoot({ isGlobal: true }),
 
