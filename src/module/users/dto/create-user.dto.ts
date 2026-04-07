@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer';
-import { IsEmail, IsString, IsInt, IsEnum, IsOptional, IsDate, IsBoolean } from 'class-validator';
+import { IsEmail, IsString, IsInt, IsOptional, IsDate, IsBoolean } from 'class-validator';
 
 
 export class CreateUserDto {

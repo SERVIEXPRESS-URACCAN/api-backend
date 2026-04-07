@@ -1,11 +1,10 @@
-import { IsIn, IsInt } from 'class-validator';
+import { IsInt } from 'class-validator';
 import {
   Entity,
   Column,
   PrimaryGeneratedColumn,
   CreateDateColumn,
   UpdateDateColumn,
-  DeleteDateColumn
 } from 'typeorm';
 
 
@@ -16,10 +15,10 @@ export class User {
   @IsInt()
   id: number;
 
-  @Column({ unique: true })
+  @Column({ unique: true, nullable: false })
   email: string;
 
-  @Column()
+  @Column({ nullable: false })
   password: string;
 
   @Column()
@@ -28,13 +27,10 @@ export class User {
   @Column({ default: true })
   status: boolean;
 
-
   @CreateDateColumn()
   createdAt: Date;
 
   @UpdateDateColumn()
   updatedAt: Date;
 
-  @DeleteDateColumn()
-  deletedAt: Date;
 }
