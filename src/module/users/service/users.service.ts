@@ -9,16 +9,19 @@ import { User } from '../entities/user.entity';
 import { CreateUserDto } from '../dto/create-user.dto';
 import { UpdateUserDto } from '../dto/update-user.dto';
 import * as bcrypt from 'bcrypt';
+import { Roles } from 'src/module/roles/entities/roles.entity';
 
 @Injectable()
 export class UsersService {
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    @InjectRepository(Roles)
+    private readonly rolesRepository: Repository<Roles>,
   ) {}
 
   async create(createUserDto: CreateUserDto) {
-    const { email, password, ...rest } = createUserDto;
+    const { email, password } = createUserDto;
 
     const existingUser = await this.userRepository.findOne({
       where: { email },
@@ -28,13 +31,17 @@ export class UsersService {
       throw new ConflictException('Email already exists');
     }
     const hashedPassword = await bcrypt.hash(password, 10);
+    const role = await this.rolesRepository.findOne({ where: { id: 1 } });
+
+    if (!role) {
+      throw new NotFoundException('Role not found');
+    }
 
     const user = this.userRepository.create({
-      ...rest,
       email,
+      role: role,
       password: hashedPassword,
     });
-
     return await this.userRepository.save(user);
   }
 
