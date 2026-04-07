@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { IsNotEmpty, IsString } from 'class-validator';
 
 export class CreateCategoriesBusinessDto {
@@ -5,3 +6,6 @@ export class CreateCategoriesBusinessDto {
   @IsNotEmpty()
   name: string;
 }
+=======
+export class CreateCategoriesBusinessDto {}
+>>>>>>> 278deea (feat: add categories business module with controller, service, and DTOs)

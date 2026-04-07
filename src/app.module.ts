@@ -4,18 +4,22 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { CategoriesBusinessModule } from './module/categories-business/categories-business.module';
-import { CategoriesProductsModule } from './module/categories-products/categories-products.module';
 import { GenderModule } from './module/gender/gender.module';
 import { ProfileModule } from './module/profile/profile.module';
 import { UsersModule } from './module/users/users.module';
 import { RolesModule } from './module/roles/roles.module';
+<<<<<<< HEAD
 import { MandaderoModule } from './module/mandadero/mandadero.module';
+=======
+import { CategoriesProductsModule } from './module/categories-products/categories-products.module';
+>>>>>>> c2481b0 (feat: add categories business module with controller, service, and DTOs)
 
 @Module({
   imports: [
     GenderModule,
     UsersModule,
     ProfileModule,
+    CategoriesBusinessModule,
     RolesModule,
     CategoriesBusinessModule,
 
