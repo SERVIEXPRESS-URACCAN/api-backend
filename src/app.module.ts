@@ -15,6 +15,7 @@ import { CategoriesProductsModule } from './module/categories-products/categorie
     GenderModule,
     UsersModule,
     ProfileModule,
+    RolesModule,
     CategoriesBusinessModule,
     RolesModule,
     CategoriesBusinessModule,
