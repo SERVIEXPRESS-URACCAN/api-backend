@@ -16,7 +16,6 @@ export class CreateUserDto {
   @IsBoolean()
   status: boolean;
 
-  @IsOptional()
   @Type(() => Date)
   @IsDate()
   createdAt: Date;

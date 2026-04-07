@@ -1,3 +1,4 @@
+import { IsIn, IsInt } from 'class-validator';
 import {
   Entity,
   Column,
@@ -12,6 +13,7 @@ import {
 export class User {
 
   @PrimaryGeneratedColumn()
+  @IsInt()
   id: number;
 
   @Column({ unique: true })
