@@ -22,12 +22,17 @@ export class ProfileService {
     return await this.profileRepository.save(profile);
   }
 
-  findAll() {
-    return `This action returns all profile`;
+  async getAll() {
+    return await this.profileRepository.find({
+      relations: ['gender', 'user'],
+    });
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} profile`;
+  async getOne(id: number) {
+    return await this.profileRepository.findOne({
+      where: { id },
+      relations: ['gender', 'user'],
+    });
   }
 
   update(id: number, updateProfileDto: UpdateProfileDto) {

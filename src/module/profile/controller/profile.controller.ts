@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  ParseIntPipe,
+  Patch,
+  Post,
+} from '@nestjs/common';
 import { CreateProfileDto } from '../dto/create-profile.dto';
 import { UpdateProfileDto } from '../dto/update-profile.dto';
 import { ProfileService } from '../service/profile.service';
@@ -22,13 +30,13 @@ export class ProfileController {
   }
 
   @Get()
-  findAll() {
-    return this.profileService.findAll();
+  getAll() {
+    return this.profileService.getAll();
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.profileService.findOne(+id);
+  getOne(@Param('id', ParseIntPipe) id: number) {
+    return this.profileService.getOne(id);
   }
 
   @Patch(':id')
