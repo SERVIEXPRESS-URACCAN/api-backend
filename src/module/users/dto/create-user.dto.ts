@@ -1,9 +1,7 @@
 import { Type } from 'class-transformer';
 import { IsEmail, IsString, IsInt, MinLength } from 'class-validator';
 
-
 export class CreateUserDto {
-
   @IsEmail()
   email: string;
 
@@ -12,6 +10,5 @@ export class CreateUserDto {
   password: string;
 
   @IsInt()
-  role_id: number;
-
+  role: number;
 }

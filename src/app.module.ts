@@ -8,12 +8,14 @@ import { CategoriesProductsModule } from './module/categories-products/categorie
 import { GenderModule } from './module/gender/gender.module';
 import { ProfileModule } from './module/profile/profile.module';
 import { UsersModule } from './module/users/users.module';
+import { RolesModule } from './module/roles/roles.module';
 
 @Module({
   imports: [
     GenderModule,
     UsersModule,
     ProfileModule,
+    RolesModule,
     CategoriesBusinessModule,
 
     ConfigModule.forRoot({ isGlobal: true }),

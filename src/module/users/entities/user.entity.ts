@@ -1,8 +1,11 @@
 import { Profile } from 'src/module/profile/entities/profile.entity';
+import { Roles } from 'src/module/roles/entities/roles.entity';
 import {
   Column,
   CreateDateColumn,
   Entity,
+  JoinColumn,
+  ManyToOne,
   OneToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
@@ -19,14 +22,15 @@ export class User {
   @Column({ type: 'varchar', nullable: false })
   password: string;
 
-  @Column({ type: 'int4', nullable: false })
-  role_id: number;
-
   @OneToOne(() => Profile, (profile) => profile.user)
   profile: Profile;
 
   @Column({ default: true, type: 'boolean' })
   status: boolean;
+
+  @ManyToOne(() => Roles, (role) => role.user, { eager: true })
+  @JoinColumn({ name: 'role_id', referencedColumnName: 'id' })
+  role: Roles;
 
   @CreateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   createdAt: Date;
