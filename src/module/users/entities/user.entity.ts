@@ -10,25 +10,25 @@ import {
 @Entity()
 export class User {
 
-  @PrimaryGeneratedColumn()
+  @PrimaryGeneratedColumn('increment')
   id: number;
 
-  @Column({ unique: true, nullable: false })
+  @Column({ unique: true, nullable: false, type: 'varchar' })
   email: string;
 
-  @Column({ nullable: false })
+  @Column({ type: 'varchar', nullable: false })
   password: string;
 
-  @Column()
+  @Column({ type: 'int4', nullable: false })
   role_id: number;
 
-  @Column({ default: true })
+  @Column({ default: true, type: 'boolean' })
   status: boolean;
 
-  @CreateDateColumn()
+  @CreateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   createdAt: Date;
 
-  @UpdateDateColumn()
+  @UpdateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   updatedAt: Date;
 
 }
