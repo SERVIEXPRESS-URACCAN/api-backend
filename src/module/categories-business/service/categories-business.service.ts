@@ -38,20 +38,17 @@ export class CategoriesBusinessService {
     return categoriesBusiness;
   }
 
-  async update(id: number, categoriesBusinessDto: UpdateCategoriesBusinessDto) {
-    try {
-      const categoriesBusiness = await this.categoriesBusinessRepository.update(
-        id,
-        categoriesBusinessDto,
-      );
-      if (!categoriesBusiness) {
-        throw new NotFoundException(`categoriesBusiness #${id} not found`);
-      }
-      return this.categoriesBusinessRepository.findOneBy({ id });
-    } catch (error) {
-      console.log('Error updating categoriesBusiness:', error);
-      throw error;
+  async update(id: number, updateCategoriesDto: UpdateCategoriesBusinessDto) {
+    const categoriesBusiness = await this.categoriesBusinessRepository.preload({
+      id,
+      ...updateCategoriesDto,
+    });
+
+    if (!categoriesBusiness) {
+      throw new NotFoundException(`categoriesBusiness #${id} not found`);
     }
+
+    return await this.categoriesBusinessRepository.save(categoriesBusiness);
   }
 
   async remove(id: number) {
