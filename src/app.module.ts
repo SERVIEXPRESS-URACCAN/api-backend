@@ -4,6 +4,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { CategoriesBusinessModule } from './module/categories-business/categories-business.module';
+import { CategoriesProductsModule } from './module/categories-products/categories-products.module';
 import { GenderModule } from './module/gender/gender.module';
 import { ProfileModule } from './module/profile/profile.module';
 import { UsersModule } from './module/users/users.module';
@@ -32,6 +33,8 @@ import { UsersModule } from './module/users/users.module';
         synchronize: true,
       }),
     }),
+
+    CategoriesProductsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
