@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CreateCategoriesBusinessDto } from '../dto/create-categories-business.dto';
@@ -23,19 +23,53 @@ export class CategoriesBusinessService {
       throw error;
     }
   }
-  findAll() {
-    return `This action returns all categoriesBusiness`;
+  async findAll() {
+    return await this.categoriesBusinessRepository.find();
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} categoriesBusiness`;
+  async findOne(id: number) {
+    const categoriesBusiness =
+      await this.categoriesBusinessRepository.findOneBy({
+        id,
+      });
+    if (!categoriesBusiness) {
+      throw new NotFoundException(`categoriesBusiness ${id} not found`);
+    }
+    return categoriesBusiness;
   }
 
-  update(id: number, updateCategoriesBusinessDto: UpdateCategoriesBusinessDto) {
-    return `This action updates a #${id} categoriesBusiness`;
+  async update(id: number, categoriesBusinessDto: UpdateCategoriesBusinessDto) {
+    try {
+      const categoriesBusiness = await this.categoriesBusinessRepository.update(
+        id,
+        categoriesBusinessDto,
+      );
+      if (!categoriesBusiness) {
+        throw new NotFoundException(`categoriesBusiness #${id} not found`);
+      }
+      return this.categoriesBusinessRepository.findOneBy({ id });
+    } catch (error) {
+      console.log('Error updating categoriesBusiness:', error);
+      throw error;
+    }
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} categoriesBusiness`;
+  async remove(id: number) {
+    try {
+      const categoriesBusiness =
+        await this.categoriesBusinessRepository.findOneBy({
+          id,
+        });
+
+      if (!categoriesBusiness) {
+        throw new NotFoundException(`categoriesBusiness #${id} not found`);
+      }
+
+      await this.categoriesBusinessRepository.softDelete(id);
+      return { message: `categoriesBusiness #${id} deleted successfully` };
+    } catch (error) {
+      console.log('Error deleting categoriesBusiness:', error);
+      throw error;
+    }
   }
 }

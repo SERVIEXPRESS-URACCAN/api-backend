@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Param,
+  ParseIntPipe,
   Patch,
   Post,
 } from '@nestjs/common';
@@ -52,7 +53,7 @@ export class CategoriesBusinessController {
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.categoriesBusinessService.remove(+id);
+  remove(@Param('id', ParseIntPipe) id: number) {
+    return this.categoriesBusinessService.remove(id);
   }
 }
