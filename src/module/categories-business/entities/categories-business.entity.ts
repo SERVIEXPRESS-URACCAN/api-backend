@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import {
   Column,
   CreateDateColumn,
@@ -25,6 +24,3 @@ export class CategoriesBusiness {
   @DeleteDateColumn({ type: 'timestamp' })
   deletedAt: Date;
 }
-=======
-export class CategoriesBusiness {}
->>>>>>> 278deea (feat: add categories business module with controller, service, and DTOs)
