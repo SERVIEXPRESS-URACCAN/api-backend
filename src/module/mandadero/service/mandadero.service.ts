@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Mandadero } from '../entities/mandadero.entity';
@@ -10,15 +14,30 @@ export class MandaderoService {
     @InjectRepository(Mandadero)
     private readonly mandaderoRepository: Repository<Mandadero>,
   ) {}
-  async changeStatusByUser(userId: number, disponible: boolean) {
-    const mandadero = await this.mandaderoRepository.findOne({
-      where: { user: { id: userId } },
-      relations: ['user'],
-    });
 
-    if (!mandadero) throw new NotFoundException('Mandadero no encontrado');
+  async updateAvailability(id: number, available: boolean) {
+    const mandadero = await this.mandaderoRepository.findOneBy({ id });
+    if (!mandadero) {
+      throw new NotFoundException('Mandadero no encontrado');
+    }
 
-    mandadero.available = disponible;
+    if (!mandadero.isActive) {
+      throw new BadRequestException('El perfil no está activo');
+    }
+
+    mandadero.available = available;
+
+    return this.mandaderoRepository.save(mandadero);
+  }
+
+  async updateActive(id: number, isActive: boolean) {
+    const mandadero = await this.mandaderoRepository.findOneBy({ id });
+    if (!mandadero) {
+      throw new NotFoundException('Mandadero no encontrado');
+    }
+
+    mandadero.isActive = isActive;
+
     return this.mandaderoRepository.save(mandadero);
   }
 
