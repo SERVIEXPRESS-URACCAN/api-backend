@@ -14,12 +14,20 @@ import { CreateMandaderoDto } from '../dto/create-mandadero.dto';
 export class MandaderoController {
   constructor(private readonly MandaderoService: MandaderoService) {}
 
-  @Patch('user/:userId')
-  async changeStatus(
-    @Param('userId', ParseIntPipe) userId: number,
-    @Body('available') available: boolean,
+  @Patch(':id')
+  updateAvailability(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: { available: boolean },
   ) {
-    return this.MandaderoService.changeStatusByUser(userId, available);
+    return this.MandaderoService.updateAvailability(id, body.available);
+  }
+
+  @Patch(':id/activate')
+  activate(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: { isActive: boolean },
+  ) {
+    return this.MandaderoService.updateActive(id, body.isActive);
   }
 
   @Post()
