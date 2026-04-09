@@ -1,15 +1,32 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
-import { CategoriesProductsService } from './categories-products.service';
-import { CreateCategoriesProductDto } from './dto/create-categories-product.dto';
-import { UpdateCategoriesProductDto } from './dto/update-categories-product.dto';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  ParseIntPipe,
+  Patch,
+  Post,
+} from '@nestjs/common';
+import { CreateCategoriesProductDto } from '../dto/create-categories-product.dto';
+import { UpdateCategoriesProductDto } from '../dto/update-categories-product.dto';
+import { CategoriesProductsService } from '../service/categories-products.service';
 
 @Controller('categories-products')
 export class CategoriesProductsController {
-  constructor(private readonly categoriesProductsService: CategoriesProductsService) {}
+  constructor(
+    private readonly categoriesProductsService: CategoriesProductsService,
+  ) {}
 
   @Post()
-  create(@Body() createCategoriesProductDto: CreateCategoriesProductDto) {
-    return this.categoriesProductsService.create(createCategoriesProductDto);
+  async create(@Body() createCategoriesProducts: CreateCategoriesProductDto) {
+    const categoriesProducts = await this.categoriesProductsService.create(
+      createCategoriesProducts,
+    );
+    return {
+      data: categoriesProducts,
+      message: 'categoriesProducts created successfully',
+    };
   }
 
   @Get()
@@ -23,12 +40,18 @@ export class CategoriesProductsController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateCategoriesProductDto: UpdateCategoriesProductDto) {
-    return this.categoriesProductsService.update(+id, updateCategoriesProductDto);
+  update(
+    @Param('id') id: string,
+    @Body() updateCategoriesProductsDto: UpdateCategoriesProductDto,
+  ) {
+    return this.categoriesProductsService.update(
+      +id,
+      updateCategoriesProductsDto,
+    );
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.categoriesProductsService.remove(+id);
+  remove(@Param('id', ParseIntPipe) id: number) {
+    return this.categoriesProductsService.remove(id);
   }
 }

@@ -1,26 +1,73 @@
-import { Injectable } from '@nestjs/common';
-import { CreateCategoriesProductDto } from './dto/create-categories-product.dto';
-import { UpdateCategoriesProductDto } from './dto/update-categories-product.dto';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { CreateCategoriesProductDto } from '../dto/create-categories-product.dto';
+import { UpdateCategoriesProductDto } from '../dto/update-categories-product.dto';
+import { CategoriesProduct } from '../entities/categories-product.entity';
 
 @Injectable()
 export class CategoriesProductsService {
-  create(createCategoriesProductDto: CreateCategoriesProductDto) {
-    return 'This action adds a new categoriesProduct';
+  constructor(
+    @InjectRepository(CategoriesProduct)
+    private readonly categoriesProductRepository: Repository<CategoriesProduct>,
+  ) {}
+  async create(CreateCategoriesProducts: CreateCategoriesProductDto) {
+    try {
+      const categoriesProducts = this.categoriesProductRepository.create(
+        CreateCategoriesProducts,
+      );
+      return await this.categoriesProductRepository.save(categoriesProducts);
+    } catch (error) {
+      console.log('Error creating categoriesProducts:', error);
+      throw error;
+    }
+  }
+  async findAll() {
+    return await this.categoriesProductRepository.find();
   }
 
-  findAll() {
-    return `This action returns all categoriesProducts`;
+  async findOne(id: number) {
+    const categoriesProduct = await this.categoriesProductRepository.findOneBy({
+      id,
+    });
+    if (!categoriesProduct) {
+      throw new NotFoundException(`categoriesProducts ${id} not found`);
+    }
+    return categoriesProduct;
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} categoriesProduct`;
+  async update(
+    id: number,
+    updateCategoriesProductsDto: UpdateCategoriesProductDto,
+  ) {
+    const categoriesProducts = await this.categoriesProductRepository.preload({
+      id,
+      ...updateCategoriesProductsDto,
+    });
+
+    if (!categoriesProducts) {
+      throw new NotFoundException(`categoriesProducts #${id} not found`);
+    }
+
+    return await this.categoriesProductRepository.save(categoriesProducts);
   }
 
-  update(id: number, updateCategoriesProductDto: UpdateCategoriesProductDto) {
-    return `This action updates a #${id} categoriesProduct`;
-  }
+  async remove(id: number) {
+    try {
+      const categoriesProducts =
+        await this.categoriesProductRepository.findOneBy({
+          id,
+        });
 
-  remove(id: number) {
-    return `This action removes a #${id} categoriesProduct`;
+      if (!categoriesProducts) {
+        throw new NotFoundException(`categoriesProducts #${id} not found`);
+      }
+
+      await this.categoriesProductRepository.softDelete(id);
+      return { message: `categories products #${id} deleted successfully` };
+    } catch (error) {
+      console.log('Error deleting categories products:', error);
+      throw error;
+    }
   }
 }
