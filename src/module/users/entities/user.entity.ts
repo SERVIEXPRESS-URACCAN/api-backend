@@ -1,3 +1,4 @@
+import { Mandadero } from 'src/module/mandadero/entities/mandadero.entity';
 import { Profile } from 'src/module/profile/entities/profile.entity';
 import {
   Column,
@@ -24,6 +25,9 @@ export class User {
 
   @OneToOne(() => Profile, (profile) => profile.user)
   profile: Profile;
+
+  @OneToOne(() => Mandadero, (mandadero) => mandadero.user)
+  mandadero: Mandadero;
 
   @Column({ default: true, type: 'boolean' })
   status: boolean;
