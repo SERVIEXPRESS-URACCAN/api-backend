@@ -4,17 +4,21 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { CategoriesBusinessModule } from './module/categories-business/categories-business.module';
-import { CategoriesProductsModule } from './module/categories-products/categories-products.module';
 import { GenderModule } from './module/gender/gender.module';
 import { ProfileModule } from './module/profile/profile.module';
 import { UsersModule } from './module/users/users.module';
+import { RolesModule } from './module/roles/roles.module';
 import { MandaderoModule } from './module/mandadero/mandadero.module';
+import { CategoriesProductsModule } from './module/categories-products/categories-products.module';
 
 @Module({
   imports: [
     GenderModule,
     UsersModule,
     ProfileModule,
+    RolesModule,
+    CategoriesBusinessModule,
+    RolesModule,
     CategoriesBusinessModule,
 
     ConfigModule.forRoot({ isGlobal: true }),
