@@ -6,10 +6,6 @@ import * as bcrypt from 'bcrypt';
 @Injectable()
 export class AuthService {
   constructor(private readonly usersService: UsersService) {}
-  register() {
-    return 'This action adds a new register';
-  }
-
   async login({ email, password }: LoginDto) {
     const user = await this.usersService.findOneByEmail(email);
 
@@ -23,7 +19,6 @@ export class AuthService {
     }
     return {
       message: 'Login successful',
-      email: user.email,
     };
   }
 }
