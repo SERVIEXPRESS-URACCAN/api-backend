@@ -31,7 +31,7 @@ export class UsersService {
       throw new ConflictException('Email already exists');
     }
     const hashedPassword = await bcrypt.hash(password, 10);
-    const role = await this.rolesRepository.findOne({ where: { id: 6 } }); // use the appropriate role ID for use default the new user
+    const role = await this.rolesRepository.findOne({ where: { id: 1 } }); // use the appropriate role ID for use default the new user
 
     if (!role) {
       throw new NotFoundException('Role not found');
