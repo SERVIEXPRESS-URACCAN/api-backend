@@ -5,7 +5,6 @@ import {
   HttpCode,
   HttpStatus,
   Post,
-  UseGuards,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
@@ -26,7 +25,7 @@ export class AuthController {
     return this.authService.register(registerDto);
   }
   @Get('order')
-  @Auth('testing')
+  @Auth('user')
   createOrder() {
     return 'Order created by CLIENTE';
   }
