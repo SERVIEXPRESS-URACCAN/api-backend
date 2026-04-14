@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   NotFoundException,
@@ -9,8 +10,10 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Motorcycle } from '../entities/motorcycle.entity';
 import { Mandadero } from 'src/module/mandadero/entities/mandadero.entity';
-import { Express } from 'express';
 
+type UploadedFile = {
+  path: string;
+};
 @Injectable()
 export class MotorcyclesService {
   constructor(
@@ -19,6 +22,12 @@ export class MotorcyclesService {
     @InjectRepository(Mandadero)
     private readonly mandaderoRepository: Repository<Mandadero>,
   ) {}
+
+  private existing(condition: boolean, message: string) {
+    if (condition) {
+      throw new ConflictException(message);
+    }
+  }
 
   async create(createDto: CreateMotorcycleDto) {
     const { mandaderoId, ...data } = createDto;
@@ -30,17 +39,12 @@ export class MotorcyclesService {
     if (!mandadero) {
       throw new NotFoundException('Mandadero not found');
     }
-    if (mandadero.motorcycle) {
-      throw new NotFoundException('Mandadero already has a motorcycle');
-    }
+    this.existing(!!mandadero.motorcycle, 'Mandadero already has a motorcycle');
 
-    if (
-      await this.motorcycleRepository.findOne({
-        where: { licensePlate: data.licensePlate },
-      })
-    ) {
-      throw new ConflictException('License plate already registered');
-    }
+    const licenseExists = await this.motorcycleRepository.findOne({
+      where: { licensePlate: data.licensePlate },
+    });
+    this.existing(!!licenseExists, 'License plate already registered');
 
     const motorcycle = this.motorcycleRepository.create({
       ...data,
@@ -81,13 +85,18 @@ export class MotorcyclesService {
   async createWithFiles(
     body: CreateMotorcycleDto,
     files: {
-      circulationImage?: Express.Multer.File[];
-      insuranceImage?: Express.Multer.File[];
+      circulationImage?: UploadedFile[];
+      insuranceImage?: UploadedFile[];
     },
   ) {
     const circulationImage = files?.circulationImage?.[0]?.path;
     const insuranceImage = files?.insuranceImage?.[0]?.path;
 
+    if (!circulationImage || !insuranceImage) {
+      throw new BadRequestException(
+        'Circulation and insurance images are required',
+      );
+    }
     return this.create({
       ...body,
       circulationImage,
