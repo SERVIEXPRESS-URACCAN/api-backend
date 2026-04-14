@@ -31,9 +31,9 @@ export class Motorcycle {
   @Column({ type: 'varchar', length: 20, nullable: false, unique: true })
   licensePlate: string;
 
-  @Column({ type: 'varchar', nullable: true })
+  @Column({ type: 'varchar', nullable: false })
   circulationImage: string;
 
-  @Column({ type: 'varchar', nullable: true })
+  @Column({ type: 'varchar', nullable: false })
   insuranceImage: string;
 }
