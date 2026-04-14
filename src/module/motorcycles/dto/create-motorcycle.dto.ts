@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString, IsOptional } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class CreateMotorcycleDto {
   @IsNotEmpty()
@@ -20,11 +20,11 @@ export class CreateMotorcycleDto {
   @IsNotEmpty()
   licensePlate: string;
 
-  @IsOptional()
   @IsString()
+  @IsOptional()
   circulationImage?: string;
 
-  @IsOptional()
   @IsString()
+  @IsOptional()
   insuranceImage?: string;
 }
