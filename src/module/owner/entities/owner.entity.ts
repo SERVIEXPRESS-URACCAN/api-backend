@@ -30,9 +30,11 @@ export class Owner {
   @JoinColumn({ name: 'gender_id', referencedColumnName: 'id' })
   gender: Gender;
 
-  // profileImage: string;
+  @Column({ nullable: true })
+  profileImage: string;
 
-  // identificationCardImage: string;
+  @Column({ nullable: true })
+  identificationCardImage: string;
 
   @OneToOne(() => User, (user) => user.owner)
   @JoinColumn({ name: 'user_id', referencedColumnName: 'id' })
