@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Param,
+  ParseIntPipe,
   Patch,
   Post,
 } from '@nestjs/common';
@@ -16,8 +17,13 @@ export class OwnerController {
   constructor(private readonly ownerService: OwnerService) {}
 
   @Post()
-  create(@Body() createOwnerDto: CreateOwnerDto) {
-    return this.ownerService.create(createOwnerDto);
+  async create(@Body() createOwnerDto: CreateOwnerDto) {
+    const owner = await this.ownerService.create(createOwnerDto);
+
+    return {
+      data: owner,
+      message: 'Owner creado con exito',
+    };
   }
 
   @Get()
@@ -26,17 +32,20 @@ export class OwnerController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
+  findOne(@Param('id', ParseIntPipe) id: number) {
     return this.ownerService.findOne(+id);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateOwnerDto: UpdateOwnerDto) {
-    return this.ownerService.update(+id, updateOwnerDto);
+  update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateOwnerDto: UpdateOwnerDto,
+  ) {
+    return this.ownerService.update(id, updateOwnerDto);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.ownerService.remove(+id);
+  Delete(@Param('id', ParseIntPipe) id: number) {
+    return this.ownerService.remove(id);
   }
 }
