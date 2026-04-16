@@ -11,6 +11,7 @@ import { RolesModule } from './module/roles/roles.module';
 import { MandaderoModule } from './module/mandadero/mandadero.module';
 import { MotorcyclesModule } from './module/motorcycles/motorcycles.module';
 import { CategoriesProductsModule } from './module/categories-products/categories-products.module';
+import { AuthModule } from './module/auth/auth.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { CategoriesProductsModule } from './module/categories-products/categorie
     CategoriesBusinessModule,
     RolesModule,
     CategoriesBusinessModule,
+    AuthModule,
 
     ConfigModule.forRoot({ isGlobal: true }),
 
