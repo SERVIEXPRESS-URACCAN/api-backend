@@ -34,7 +34,7 @@ export class Owner {
 
   // identificationCardImage: string;
 
-  @OneToOne(() => User, (user) => user.profile)
+  @OneToOne(() => User, (user) => user.owner)
   @JoinColumn({ name: 'user_id', referencedColumnName: 'id' })
   user: User;
 

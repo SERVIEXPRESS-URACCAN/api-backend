@@ -1,5 +1,5 @@
 import { Mandadero } from 'src/module/mandadero/entities/mandadero.entity';
-import { Profile } from 'src/module/profile/entities/profile.entity';
+import { Owner } from 'src/module/owner/entities/owner.entity';
 import { Roles } from 'src/module/roles/entities/roles.entity';
 import {
   Column,
@@ -23,8 +23,8 @@ export class User {
   @Column({ type: 'varchar', nullable: false })
   password: string;
 
-  @OneToOne(() => Profile, (profile) => profile.user)
-  profile: Profile;
+  @OneToOne(() => Owner, (owner) => owner.user)
+  owner: Owner;
 
   @OneToOne(() => Mandadero, (mandadero) => mandadero.user)
   mandadero: Mandadero;
