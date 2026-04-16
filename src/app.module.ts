@@ -10,7 +10,6 @@ import { GenderModule } from './module/gender/gender.module';
 import { MandaderoModule } from './module/mandadero/mandadero.module';
 import { MotorcyclesModule } from './module/motorcycles/motorcycles.module';
 import { OwnerModule } from './module/owner/owner.module';
-import { ProfileModule } from './module/profile/profile.module';
 import { RolesModule } from './module/roles/roles.module';
 import { UsersModule } from './module/users/users.module';
 
@@ -18,7 +17,6 @@ import { UsersModule } from './module/users/users.module';
   imports: [
     GenderModule,
     UsersModule,
-    ProfileModule,
     RolesModule,
     CategoriesBusinessModule,
     RolesModule,
