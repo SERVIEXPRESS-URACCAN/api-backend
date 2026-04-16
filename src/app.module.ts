@@ -9,6 +9,7 @@ import { ProfileModule } from './module/profile/profile.module';
 import { UsersModule } from './module/users/users.module';
 import { RolesModule } from './module/roles/roles.module';
 import { MandaderoModule } from './module/mandadero/mandadero.module';
+import { MotorcyclesModule } from './module/motorcycles/motorcycles.module';
 import { CategoriesProductsModule } from './module/categories-products/categories-products.module';
 import { AuthModule } from './module/auth/auth.module';
 
@@ -43,6 +44,7 @@ import { AuthModule } from './module/auth/auth.module';
 
     CategoriesProductsModule,
     MandaderoModule,
+    MotorcyclesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
