@@ -3,16 +3,16 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { AuthModule } from './module/auth/auth.module';
 import { CategoriesBusinessModule } from './module/categories-business/categories-business.module';
+import { CategoriesProductsModule } from './module/categories-products/categories-products.module';
 import { GenderModule } from './module/gender/gender.module';
-import { ProfileModule } from './module/profile/profile.module';
-import { UsersModule } from './module/users/users.module';
-import { RolesModule } from './module/roles/roles.module';
 import { MandaderoModule } from './module/mandadero/mandadero.module';
 import { MotorcyclesModule } from './module/motorcycles/motorcycles.module';
-import { CategoriesProductsModule } from './module/categories-products/categories-products.module';
-import { AuthModule } from './module/auth/auth.module';
-import { OwnerModule } from './owner/owner.module';
+import { OwnerModule } from './module/owner/owner.module';
+import { ProfileModule } from './module/profile/profile.module';
+import { RolesModule } from './module/roles/roles.module';
+import { UsersModule } from './module/users/users.module';
 
 @Module({
   imports: [
