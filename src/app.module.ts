@@ -12,6 +12,7 @@ import { MandaderoModule } from './module/mandadero/mandadero.module';
 import { MotorcyclesModule } from './module/motorcycles/motorcycles.module';
 import { CategoriesProductsModule } from './module/categories-products/categories-products.module';
 import { AuthModule } from './module/auth/auth.module';
+import { OwnerModule } from './owner/owner.module';
 
 @Module({
   imports: [
@@ -45,6 +46,7 @@ import { AuthModule } from './module/auth/auth.module';
     CategoriesProductsModule,
     MandaderoModule,
     MotorcyclesModule,
+    OwnerModule,
   ],
   controllers: [AppController],
   providers: [AppService],
