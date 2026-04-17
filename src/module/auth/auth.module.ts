@@ -6,6 +6,7 @@ import { JwtModule, JwtModuleOptions } from '@nestjs/jwt';
 import { AuthGuard } from './guard/auth.guard';
 import { RolesGuard } from './guard/roles.guard';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { StringValue } from 'ms';
 
 @Module({
   imports: [
@@ -18,7 +19,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
       useFactory: (configService: ConfigService): JwtModuleOptions => ({
         secret: configService.getOrThrow<string>('JWT_SECRET'),
         signOptions: {
-          expiresIn: configService.getOrThrow<string>('JWT_EXPIRES_IN') as any,
+          expiresIn: configService.getOrThrow<StringValue>('JWT_EXPIRES_IN'),
         },
       }),
     }),
