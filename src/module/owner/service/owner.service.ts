@@ -5,14 +5,19 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import * as fs from 'fs';
+import * as path from 'path';
 import { Gender } from 'src/module/gender/entities/gender.entity';
 import { User } from 'src/module/users/entities/user.entity';
 import { QueryFailedError, Repository } from 'typeorm';
-import { CreateOwnerDto } from '../dto/create-owner.dto';
-import { UpdateOwnerDto } from '../dto/update-owner.dto';
-import { Owner } from '../entities/owner.entity';
-import { validateImage } from '../helper/file.helper';
-import { formatPhone } from '../helper/phone.helper';
+import {
+  CreateOwnerDto,
+  formatPhone,
+  Owner,
+  UpdateOwnerDto,
+  validateImage,
+} from '../';
+import { processImage } from '../helper/owner-file.helper';
 
 @Injectable()
 export class OwnerService {
@@ -67,11 +72,13 @@ export class OwnerService {
     const user = await this.userRepository.findOneBy({
       id: createOwnerDto.user,
     });
+
     if (!user) throw new NotFoundException('User no existe');
 
     const gender = await this.genderRepository.findOneBy({
       id: createOwnerDto.gender,
     });
+
     if (!gender) throw new NotFoundException('Gender no existe');
 
     const owner = this.ownerRepository.create({
@@ -86,6 +93,9 @@ export class OwnerService {
     try {
       return await this.ownerRepository.save(owner);
     } catch (error) {
+      if (profileImage) this.removeFile(profileImage.filename);
+      if (identificationCardImage)
+        this.removeFile(identificationCardImage.filename);
       this.handleDBException(error);
     }
   }
@@ -125,31 +135,56 @@ export class OwnerService {
     const profileImage = files?.profileImage?.[0];
     const identificationCardImage = files?.identificationCardImage?.[0];
 
-    if (profileImage) {
-      validateImage(profileImage, 'profileImage');
-      owner.profileImage = profileImage.filename;
-    }
+    processImage(
+      owner,
+      profileImage,
+      'profileImage',
+      this.removeFile.bind(this),
+    );
 
-    if (identificationCardImage) {
-      validateImage(identificationCardImage, 'identificationCardImage');
-      owner.identificationCardImage = identificationCardImage.filename;
-    }
+    processImage(
+      owner,
+      identificationCardImage,
+      'identificationCardImage',
+      this.removeFile.bind(this),
+    );
 
     try {
       return await this.ownerRepository.save(owner);
     } catch (error) {
+      if (profileImage) this.removeFile(profileImage.filename);
+      if (identificationCardImage)
+        this.removeFile(identificationCardImage.filename);
       this.handleDBException(error);
     }
   }
 
   async remove(id: number) {
+    const owner = await this.findOne(id);
+
     const result = await this.ownerRepository.softDelete(id);
 
     if (result.affected === 0) {
       throw new NotFoundException('Owner no encontrado');
     }
 
+    if (owner.profileImage) {
+      this.removeFile(owner.profileImage);
+    }
+
+    if (owner.identificationCardImage) {
+      this.removeFile(owner.identificationCardImage);
+    }
+
     return { message: 'Eliminado correctamente' };
+  }
+
+  private removeFile(filename: string) {
+    const filePath = path.join('./uploads/owners', filename);
+
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+    }
   }
 
   private handleDBException(error: unknown): never {
