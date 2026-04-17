@@ -2,7 +2,6 @@ import { Controller, Post, Body, Patch, Param, Get } from '@nestjs/common';
 import { UsersService } from '../service/users.service';
 import { CreateUserDto } from '../dto/create-user.dto';
 import { UpdateUserDto } from '../dto/update-user.dto';
-import { Auth } from 'src/module/auth/decorator/auth.decorator';
 
 @Controller('users')
 export class UsersController {
@@ -19,7 +18,6 @@ export class UsersController {
   }
 
   @Get()
-  @Auth('mandadero')
   findAll() {
     return this.usersService.findAll();
   }
