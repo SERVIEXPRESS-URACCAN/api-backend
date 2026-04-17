@@ -9,7 +9,6 @@ import {
   ParseIntPipe,
   UseInterceptors,
   UploadedFiles,
-  BadRequestException,
 } from '@nestjs/common';
 
 import { CreateMotorcycleDto } from '../dto/create-motorcycle.dto';
@@ -54,27 +53,6 @@ export class MotorcyclesController {
       insuranceImage?: UploadedFile[];
     },
   ) {
-    const circulation = files?.circulationImage?.[0];
-    const insurance = files?.insuranceImage?.[0];
-
-    if (!circulation || !insurance) {
-      throw new BadRequestException(
-        'circulation and insurance images are required',
-      );
-    }
-    const maxSize = 3 * 1024 * 1024;
-    if (circulation.size > maxSize || insurance.size > maxSize) {
-      throw new BadRequestException('File size must be less than 3MBs');
-    }
-    const allowdTypes = ['image/jpeg', 'image/png', 'image/jpg'];
-    if (
-      !allowdTypes.includes(circulation.mimetype) ||
-      !allowdTypes.includes(insurance.mimetype)
-    ) {
-      throw new BadRequestException(
-        'Only JPEG, PNG, and JPG files are allowed',
-      );
-    }
     return this.motorcyclesService.createWithFiles(body, files);
   }
 
@@ -93,6 +71,36 @@ export class MotorcyclesController {
     @Body() updateDto: UpdateMotorcycleDto,
   ) {
     return this.motorcyclesService.update(id, updateDto);
+  }
+
+  @Patch(':id/files')
+  @UseInterceptors(
+    FileFieldsInterceptor(
+      [
+        { name: 'circulationImage', maxCount: 1 },
+        { name: 'insuranceImage', maxCount: 1 },
+      ],
+      {
+        storage: diskStorage({
+          destination: './uploads/motorcycles',
+          filename: (req, file, cb) => {
+            const unique = Date.now() + '-' + Math.round(Math.random() * 1e9);
+            cb(null, unique + extname(file.originalname));
+          },
+        }),
+      },
+    ),
+  )
+  updateFiles(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: UpdateMotorcycleDto,
+    @UploadedFiles()
+    files: {
+      circulationImage?: UploadedFile[];
+      insuranceImage?: UploadedFile[];
+    },
+  ) {
+    return this.motorcyclesService.updateWithFiles(id, body, files);
   }
 
   @Delete(':id')
