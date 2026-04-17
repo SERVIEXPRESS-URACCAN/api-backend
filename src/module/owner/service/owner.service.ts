@@ -1,18 +1,22 @@
 import {
   BadRequestException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Gender } from 'src/module/gender/entities/gender.entity';
 import { User } from 'src/module/users/entities/user.entity';
-import { Repository } from 'typeorm';
+import { QueryFailedError, Repository } from 'typeorm';
 import { CreateOwnerDto } from '../dto/create-owner.dto';
 import { UpdateOwnerDto } from '../dto/update-owner.dto';
 import { Owner } from '../entities/owner.entity';
+import { validateImage } from '../helper/file.helper';
+import { formatPhone } from '../helper/phone.helper';
 
 @Injectable()
 export class OwnerService {
+  private readonly logger = new Logger('OwnerService');
   constructor(
     @InjectRepository(Owner)
     private readonly ownerRepository: Repository<Owner>,
@@ -35,7 +39,7 @@ export class OwnerService {
     });
 
     if (!owner) {
-      throw new NotFoundException('Owner no encontrado');
+      throw new NotFoundException('Propietario no encontrado');
     }
 
     return owner;
@@ -55,38 +59,20 @@ export class OwnerService {
       throw new BadRequestException('Las imágenes son obligatorias');
     }
 
-    if (!profileImage.mimetype.match(/\/(jpg|jpeg|png)$/)) {
-      throw new BadRequestException('Formato inválido en profileImage');
-    }
+    validateImage(profileImage, 'profileImage');
+    validateImage(identificationCardImage, 'identificationCardImage');
 
-    if (!identificationCardImage.mimetype.match(/\/(jpg|jpeg|png)$/)) {
-      throw new BadRequestException('Formato inválido en identificación');
-    }
-
-    const cellphone = `+505${createOwnerDto.cellphone}`;
-
-    const existing = await this.ownerRepository.findOne({
-      where: { cellphone },
-    });
-    if (existing) {
-      throw new BadRequestException('El número ya está registrado');
-    }
+    const cellphone = formatPhone(createOwnerDto.cellphone);
 
     const user = await this.userRepository.findOneBy({
       id: createOwnerDto.user,
     });
-
-    if (!user) {
-      throw new NotFoundException('User no existe');
-    }
+    if (!user) throw new NotFoundException('User no existe');
 
     const gender = await this.genderRepository.findOneBy({
       id: createOwnerDto.gender,
     });
-
-    if (!gender) {
-      throw new NotFoundException('Gender no existe');
-    }
+    if (!gender) throw new NotFoundException('Gender no existe');
 
     const owner = this.ownerRepository.create({
       ...createOwnerDto,
@@ -97,7 +83,11 @@ export class OwnerService {
       identificationCardImage: identificationCardImage.filename,
     });
 
-    return this.ownerRepository.save(owner);
+    try {
+      return await this.ownerRepository.save(owner);
+    } catch (error) {
+      this.handleDBException(error);
+    }
   }
 
   async update(
@@ -110,42 +100,46 @@ export class OwnerService {
   ) {
     const owner = await this.findOne(id);
 
-    Object.assign(owner, updateOwnerDto);
+    const { gender, user, ...rest } = updateOwnerDto;
+
+    this.ownerRepository.merge(owner, rest);
+
+    if (gender) {
+      const genderEntity = await this.genderRepository.findOneBy({
+        id: gender,
+      });
+      if (!genderEntity) throw new NotFoundException('El genero no existe');
+      owner.gender = genderEntity;
+    }
+
+    if (user) {
+      const userEntity = await this.userRepository.findOneBy({ id: user });
+      if (!userEntity) throw new NotFoundException('El usuario no existe');
+      owner.user = userEntity;
+    }
 
     if (updateOwnerDto.cellphone) {
-      owner.cellphone = `+505${updateOwnerDto.cellphone}`;
-
-      const existing = await this.ownerRepository.findOne({
-        where: { cellphone: owner.cellphone },
-      });
-
-      if (existing && existing.id !== id) {
-        throw new BadRequestException('El número ya está registrado');
-      }
+      owner.cellphone = formatPhone(updateOwnerDto.cellphone);
     }
 
     const profileImage = files?.profileImage?.[0];
     const identificationCardImage = files?.identificationCardImage?.[0];
 
     if (profileImage) {
-      if (!profileImage.mimetype.match(/\/(jpg|jpeg|png)$/)) {
-        throw new BadRequestException('Formato inválido para foto de perfil');
-      }
-
+      validateImage(profileImage, 'profileImage');
       owner.profileImage = profileImage.filename;
     }
 
     if (identificationCardImage) {
-      if (!identificationCardImage.mimetype.match(/\/(jpg|jpeg|png)$/)) {
-        throw new BadRequestException(
-          'Formato inválido para cedula de identidad',
-        );
-      }
-
+      validateImage(identificationCardImage, 'identificationCardImage');
       owner.identificationCardImage = identificationCardImage.filename;
     }
 
-    return this.ownerRepository.save(owner);
+    try {
+      return await this.ownerRepository.save(owner);
+    } catch (error) {
+      this.handleDBException(error);
+    }
   }
 
   async remove(id: number) {
@@ -156,5 +150,33 @@ export class OwnerService {
     }
 
     return { message: 'Eliminado correctamente' };
+  }
+
+  private handleDBException(error: unknown): never {
+    if (error instanceof QueryFailedError) {
+      const err = error as QueryFailedError & {
+        driverError: { code?: string; detail?: string };
+      };
+
+      if (err.driverError?.code === '23505') {
+        const detail = err.driverError.detail;
+
+        if (detail?.includes('cellphone')) {
+          throw new BadRequestException(
+            'El número de telefono ya está registrado',
+          );
+        }
+
+        if (detail?.includes('user_id')) {
+          throw new BadRequestException(
+            'El usuario ya tiene un propietario asociado',
+          );
+        }
+
+        throw new BadRequestException('Dato duplicado');
+      }
+    }
+    this.logger.error(error);
+    throw new BadRequestException('Error en la base de datos');
   }
 }
