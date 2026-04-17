@@ -1,15 +1,12 @@
 import {
+  IsBoolean,
   IsEmail,
+  IsInt,
   IsOptional,
   IsString,
-  IsInt,
-  IsBoolean
 } from 'class-validator';
-import { Type } from 'class-transformer';
-
 
 export class UpdateUserDto {
-
   @IsOptional()
   @IsEmail()
   email?: string;
@@ -25,6 +22,4 @@ export class UpdateUserDto {
   @IsOptional()
   @IsBoolean()
   status?: boolean;
-
-
 }
