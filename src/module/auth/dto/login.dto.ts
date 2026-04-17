@@ -5,7 +5,7 @@ export class LoginDto {
   @IsEmail()
   email: string;
 
-  @Transform(({ value }) => value.trim())
+  @Transform(({ value }: { value: string }) => value.trim())
   @IsString()
   @MinLength(8, { message: 'Password must be at least 8 characters long' })
   password: string;
