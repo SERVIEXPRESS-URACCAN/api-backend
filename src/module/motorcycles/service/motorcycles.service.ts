@@ -146,7 +146,7 @@ export class MotorcyclesService {
         'Only JPEG, PNG, and JPG files are allowed',
       );
     }
-    //borrar la vieja
+
     if (circulation?.path && motorcycle.circulationImage) {
       const oldCirculation = path.join(
         process.cwd(),
@@ -158,7 +158,7 @@ export class MotorcyclesService {
       }
       motorcycle.circulationImage = circulation.path;
     }
-    //borra la vieja
+
     if (insurance?.path && motorcycle.insuranceImage) {
       const oldInsurance = path.join(process.cwd(), motorcycle.insuranceImage);
 
