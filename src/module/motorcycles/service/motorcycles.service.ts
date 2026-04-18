@@ -10,6 +10,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Motorcycle } from '../entities/motorcycle.entity';
 import { Mandadero } from 'src/module/mandadero/entities/mandadero.entity';
+import * as fs from 'fs';
+import * as path from 'path';
 
 type UploadedFile = {
   path: string;
@@ -144,14 +146,30 @@ export class MotorcyclesService {
         'Only JPEG, PNG, and JPG files are allowed',
       );
     }
-    if (circulation?.path) {
+    //borrar la vieja
+    if (circulation?.path && motorcycle.circulationImage) {
+      const oldCirculation = path.join(
+        process.cwd(),
+        motorcycle.circulationImage,
+      );
+
+      if (fs.existsSync(oldCirculation)) {
+        fs.unlinkSync(oldCirculation);
+      }
       motorcycle.circulationImage = circulation.path;
     }
-    if (insurance?.path) {
+    //borra la vieja
+    if (insurance?.path && motorcycle.insuranceImage) {
+      const oldInsurance = path.join(process.cwd(), motorcycle.insuranceImage);
+
+      if (fs.existsSync(oldInsurance)) {
+        fs.unlinkSync(oldInsurance);
+      }
       motorcycle.insuranceImage = insurance.path;
     }
 
     Object.assign(motorcycle, body);
+
     return this.motorcycleRepository.save(motorcycle);
   }
 }
