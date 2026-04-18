@@ -1,12 +1,12 @@
 import { Transform } from 'class-transformer';
 import { IsEmail, IsString, MinLength } from 'class-validator';
 
-export class LoginDto {
+export class RegisterDto {
+  @IsString()
   @IsEmail()
   email: string;
 
   @Transform(({ value }: { value: string }) => value.trim())
-  @IsString()
-  @MinLength(8, { message: 'Password must be at least 8 characters long' })
+  @MinLength(8)
   password: string;
 }
