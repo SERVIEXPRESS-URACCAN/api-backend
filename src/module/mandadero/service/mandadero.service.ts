@@ -115,7 +115,6 @@ export class MandaderoService {
       throw new NotFoundException('Mandadero not found');
     }
 
-    //boorra la vieja
     if (mandadero.imageIdentification) {
       const oldFile = path.join(
         process.cwd(),
