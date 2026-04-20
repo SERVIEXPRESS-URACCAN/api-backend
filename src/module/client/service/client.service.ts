@@ -81,11 +81,20 @@ export class ClientService {
 
     const client = await this.findOne(id);
 
+    if (dto.gender_id) {
+      const gender = await this.dataSource.getRepository(Gender).findOne({
+        where: { id: dto.gender_id },
+      });
+
+      if (!gender) throw new NotFoundException('Gender no encontrado');
+
+      client.gender = gender;
+    }
+
     const updated = repo.merge(client, dto);
 
-    return await repo.save(updated);
+    return { updated, message: 'Client actualizado correctamente' };
   }
-
   async remove(id: number) {
     const repo = this.dataSource.getRepository(Client);
 
