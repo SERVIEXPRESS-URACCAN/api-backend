@@ -10,14 +10,11 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Motorcycle } from '../entities/motorcycle.entity';
 import { Mandadero } from 'src/module/mandadero/entities/mandadero.entity';
-import * as fs from 'fs';
-import * as path from 'path';
 
-type UploadedFile = {
-  path: string;
-  mimetype: string;
-  size: number;
-};
+import { UploadedFile } from '../helper/validationFiles.helper';
+import { validateFile } from '../helper/validationFiles.helper';
+import { updateImage } from '../helper/updateImage.helper';
+
 @Injectable()
 export class MotorcyclesService {
   constructor(
@@ -101,6 +98,10 @@ export class MotorcyclesService {
         'Circulation and insurance images are required',
       );
     }
+
+    validateFile(circulation, 'Circulation image');
+    validateFile(insurance, 'Insurance image');
+
     return this.create({
       ...body,
       circulationImage: circulation.path,
@@ -117,56 +118,21 @@ export class MotorcyclesService {
     },
   ) {
     const motorcycle = await this.findOne(id);
+
     const circulation = files?.circulationImage?.[0];
     const insurance = files?.insuranceImage?.[0];
 
-    const maxSize = 3 * 1024 * 1024;
-    const allowdTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+    validateFile(circulation, 'Circulation image');
+    validateFile(insurance, 'Insurance image');
 
-    if (circulation && circulation.size > maxSize) {
-      throw new BadRequestException(
-        'Circulation image exceeds the maximum size of 3MB',
-      );
-    }
-    if (insurance && insurance.size > maxSize) {
-      throw new BadRequestException(
-        'Insurance image exceeds the maximum size of 3MB',
-      );
-    }
-
-    if (
-      (circulation &&
-        circulation.mimetype &&
-        !allowdTypes.includes(circulation.mimetype)) ||
-      (insurance &&
-        insurance.mimetype &&
-        !allowdTypes.includes(insurance.mimetype))
-    ) {
-      throw new BadRequestException(
-        'Only JPEG, PNG, and JPG files are allowed',
-      );
-    }
-
-    if (circulation?.path && motorcycle.circulationImage) {
-      const oldCirculation = path.join(
-        process.cwd(),
-        motorcycle.circulationImage,
-      );
-
-      if (fs.existsSync(oldCirculation)) {
-        fs.unlinkSync(oldCirculation);
-      }
-      motorcycle.circulationImage = circulation.path;
-    }
-
-    if (insurance?.path && motorcycle.insuranceImage) {
-      const oldInsurance = path.join(process.cwd(), motorcycle.insuranceImage);
-
-      if (fs.existsSync(oldInsurance)) {
-        fs.unlinkSync(oldInsurance);
-      }
-      motorcycle.insuranceImage = insurance.path;
-    }
+    motorcycle.circulationImage = updateImage(
+      circulation,
+      motorcycle.circulationImage,
+    );
+    motorcycle.insuranceImage = updateImage(
+      insurance,
+      motorcycle.insuranceImage,
+    );
 
     Object.assign(motorcycle, body);
 
