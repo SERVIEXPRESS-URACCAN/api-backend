@@ -97,10 +97,9 @@ export class ClientService {
   }
   async remove(id: number) {
     const repo = this.dataSource.getRepository(Client);
-
     const client = await this.findOne(id);
 
-    await repo.remove(client);
+    await repo.softRemove(client);
 
     return { message: 'Client eliminado correctamente' };
   }
