@@ -10,9 +10,13 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Motorcycle } from '../entities/motorcycle.entity';
 import { Mandadero } from 'src/module/mandadero/entities/mandadero.entity';
+import * as fs from 'fs';
+import * as path from 'path';
 
 type UploadedFile = {
   path: string;
+  mimetype: string;
+  size: number;
 };
 @Injectable()
 export class MotorcyclesService {
@@ -89,18 +93,83 @@ export class MotorcyclesService {
       insuranceImage?: UploadedFile[];
     },
   ) {
-    const circulationImage = files?.circulationImage?.[0]?.path;
-    const insuranceImage = files?.insuranceImage?.[0]?.path;
+    const circulation = files?.circulationImage?.[0];
+    const insurance = files?.insuranceImage?.[0];
 
-    if (!circulationImage || !insuranceImage) {
+    if (!circulation || !insurance) {
       throw new BadRequestException(
         'Circulation and insurance images are required',
       );
     }
     return this.create({
       ...body,
-      circulationImage,
-      insuranceImage,
+      circulationImage: circulation.path,
+      insuranceImage: insurance.path,
     });
+  }
+
+  async updateWithFiles(
+    id: number,
+    body: UpdateMotorcycleDto,
+    files: {
+      circulationImage?: UploadedFile[];
+      insuranceImage?: UploadedFile[];
+    },
+  ) {
+    const motorcycle = await this.findOne(id);
+    const circulation = files?.circulationImage?.[0];
+    const insurance = files?.insuranceImage?.[0];
+
+    const maxSize = 3 * 1024 * 1024;
+    const allowdTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+
+    if (circulation && circulation.size > maxSize) {
+      throw new BadRequestException(
+        'Circulation image exceeds the maximum size of 3MB',
+      );
+    }
+    if (insurance && insurance.size > maxSize) {
+      throw new BadRequestException(
+        'Insurance image exceeds the maximum size of 3MB',
+      );
+    }
+
+    if (
+      (circulation &&
+        circulation.mimetype &&
+        !allowdTypes.includes(circulation.mimetype)) ||
+      (insurance &&
+        insurance.mimetype &&
+        !allowdTypes.includes(insurance.mimetype))
+    ) {
+      throw new BadRequestException(
+        'Only JPEG, PNG, and JPG files are allowed',
+      );
+    }
+
+    if (circulation?.path && motorcycle.circulationImage) {
+      const oldCirculation = path.join(
+        process.cwd(),
+        motorcycle.circulationImage,
+      );
+
+      if (fs.existsSync(oldCirculation)) {
+        fs.unlinkSync(oldCirculation);
+      }
+      motorcycle.circulationImage = circulation.path;
+    }
+
+    if (insurance?.path && motorcycle.insuranceImage) {
+      const oldInsurance = path.join(process.cwd(), motorcycle.insuranceImage);
+
+      if (fs.existsSync(oldInsurance)) {
+        fs.unlinkSync(oldInsurance);
+      }
+      motorcycle.insuranceImage = insurance.path;
+    }
+
+    Object.assign(motorcycle, body);
+
+    return this.motorcycleRepository.save(motorcycle);
   }
 }

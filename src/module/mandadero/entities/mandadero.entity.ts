@@ -2,12 +2,12 @@ import { User } from 'src/module/users/entities/user.entity';
 import { Motorcycle } from 'src/module/motorcycles/entities/motorcycle.entity';
 import {
   Column,
+  DeleteDateColumn,
   Entity,
   JoinColumn,
   OneToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
-
 @Entity()
 export class Mandadero {
   @PrimaryGeneratedColumn('increment')
@@ -23,9 +23,16 @@ export class Mandadero {
   @JoinColumn({ name: 'user_id', referencedColumnName: 'id' })
   user: User;
 
-  @OneToOne(() => Motorcycle, (motorcycle) => motorcycle.mandadero)
+  @OneToOne(() => Motorcycle, (motorcycle) => motorcycle.mandadero, {
+    nullable: true,
+    onDelete: 'SET NULL',
+  })
+  @JoinColumn({ name: 'motorcycle_id' })
   motorcycle: Motorcycle;
 
-  //   @Column({ nullable: false })
-  //   imageIdentification: string;
+  @DeleteDateColumn()
+  deletedAt: Date;
+
+  @Column({ nullable: false })
+  imageIdentification: string;
 }
