@@ -135,6 +135,9 @@ export class OwnerService {
     const profileImage = files?.profileImage?.[0];
     const identificationCardImage = files?.identificationCardImage?.[0];
 
+    validateImage(profileImage, 'profileImage');
+    validateImage(identificationCardImage, 'identificationCardImage');
+
     processImage(
       owner,
       profileImage,
@@ -194,20 +197,6 @@ export class OwnerService {
       };
 
       if (err.driverError?.code === '23505') {
-        const detail = err.driverError.detail;
-
-        if (detail?.includes('cellphone')) {
-          throw new BadRequestException(
-            'El número de telefono ya está registrado',
-          );
-        }
-
-        if (detail?.includes('user_id')) {
-          throw new BadRequestException(
-            'El usuario ya tiene un propietario asociado',
-          );
-        }
-
         throw new BadRequestException('Dato duplicado');
       }
     }
