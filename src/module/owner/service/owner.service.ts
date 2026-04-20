@@ -9,7 +9,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { Gender } from 'src/module/gender/entities/gender.entity';
 import { User } from 'src/module/users/entities/user.entity';
-import { QueryFailedError, Repository } from 'typeorm';
+import { DataSource, QueryFailedError, Repository } from 'typeorm';
 import {
   CreateOwnerDto,
   formatPhone,
@@ -23,6 +23,7 @@ import { processImage } from '../helper/owner-file.helper';
 export class OwnerService {
   private readonly logger = new Logger('OwnerService');
   constructor(
+    private readonly dataSource: DataSource,
     @InjectRepository(Owner)
     private readonly ownerRepository: Repository<Owner>,
     @InjectRepository(User)
@@ -57,46 +58,59 @@ export class OwnerService {
       identificationCardImage?: Express.Multer.File[];
     },
   ) {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
     const profileImage = files?.profileImage?.[0];
     const identificationCardImage = files?.identificationCardImage?.[0];
 
-    if (!profileImage || !identificationCardImage) {
-      throw new BadRequestException('Las imágenes son obligatorias');
-    }
-
-    validateImage(profileImage, 'profileImage');
-    validateImage(identificationCardImage, 'identificationCardImage');
-
-    const cellphone = formatPhone(createOwnerDto.cellphone);
-
-    const user = await this.userRepository.findOneBy({
-      id: createOwnerDto.user,
-    });
-
-    if (!user) throw new NotFoundException('User no existe');
-
-    const gender = await this.genderRepository.findOneBy({
-      id: createOwnerDto.gender,
-    });
-
-    if (!gender) throw new NotFoundException('Gender no existe');
-
-    const owner = this.ownerRepository.create({
-      ...createOwnerDto,
-      user,
-      gender,
-      cellphone,
-      profileImage: profileImage.filename,
-      identificationCardImage: identificationCardImage.filename,
-    });
-
     try {
-      return await this.ownerRepository.save(owner);
+      if (!profileImage || !identificationCardImage) {
+        throw new BadRequestException('Las imágenes son obligatorias');
+      }
+
+      validateImage(profileImage, 'profileImage');
+      validateImage(identificationCardImage, 'identificationCardImage');
+
+      const cellphone = formatPhone(createOwnerDto.cellphone);
+
+      const user = await queryRunner.manager.findOne(User, {
+        where: { id: createOwnerDto.user },
+      });
+
+      if (!user) throw new NotFoundException('User no existe');
+
+      const gender = await queryRunner.manager.findOne(Gender, {
+        where: { id: createOwnerDto.gender },
+      });
+
+      if (!gender) throw new NotFoundException('Gender no existe');
+
+      const owner = queryRunner.manager.create(Owner, {
+        ...createOwnerDto,
+        user,
+        gender,
+        cellphone,
+        profileImage: profileImage.filename,
+        identificationCardImage: identificationCardImage.filename,
+      });
+
+      const saved = await queryRunner.manager.save(owner);
+
+      await queryRunner.commitTransaction();
+
+      return saved;
     } catch (error) {
+      await queryRunner.rollbackTransaction();
+
       if (profileImage) this.removeFile(profileImage.filename);
       if (identificationCardImage)
         this.removeFile(identificationCardImage.filename);
+
       this.handleDBException(error);
+    } finally {
+      await queryRunner.release();
     }
   }
 
@@ -135,8 +149,13 @@ export class OwnerService {
     const profileImage = files?.profileImage?.[0];
     const identificationCardImage = files?.identificationCardImage?.[0];
 
-    validateImage(profileImage, 'profileImage');
-    validateImage(identificationCardImage, 'identificationCardImage');
+    if (profileImage) {
+      validateImage(profileImage, 'profileImage');
+    }
+
+    if (identificationCardImage) {
+      validateImage(identificationCardImage, 'identificationCardImage');
+    }
 
     processImage(
       owner,
