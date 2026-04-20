@@ -5,17 +5,21 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { ApprovalStatus } from 'src/common/enum/approval-status.enum';
 import { Mandadero } from 'src/module/mandadero/entities/mandadero.entity';
 import { Repository } from 'typeorm';
 import { CreateMotorcycleDto } from '../dto/create-motorcycle.dto';
 import { UpdateMotorcycleDto } from '../dto/update-motorcycle.dto';
 import { Motorcycle } from '../entities/motorcycle.entity';
-
-import { ApprovalStatus } from 'src/common/enum/approval-status.enum';
 import { deleteFile } from '../helper/removeOldImage.helper';
 import { updateImage } from '../helper/updateImage.helper';
-import { UploadedFile, validateFile } from '../helper/validationFiles.helper';
+import { validateFile } from '../helper/validationFiles.helper';
 
+type UploadedFile = {
+  path: string;
+  mimetype: string;
+  size: number;
+};
 @Injectable()
 export class MotorcyclesService {
   constructor(
