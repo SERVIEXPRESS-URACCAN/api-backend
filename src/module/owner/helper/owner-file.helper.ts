@@ -4,7 +4,7 @@ import { validateImage } from './file.helper';
 export function processImage(
   owner: Owner,
   file: Express.Multer.File | undefined,
-  field: 'profileImage' | 'identificationCardImage',
+  field: 'identificationCardImage',
   removeFile: (filename: string) => void,
 ) {
   if (!file) return;

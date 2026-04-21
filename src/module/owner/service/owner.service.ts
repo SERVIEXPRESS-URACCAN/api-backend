@@ -7,16 +7,9 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import * as fs from 'fs';
 import * as path from 'path';
-import { Gender } from 'src/module/gender/entities/gender.entity';
 import { User } from 'src/module/users/entities/user.entity';
 import { DataSource, QueryFailedError, Repository } from 'typeorm';
-import {
-  CreateOwnerDto,
-  formatPhone,
-  Owner,
-  UpdateOwnerDto,
-  validateImage,
-} from '../';
+import { CreateOwnerDto, Owner, UpdateOwnerDto, validateImage } from '../';
 import { processImage } from '../helper/owner-file.helper';
 
 @Injectable()
@@ -28,20 +21,18 @@ export class OwnerService {
     private readonly ownerRepository: Repository<Owner>,
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
-    @InjectRepository(Gender)
-    private readonly genderRepository: Repository<Gender>,
   ) {}
 
   async findAll() {
     return await this.ownerRepository.find({
-      relations: ['user', 'gender'],
+      relations: ['user'],
     });
   }
 
   async findOne(id: number) {
     const owner = await this.ownerRepository.findOne({
       where: { id },
-      relations: ['user', 'gender'],
+      relations: ['user'],
     });
 
     if (!owner) {
@@ -54,7 +45,6 @@ export class OwnerService {
   async create(
     createOwnerDto: CreateOwnerDto,
     files?: {
-      profileImage?: Express.Multer.File[];
       identificationCardImage?: Express.Multer.File[];
     },
   ) {
@@ -62,18 +52,14 @@ export class OwnerService {
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
-    const profileImage = files?.profileImage?.[0];
     const identificationCardImage = files?.identificationCardImage?.[0];
 
     try {
-      if (!profileImage || !identificationCardImage) {
-        throw new BadRequestException('Las imágenes son obligatorias');
+      if (!identificationCardImage) {
+        throw new BadRequestException('La imagen de la cédula es obligatoria');
       }
 
-      validateImage(profileImage, 'profileImage');
       validateImage(identificationCardImage, 'identificationCardImage');
-
-      const cellphone = formatPhone(createOwnerDto.cellphone);
 
       const user = await queryRunner.manager.findOne(User, {
         where: { id: createOwnerDto.user },
@@ -81,18 +67,9 @@ export class OwnerService {
 
       if (!user) throw new NotFoundException('User no existe');
 
-      const gender = await queryRunner.manager.findOne(Gender, {
-        where: { id: createOwnerDto.gender },
-      });
-
-      if (!gender) throw new NotFoundException('Gender no existe');
-
       const owner = queryRunner.manager.create(Owner, {
         ...createOwnerDto,
         user,
-        gender,
-        cellphone,
-        profileImage: profileImage.filename,
         identificationCardImage: identificationCardImage.filename,
       });
 
@@ -104,7 +81,6 @@ export class OwnerService {
     } catch (error) {
       await queryRunner.rollbackTransaction();
 
-      if (profileImage) this.removeFile(profileImage.filename);
       if (identificationCardImage)
         this.removeFile(identificationCardImage.filename);
 
@@ -118,23 +94,14 @@ export class OwnerService {
     id: number,
     updateOwnerDto: UpdateOwnerDto,
     files?: {
-      profileImage?: Express.Multer.File[];
       identificationCardImage?: Express.Multer.File[];
     },
   ) {
     const owner = await this.findOne(id);
 
-    const { gender, user, ...rest } = updateOwnerDto;
+    const { user, ...rest } = updateOwnerDto;
 
     this.ownerRepository.merge(owner, rest);
-
-    if (gender) {
-      const genderEntity = await this.genderRepository.findOneBy({
-        id: gender,
-      });
-      if (!genderEntity) throw new NotFoundException('El genero no existe');
-      owner.gender = genderEntity;
-    }
 
     if (user) {
       const userEntity = await this.userRepository.findOneBy({ id: user });
@@ -142,27 +109,11 @@ export class OwnerService {
       owner.user = userEntity;
     }
 
-    if (updateOwnerDto.cellphone) {
-      owner.cellphone = formatPhone(updateOwnerDto.cellphone);
-    }
-
-    const profileImage = files?.profileImage?.[0];
     const identificationCardImage = files?.identificationCardImage?.[0];
-
-    if (profileImage) {
-      validateImage(profileImage, 'profileImage');
-    }
 
     if (identificationCardImage) {
       validateImage(identificationCardImage, 'identificationCardImage');
     }
-
-    processImage(
-      owner,
-      profileImage,
-      'profileImage',
-      this.removeFile.bind(this),
-    );
 
     processImage(
       owner,
@@ -174,7 +125,6 @@ export class OwnerService {
     try {
       return await this.ownerRepository.save(owner);
     } catch (error) {
-      if (profileImage) this.removeFile(profileImage.filename);
       if (identificationCardImage)
         this.removeFile(identificationCardImage.filename);
       this.handleDBException(error);
@@ -188,10 +138,6 @@ export class OwnerService {
 
     if (result.affected === 0) {
       throw new NotFoundException('Owner no encontrado');
-    }
-
-    if (owner.profileImage) {
-      this.removeFile(owner.profileImage);
     }
 
     if (owner.identificationCardImage) {

@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -24,40 +23,25 @@ export class OwnerController {
 
   @Post()
   @UseInterceptors(
-    FileFieldsInterceptor(
-      [
-        { name: 'profileImage', maxCount: 1 },
-        { name: 'identificationCardImage', maxCount: 1 },
-      ],
-      {
-        storage: diskStorage({
-          destination: './uploads/owners',
-          filename: (req, file, cb) => {
-            const uniqueName =
-              Date.now() + '-' + Math.random().toString(36).substring(2);
+    FileFieldsInterceptor([{ name: 'identificationCardImage', maxCount: 1 }], {
+      storage: diskStorage({
+        destination: './uploads/owners',
+        filename: (req, file, cb) => {
+          const uniqueName =
+            Date.now() + '-' + Math.random().toString(36).substring(2);
 
-            cb(null, uniqueName + extname(file.originalname));
-          },
-        }),
-      },
-    ),
+          cb(null, uniqueName + extname(file.originalname));
+        },
+      }),
+    }),
   )
   async create(
     @UploadedFiles()
     files: {
-      profileImage?: Express.Multer.File[];
       identificationCardImage?: Express.Multer.File[];
     },
     @Body() createOwnerDto: CreateOwnerDto,
   ) {
-    if (!files?.profileImage?.length) {
-      throw new BadRequestException('La imagen de perfil es obligatoria');
-    }
-
-    if (!files?.identificationCardImage?.length) {
-      throw new BadRequestException('La imagen de cédula es obligatoria');
-    }
-
     const owner = await this.ownerService.create(createOwnerDto, files);
 
     return {
@@ -78,31 +62,22 @@ export class OwnerController {
 
   @Patch(':id')
   @UseInterceptors(
-    FileFieldsInterceptor(
-      [
-        { name: 'profileImage', maxCount: 1 },
-        { name: 'identificationCardImage', maxCount: 1 },
-      ],
-      {
-        storage: diskStorage({
-          destination: './uploads/owners',
-          filename: (req, file, cb) => {
-            const uniqueName =
-              Date.now() + '-' + Math.random().toString(36).substring(2);
+    FileFieldsInterceptor([{ name: 'identificationCardImage', maxCount: 1 }], {
+      storage: diskStorage({
+        destination: './uploads/owners',
+        filename: (req, file, cb) => {
+          const uniqueName =
+            Date.now() + '-' + Math.random().toString(36).substring(2);
 
-            cb(null, uniqueName + extname(file.originalname));
-          },
-        }),
-      },
-    ),
+          cb(null, uniqueName + extname(file.originalname));
+        },
+      }),
+    }),
   )
   async update(
     @Param('id', ParseIntPipe) id: number,
     @UploadedFiles()
-    files: {
-      profileImage?: Express.Multer.File[];
-      identificationCardImage?: Express.Multer.File[];
-    },
+    files: { identificationCardImage?: Express.Multer.File[] },
     @Body() updateOwnerDto: UpdateOwnerDto,
   ) {
     return this.ownerService.update(id, updateOwnerDto, files);
