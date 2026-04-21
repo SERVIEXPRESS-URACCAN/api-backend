@@ -4,6 +4,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './module/auth/auth.module';
+import { BusinessModule } from './module/business/business.module';
 import { CategoriesBusinessModule } from './module/categories-business/categories-business.module';
 import { CategoriesProductsModule } from './module/categories-products/categories-products.module';
 import { CityModule } from './module/city/city.module';
@@ -49,6 +50,7 @@ import { UsersModule } from './module/users/users.module';
     MotorcyclesModule,
     OwnerModule,
     CityModule,
+    BusinessModule,
   ],
   controllers: [AppController],
   providers: [AppService],
