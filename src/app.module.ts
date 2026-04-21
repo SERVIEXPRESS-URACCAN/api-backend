@@ -12,7 +12,7 @@ import { MotorcyclesModule } from './module/motorcycles/motorcycles.module';
 import { OwnerModule } from './module/owner/owner.module';
 import { RolesModule } from './module/roles/roles.module';
 import { UsersModule } from './module/users/users.module';
-import { ClientModule } from './module/client/client.module';
+import { ProfileModule } from './module/profie/profile.module';
 
 @Module({
   imports: [
@@ -23,7 +23,7 @@ import { ClientModule } from './module/client/client.module';
     RolesModule,
     CategoriesBusinessModule,
     AuthModule,
-    ClientModule,
+    ProfileModule,
 
     ConfigModule.forRoot({ isGlobal: true }),
 

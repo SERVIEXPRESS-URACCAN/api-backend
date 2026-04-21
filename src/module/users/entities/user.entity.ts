@@ -1,4 +1,4 @@
-import { Client } from 'src/module/client/entities/client.entity';
+import { Profile } from 'src/module/profie/entities/profile.entity';
 import { Mandadero } from 'src/module/mandadero/entities/mandadero.entity';
 import { Owner } from 'src/module/owner/entities/owner.entity';
 import { Roles } from 'src/module/roles/entities/roles.entity';
@@ -30,8 +30,8 @@ export class User {
   @OneToOne(() => Mandadero, (mandadero) => mandadero.user)
   mandadero: Mandadero;
 
-  @OneToOne(() => Client, (client) => client.user)
-  client: Client;
+  @OneToOne(() => Profile, (client) => client.user)
+  client: Profile;
 
   @Column({ default: true, type: 'boolean' })
   status: boolean;

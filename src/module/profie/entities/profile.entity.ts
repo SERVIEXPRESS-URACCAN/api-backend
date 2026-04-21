@@ -12,8 +12,8 @@ import {
 import { User } from '../../users/entities/user.entity';
 import { Gender } from 'src/module/gender/entities/gender.entity';
 
-@Entity('clients')
-export class Client {
+@Entity('profiles')
+export class Profile {
   @PrimaryGeneratedColumn()
   id: number;
 
