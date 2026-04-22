@@ -39,7 +39,7 @@ export class Profile {
   @DeleteDateColumn({ name: 'deletedAt', nullable: true })
   deletedAt?: Date;
 
-  @OneToOne(() => User, (user) => user.client, { onDelete: 'CASCADE' })
+  @OneToOne(() => User, (user) => user.profile, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user_id' })
   user: User;
 }

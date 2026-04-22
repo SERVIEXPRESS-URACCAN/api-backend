@@ -28,7 +28,7 @@ export class ProfileService {
 
       if (!user) throw new NotFoundException('User no encontrado');
 
-      if (user.client) {
+      if (user.profile) {
         throw new BadRequestException('Este usuario ya tiene un perfil');
       }
 
@@ -94,13 +94,5 @@ export class ProfileService {
     const updated = repo.merge(profile, dto);
 
     return { updated, message: 'Profile actualizado correctamente' };
-  }
-  async remove(id: number) {
-    const repo = this.dataSource.getRepository(Profile);
-    const profile = await this.findOne(id);
-
-    await repo.remove(profile);
-
-    return { message: 'Profile eliminado correctamente' };
   }
 }

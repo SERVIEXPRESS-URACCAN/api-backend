@@ -5,7 +5,6 @@ import {
   Post,
   Body,
   Param,
-  Delete,
   Put,
   ParseIntPipe,
 } from '@nestjs/common';
@@ -35,10 +34,5 @@ export class ProfileController {
   @Put(':id')
   update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateProfileDto) {
     return this.profileService.update(id, dto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id', ParseIntPipe) id: number) {
-    return this.profileService.remove(id);
   }
 }
