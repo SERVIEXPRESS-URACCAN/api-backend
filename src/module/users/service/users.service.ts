@@ -14,6 +14,7 @@ import { Profile } from 'src/module/profie/entities/profile.entity';
 import { Owner } from 'src/module/owner/entities/owner.entity';
 import { Mandadero } from 'src/module/mandadero/entities/mandadero.entity';
 import { Motorcycle } from 'src/module/motorcycles/entities/motorcycle.entity';
+import { UserRole } from 'src/module/user-roles/entities/user-roles.entity';
 
 @Injectable()
 export class UsersService {
@@ -31,7 +32,7 @@ export class UsersService {
     return this.userRepository.findOne({
       where: { email },
       withDeleted,
-      relations: ['role'],
+      relations: ['userRoles', 'userRoles.role'],
     });
   }
 
@@ -54,15 +55,36 @@ export class UsersService {
       throw new NotFoundException('Role not found');
     }
 
-    const user = this.userRepository.create({
-      email,
-      password: hashedPassword,
-      role,
-    });
+    const queryRunner = this.dataSource.createQueryRunner();
 
-    return this.userRepository.save(user);
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      const user = queryRunner.manager.create(User, {
+        email,
+        password: hashedPassword,
+      });
+
+      const savedUser = await queryRunner.manager.save(user);
+
+      const userRole = queryRunner.manager.create(UserRole, {
+        user: savedUser,
+        role,
+      });
+
+      await queryRunner.manager.save(userRole);
+
+      await queryRunner.commitTransaction();
+
+      return savedUser;
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
   }
-
   async restoreUserGraph(userId: number, newPassword: string) {
     const queryRunner = this.dataSource.createQueryRunner();
 

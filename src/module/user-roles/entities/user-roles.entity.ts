@@ -10,7 +10,7 @@ import {
 } from 'typeorm';
 
 @Entity()
-export class UserRoles {
+export class UserRole {
   @PrimaryGeneratedColumn()
   id: number;
 
@@ -26,6 +26,6 @@ export class UserRoles {
   @UpdateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   updatedAt: Date;
 
-  @DeleteDateColumn({ name: 'deleted_at', nullable: true })
+  @DeleteDateColumn({ name: 'deletedAt', nullable: true })
   deletedAt?: Date;
 }
