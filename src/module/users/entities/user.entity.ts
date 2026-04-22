@@ -9,10 +9,12 @@ import {
   Entity,
   JoinColumn,
   ManyToOne,
+  OneToMany,
   OneToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { UserRoles } from 'src/module/user-roles/entities/user-roles.entity';
 
 @Entity()
 export class User {
@@ -40,6 +42,9 @@ export class User {
   @ManyToOne(() => Roles, (role) => role.user, { eager: true })
   @JoinColumn({ name: 'role_id', referencedColumnName: 'id' })
   role: Roles;
+
+  @OneToMany(() => UserRoles, (userrole) => userrole.user)
+  userRoles: UserRoles[];
 
   @CreateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   createdAt: Date;
