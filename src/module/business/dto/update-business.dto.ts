@@ -1,4 +1,3 @@
-import { Transform } from 'class-transformer';
 import {
   IsArray,
   IsNotEmpty,
@@ -14,8 +13,9 @@ export class UpdateBusinessDto {
   @IsNotEmpty()
   name?: string;
 
+  @IsOptional()
   @IsNumber()
-  city: number;
+  city?: number;
 
   @IsOptional()
   @IsString()
@@ -29,11 +29,6 @@ export class UpdateBusinessDto {
 
   @IsOptional()
   @IsPhoneNumber('NI')
-  @Transform(({ value }: { value: string }) => {
-    if (!value) return value;
-    if (value.startsWith('+505')) return value;
-    return `+505${value}`;
-  })
   phone?: string;
 
   @IsOptional()

@@ -16,6 +16,7 @@ import { UpdateBusinessDto } from '../dto/update-business.dto';
 import { Business } from '../entities/business.entity';
 import { processImage } from '../helper/business-file.helper';
 import { validateImage } from '../helper/file.helper';
+import { formatPhone } from '../helper/phone.helper';
 
 @Injectable()
 export class BusinessService {
@@ -60,7 +61,7 @@ export class BusinessService {
     await queryRunner.startTransaction();
 
     try {
-      const { city: cityId, ...rest } = createBusinessDto;
+      const { city: cityId, phone, ...rest } = createBusinessDto;
 
       const city = await queryRunner.manager.findOne(City, {
         where: { id: cityId },
@@ -73,6 +74,7 @@ export class BusinessService {
       const business = queryRunner.manager.create(Business, {
         ...rest,
         city,
+        phone: formatPhone(phone),
       });
 
       const saved = await queryRunner.manager.save(business);
@@ -110,7 +112,12 @@ export class BusinessService {
         throw new NotFoundException(`Negocio con id ${id} no existe`);
       }
 
-      const { businessCategories, city: cityId, ...rest } = updateBusinessDto;
+      const {
+        businessCategories,
+        city: cityId,
+        phone,
+        ...rest
+      } = updateBusinessDto;
 
       if (businessCategories) {
         const uniqueCategories = [...new Set(businessCategories)];
@@ -139,6 +146,10 @@ export class BusinessService {
         }
 
         business.city = city;
+      }
+
+      if (phone) {
+        business.phone = formatPhone(phone);
       }
 
       queryRunner.manager.merge(Business, business, rest);
