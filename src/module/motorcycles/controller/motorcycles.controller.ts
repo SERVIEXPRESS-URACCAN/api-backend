@@ -73,6 +73,10 @@ export class MotorcyclesController {
     return this.motorcyclesService.update(id, updateDto);
   }
 
+  @Patch(':id/restore')
+  restore(@Param('id', ParseIntPipe) id: number) {
+    return this.motorcyclesService.restore(id);
+  }
   @Patch(':id/files')
   @UseInterceptors(
     FileFieldsInterceptor(
