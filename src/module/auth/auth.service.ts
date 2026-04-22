@@ -1,5 +1,6 @@
 import {
-  BadRequestException,
+  ConflictException,
+  ForbiddenException,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -7,7 +8,7 @@ import { UsersService } from '../users/service/users.service';
 import { LoginDto } from './dto/login.dto';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
-import { RegisterDto } from './dto/register.dto';
+import { CreateUserDto } from '../users/dto/create-user.dto';
 
 @Injectable()
 export class AuthService {
@@ -15,16 +16,25 @@ export class AuthService {
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
   ) {}
-  async login({ email, password }: LoginDto) {
-    const user = await this.usersService.findOneByEmail(email);
+  async login(dto: LoginDto) {
+    const { email, password } = dto;
+
+    const user = await this.usersService.findByEmail(email, true);
 
     if (!user) {
-      throw new UnauthorizedException('Invalid email');
+      throw new UnauthorizedException('Invalid credentials');
     }
-    const isPasswordValid = await bcrypt.compare(password, user.password);
 
-    if (!isPasswordValid) {
-      throw new UnauthorizedException('Invalid password');
+    if (user.deletedAt) {
+      throw new ForbiddenException(
+        'Account not available. Please register again.',
+      );
+    }
+
+    const hashedPassword = await bcrypt.compare(password, user.password);
+
+    if (!hashedPassword) {
+      throw new UnauthorizedException('Invalid credentials');
     }
 
     const payload = { sub: user.id, email: user.email, role: user.role.name };
@@ -34,19 +44,27 @@ export class AuthService {
       token,
     };
   }
+  async register(dto: CreateUserDto) {
+    const existingUser = await this.usersService.findByEmail(dto.email, true);
 
-  async register(registerDto: RegisterDto) {
-    const { email, password } = registerDto;
-
-    const user = await this.usersService.findOneByEmail(email);
-    if (user) {
-      throw new BadRequestException('Email already exists');
+    if (existingUser && !existingUser.deletedAt) {
+      throw new ConflictException('Email already in use');
     }
 
-    await this.usersService.create({ email, password });
+    if (existingUser && existingUser.deletedAt) {
+      await this.usersService.restoreUserGraph(existingUser.id, dto.password);
+
+      return {
+        message: 'User registered successfully',
+        userId: existingUser.id,
+      };
+    }
+
+    const user = await this.usersService.create(dto);
 
     return {
-      message: 'Registration successful',
+      message: 'User registered successfully',
+      userId: user.id,
     };
   }
 }

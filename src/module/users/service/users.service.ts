@@ -4,34 +4,51 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DataSource, In, Repository } from 'typeorm';
 import { User } from '../entities/user.entity';
 import { CreateUserDto } from '../dto/create-user.dto';
 import { UpdateUserDto } from '../dto/update-user.dto';
 import * as bcrypt from 'bcrypt';
 import { Roles } from 'src/module/roles/entities/roles.entity';
+import { Profile } from 'src/module/profie/entities/profile.entity';
+import { Owner } from 'src/module/owner/entities/owner.entity';
+import { Mandadero } from 'src/module/mandadero/entities/mandadero.entity';
+import { Motorcycle } from 'src/module/motorcycles/entities/motorcycle.entity';
 
 @Injectable()
 export class UsersService {
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+
     @InjectRepository(Roles)
     private readonly rolesRepository: Repository<Roles>,
+
+    private readonly dataSource: DataSource,
   ) {}
+
+  async findByEmail(email: string, withDeleted = false) {
+    return this.userRepository.findOne({
+      where: { email },
+      withDeleted,
+      relations: ['role'],
+    });
+  }
 
   async create(createUserDto: CreateUserDto) {
     const { email, password } = createUserDto;
 
-    const existingUser = await this.userRepository.findOne({
-      where: { email },
-    });
+    const existingUser = await this.findByEmail(email);
 
     if (existingUser) {
       throw new ConflictException('Email already exists');
     }
+
     const hashedPassword = await bcrypt.hash(password, 10);
-    const role = await this.rolesRepository.findOne({ where: { id: 1 } });
+
+    const role = await this.rolesRepository.findOne({
+      where: { id: 1 },
+    });
 
     if (!role) {
       throw new NotFoundException('Role not found');
@@ -39,17 +56,110 @@ export class UsersService {
 
     const user = this.userRepository.create({
       email,
-      role: role,
       password: hashedPassword,
+      role,
     });
-    return await this.userRepository.save(user);
+
+    return this.userRepository.save(user);
   }
-  async findOneByEmail(email: string) {
-    return await this.userRepository.findOne({
-      where: { email },
-      select: ['id', 'email', 'password'],
-      relations: ['role'],
-    });
+
+  async restoreUserGraph(userId: number, newPassword: string) {
+    const queryRunner = this.dataSource.createQueryRunner();
+
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+      await queryRunner.manager.restore(User, userId);
+
+      await queryRunner.manager.restore(Profile, {
+        user: { id: userId },
+      });
+
+      await queryRunner.manager.restore(Owner, {
+        user: { id: userId },
+      });
+
+      await queryRunner.manager.restore(Mandadero, {
+        user: { id: userId },
+      });
+
+      const mandaderos = await queryRunner.manager.find(Mandadero, {
+        where: { user: { id: userId } },
+        withDeleted: true,
+        select: ['id'],
+      });
+
+      const mandaderoIds = mandaderos.map((m) => m.id);
+
+      if (mandaderoIds.length > 0) {
+        await queryRunner.manager.restore(Motorcycle, {
+          mandadero: In(mandaderoIds),
+        });
+      }
+      await queryRunner.manager.update(User, userId, {
+        password: hashedPassword,
+      });
+
+      await queryRunner.commitTransaction();
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
+  async remove(userId: number) {
+    const queryRunner = this.dataSource.createQueryRunner();
+
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      const user = await queryRunner.manager.findOne(User, {
+        where: { id: userId },
+      });
+
+      if (!user) throw new NotFoundException();
+
+      await queryRunner.manager.softDelete(Profile, {
+        user: { id: userId },
+      });
+
+      await queryRunner.manager.softDelete(Owner, {
+        user: { id: userId },
+      });
+
+      const mandaderos = await queryRunner.manager.find(Mandadero, {
+        where: { user: { id: userId } },
+        select: ['id'],
+      });
+
+      const mandaderoIds = mandaderos.map((m) => m.id);
+
+      if (mandaderoIds.length > 0) {
+        await queryRunner.manager.softDelete(Motorcycle, {
+          mandadero: In(mandaderoIds),
+        });
+      }
+
+      await queryRunner.manager.softDelete(Mandadero, {
+        user: { id: userId },
+      });
+      await queryRunner.manager.softDelete(User, userId);
+
+      await queryRunner.commitTransaction();
+
+      return { message: 'User deleted correctly' };
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
   }
   async update(id: number, updateUserDto: UpdateUserDto) {
     const user = await this.userRepository.findOne({
@@ -61,12 +171,12 @@ export class UsersService {
     }
 
     if (updateUserDto.password) {
-      const hashedPassword = await bcrypt.hash(updateUserDto.password, 10);
-      updateUserDto.password = hashedPassword;
+      updateUserDto.password = await bcrypt.hash(updateUserDto.password, 10);
     }
+
     Object.assign(user, updateUserDto);
 
-    return await this.userRepository.save(user);
+    return this.userRepository.save(user);
   }
 
   async findAll(): Promise<User[]> {
@@ -74,10 +184,14 @@ export class UsersService {
   }
 
   async findOne(id: number): Promise<User> {
-    const user = await this.userRepository.findOne({ where: { id } });
+    const user = await this.userRepository.findOne({
+      where: { id },
+    });
+
     if (!user) {
       throw new NotFoundException(`User with id ${id} not found`);
     }
+
     return user;
   }
 }

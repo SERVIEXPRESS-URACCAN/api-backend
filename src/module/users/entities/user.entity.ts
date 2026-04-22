@@ -5,6 +5,7 @@ import { Roles } from 'src/module/roles/entities/roles.entity';
 import {
   Column,
   CreateDateColumn,
+  DeleteDateColumn,
   Entity,
   JoinColumn,
   ManyToOne,
@@ -31,7 +32,7 @@ export class User {
   mandadero: Mandadero;
 
   @OneToOne(() => Profile, (client) => client.user)
-  client: Profile;
+  profile: Profile;
 
   @Column({ default: true, type: 'boolean' })
   status: boolean;
@@ -45,4 +46,7 @@ export class User {
 
   @UpdateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   updatedAt: Date;
+
+  @DeleteDateColumn({ name: 'deletedAt', nullable: true })
+  deletedAt?: Date;
 }
