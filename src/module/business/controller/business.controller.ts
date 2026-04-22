@@ -4,7 +4,6 @@ import {
   Delete,
   Get,
   Param,
-  ParseIntPipe,
   Patch,
   Post,
 } from '@nestjs/common';
@@ -18,15 +17,11 @@ export class BusinessController {
 
   @Post()
   async create(@Body() createBusinessDto: CreateBusinessDto) {
-    const business = await this.businessService.create({
-      ...createBusinessDto,
-      businessCategories: createBusinessDto.businessCategories,
-      user: createBusinessDto.user,
-    });
+    const business = await this.businessService.create(createBusinessDto);
 
     return {
       data: business,
-      message: 'Business creado con exito',
+      message: 'Business creado con éxito',
     };
   }
 
@@ -35,10 +30,10 @@ export class BusinessController {
     return this.businessService.findAll();
   }
 
-  @Get(':id')
-  getOne(@Param('id', ParseIntPipe) id: number) {
-    return this.businessService.getOne(id);
-  }
+  // @Get(':id')
+  // getOne(@Param('id', ParseIntPipe) id: number) {
+  //   return this.businessService.getOne(id);
+  // }
 
   @Patch(':id')
   update(
