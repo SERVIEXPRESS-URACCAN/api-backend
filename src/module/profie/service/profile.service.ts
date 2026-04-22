@@ -80,8 +80,6 @@ export class ProfileService {
   }
 
   async update(id: number, dto: UpdateProfileDto) {
-    const repo = this.dataSource.getRepository(Profile);
-
     const profile = await this.findOne(id);
 
     if (dto.gender_id) {
@@ -94,8 +92,6 @@ export class ProfileService {
       profile.gender = gender;
     }
 
-    const updated = repo.merge(profile, dto);
-
-    return { updated, message: 'Profile actualizado correctamente' };
+    return { message: 'Profile actualizado correctamente' };
   }
 }

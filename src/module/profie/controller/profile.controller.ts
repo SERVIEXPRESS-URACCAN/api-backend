@@ -4,8 +4,8 @@ import {
   Post,
   Body,
   Param,
-  Put,
   ParseIntPipe,
+  Patch,
 } from '@nestjs/common';
 import { CreateProfileDto } from '../dto/profile.dto';
 import { ProfileService } from '../service/profile.service';
@@ -30,7 +30,7 @@ export class ProfileController {
     return this.profileService.findOne(id);
   }
 
-  @Put(':id')
+  @Patch(':id')
   update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateProfileDto) {
     return this.profileService.update(id, dto);
   }

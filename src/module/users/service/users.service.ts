@@ -176,7 +176,7 @@ export class UsersService {
 
     Object.assign(user, updateUserDto);
 
-    return this.userRepository.save(user);
+    return { message: 'user actualizado correctamente' };
   }
 
   async findAll(): Promise<User[]> {
