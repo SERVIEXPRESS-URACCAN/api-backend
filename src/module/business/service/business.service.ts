@@ -8,6 +8,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import * as fs from 'fs';
 import * as path from 'path';
 import { CategoriesBusiness } from 'src/module/categories-business/entities/categories-business.entity';
+import { City } from 'src/module/city/entities/city.entity';
 import { Owner } from 'src/module/owner/entities/owner.entity';
 import { DataSource, QueryFailedError, Repository } from 'typeorm';
 import { CreateBusinessDto } from '../dto/create-business.dto';
@@ -25,20 +26,22 @@ export class BusinessService {
     @InjectRepository(Owner)
     private readonly ownerRepository: Repository<Owner>,
 
+    @InjectRepository(City)
+    private readonly cityRepository: Repository<City>,
     @InjectRepository(CategoriesBusiness)
     private readonly categoriesRepository: Repository<CategoriesBusiness>,
   ) {}
 
   findAll() {
     return this.businessRepository.find({
-      relations: ['owner', 'categories'],
+      relations: ['owner', 'categories', 'city'],
     });
   }
 
   async findOne(id: number) {
     const business = await this.businessRepository.findOne({
       where: { id },
-      relations: ['owner', 'categories'],
+      relations: ['owner', 'categories', 'city'],
     });
 
     if (!business) {
@@ -54,8 +57,19 @@ export class BusinessService {
     await queryRunner.startTransaction();
 
     try {
+      const { city: cityId, ...rest } = createBusinessDto;
+
+      const city = await queryRunner.manager.findOne(City, {
+        where: { id: cityId },
+      });
+
+      if (!city) {
+        throw new NotFoundException('Ciudad no existe');
+      }
+
       const business = queryRunner.manager.create(Business, {
-        ...createBusinessDto,
+        ...rest,
+        city,
       });
 
       const saved = await queryRunner.manager.save(business);
