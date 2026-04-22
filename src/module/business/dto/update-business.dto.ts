@@ -14,9 +14,8 @@ export class UpdateBusinessDto {
   @IsNotEmpty()
   name?: string;
 
-  @IsOptional()
   @IsNumber()
-  city?: number;
+  city: number;
 
   @IsOptional()
   @IsString()
