@@ -1,4 +1,5 @@
 import { CategoriesBusiness } from 'src/module/categories-business/entities/categories-business.entity';
+import { City } from 'src/module/city/entities/city.entity';
 import { Owner } from 'src/module/owner/entities/owner.entity';
 import {
   Column,
@@ -8,6 +9,7 @@ import {
   JoinColumn,
   JoinTable,
   ManyToMany,
+  ManyToOne,
   OneToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
@@ -24,8 +26,9 @@ export class Business {
   @Column({ type: 'varchar', nullable: true })
   description?: string;
 
-  @Column({ type: 'int4', nullable: false })
-  city: number;
+  @ManyToOne(() => City, { eager: true })
+  @JoinColumn({ name: 'city_id', referencedColumnName: 'id' })
+  city: City;
 
   @Column({ type: 'varchar', nullable: true })
   address?: string;
