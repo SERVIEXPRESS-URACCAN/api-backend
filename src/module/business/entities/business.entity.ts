@@ -33,8 +33,8 @@ export class Business {
   @Column({ type: 'varchar', nullable: true })
   address?: string;
 
-  @Column({ type: 'varchar', nullable: false })
-  phone?: string;
+  @Column({ type: 'varchar', nullable: false, unique: true })
+  phone: string;
 
   @Column({ type: 'varchar', nullable: true })
   logoImage?: string;
