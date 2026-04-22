@@ -6,18 +6,6 @@ export class CreateMotorcycleDto {
 
   @IsString()
   @IsNotEmpty()
-  brand: string;
-
-  @IsString()
-  @IsNotEmpty()
-  model: string;
-
-  @IsString()
-  @IsNotEmpty()
-  color: string;
-
-  @IsString()
-  @IsNotEmpty()
   licensePlate: string;
 
   @IsString()
