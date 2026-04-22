@@ -27,7 +27,11 @@ export class ProfileService {
 
       if (!user) throw new NotFoundException('User no encontrado');
 
-      if (user.profile) {
+      const existingProfile = await queryRunner.manager.findOne(Profile, {
+        where: { user: { id: dto.user_id } },
+      });
+
+      if (existingProfile) {
         throw new BadRequestException('Este usuario ya tiene un perfil');
       }
 
