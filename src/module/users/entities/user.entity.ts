@@ -31,7 +31,7 @@ export class User {
   @OneToOne(() => Mandadero, (mandadero) => mandadero.user)
   mandadero: Mandadero;
 
-  @OneToOne(() => Profile, (client) => client.user)
+  @OneToOne(() => Profile, (profile) => profile.user)
   profile: Profile;
 
   @Column({ default: true, type: 'boolean' })

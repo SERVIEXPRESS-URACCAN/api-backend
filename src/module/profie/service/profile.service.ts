@@ -23,7 +23,6 @@ export class ProfileService {
     try {
       const user = await queryRunner.manager.findOne(User, {
         where: { id: dto.user_id },
-        relations: ['client'],
       });
 
       if (!user) throw new NotFoundException('User no encontrado');
