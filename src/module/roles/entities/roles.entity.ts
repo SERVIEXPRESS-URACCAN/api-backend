@@ -1,3 +1,4 @@
+import { UserRoles } from 'src/module/user-roles/entities/user-roles.entity';
 import { User } from 'src/module/users/entities/user.entity';
 import {
   Column,
@@ -28,4 +29,7 @@ export class Roles {
 
   @OneToMany(() => User, (user) => user.role)
   user: User[];
+
+  @OneToMany(() => UserRoles, (userrole) => userrole.role)
+  userRoles: UserRoles[];
 }
