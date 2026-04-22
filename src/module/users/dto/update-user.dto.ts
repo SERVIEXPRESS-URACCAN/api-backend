@@ -17,7 +17,7 @@ export class UpdateUserDto {
 
   @IsOptional()
   @IsInt()
-  role_id?: number;
+  role?: number;
 
   @IsOptional()
   @IsBoolean()

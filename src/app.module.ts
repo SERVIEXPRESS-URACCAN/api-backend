@@ -12,6 +12,7 @@ import { MotorcyclesModule } from './module/motorcycles/motorcycles.module';
 import { OwnerModule } from './module/owner/owner.module';
 import { RolesModule } from './module/roles/roles.module';
 import { UsersModule } from './module/users/users.module';
+import { ProfileModule } from './module/profie/profile.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { UsersModule } from './module/users/users.module';
     RolesModule,
     CategoriesBusinessModule,
     AuthModule,
+    ProfileModule,
 
     ConfigModule.forRoot({ isGlobal: true }),
 

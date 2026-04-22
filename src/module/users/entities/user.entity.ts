@@ -1,9 +1,11 @@
+import { Profile } from 'src/module/profie/entities/profile.entity';
 import { Mandadero } from 'src/module/mandadero/entities/mandadero.entity';
 import { Owner } from 'src/module/owner/entities/owner.entity';
 import { Roles } from 'src/module/roles/entities/roles.entity';
 import {
   Column,
   CreateDateColumn,
+  DeleteDateColumn,
   Entity,
   JoinColumn,
   ManyToOne,
@@ -29,6 +31,9 @@ export class User {
   @OneToOne(() => Mandadero, (mandadero) => mandadero.user)
   mandadero: Mandadero;
 
+  @OneToOne(() => Profile, (profile) => profile.user)
+  profile: Profile;
+
   @Column({ default: true, type: 'boolean' })
   status: boolean;
 
@@ -41,4 +46,7 @@ export class User {
 
   @UpdateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   updatedAt: Date;
+
+  @DeleteDateColumn({ name: 'deletedAt', nullable: true })
+  deletedAt?: Date;
 }
