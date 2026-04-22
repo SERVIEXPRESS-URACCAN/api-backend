@@ -10,13 +10,16 @@ import * as path from 'path';
 import { CategoriesBusiness } from 'src/module/categories-business/entities/categories-business.entity';
 import { City } from 'src/module/city/entities/city.entity';
 import { Owner } from 'src/module/owner/entities/owner.entity';
-import { DataSource, QueryFailedError, Repository } from 'typeorm';
+import { DataSource, In, QueryFailedError, Repository } from 'typeorm';
 import { CreateBusinessDto } from '../dto/create-business.dto';
+import { UpdateBusinessDto } from '../dto/update-business.dto';
 import { Business } from '../entities/business.entity';
+import { processImage } from '../helper/business-file.helper';
+import { validateImage } from '../helper/file.helper';
 
 @Injectable()
 export class BusinessService {
-  private readonly logger = new Logger('OwnerService');
+  private readonly logger = new Logger('BusinessService');
   constructor(
     private readonly dataSource: DataSource,
 
@@ -85,51 +88,100 @@ export class BusinessService {
     }
   }
 
-  // async update(
-  //   id: number,
-  //   updateBusinessDto: UpdateBusinessDto,
-  //   files?: {
-  //     logoImage?: Express.Multer.File[];
-  //     bannerImage?: Express.Multer.File[];
-  //   },
-  // ) {
-  //   const business = await this.findOne(id);
+  async update(
+    id: number,
+    updateBusinessDto: UpdateBusinessDto,
+    files?: {
+      logoImage?: Express.Multer.File[];
+      bannerImage?: Express.Multer.File[];
+    },
+  ) {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
-  //   const { businessCategories, ...rest } = updateBusinessDto;
+    try {
+      const business = await queryRunner.manager.findOne(Business, {
+        where: { id },
+        relations: ['categories', 'city'],
+      });
 
-  //   this.businessRepository.merge(business, rest);
+      if (!business) {
+        throw new NotFoundException(`Negocio con id ${id} no existe`);
+      }
 
-  //   if (businessCategories) {
-  //     const categoriesEntity = await this.categoriesRepository.findOneBy({
-  //       id: businessCategories[],
-  //     });
-  //   }
+      const { businessCategories, city: cityId, ...rest } = updateBusinessDto;
 
-  //   // 🔹 archivos
-  //   const logoImage = files?.logoImage?.[0];
-  //   const bannerImage = files?.bannerImage?.[0];
+      if (businessCategories) {
+        const uniqueCategories = [...new Set(businessCategories)];
 
-  //   if (logoImage) validateImage(logoImage, 'logoImage');
-  //   if (bannerImage) validateImage(bannerImage, 'bannerImage');
+        const categories = await queryRunner.manager.findBy(
+          CategoriesBusiness,
+          {
+            id: In(uniqueCategories),
+          },
+        );
 
-  //   processImage(business, logoImage, 'logoImage', this.removeFile.bind(this));
+        if (categories.length !== uniqueCategories.length) {
+          throw new NotFoundException('Algunas categorías no existen');
+        }
 
-  //   processImage(
-  //     business,
-  //     bannerImage,
-  //     'bannerImage',
-  //     this.removeFile.bind(this),
-  //   );
+        business.categories = categories;
+      }
 
-  //   try {
-  //     return await this.businessRepository.save(business);
-  //   } catch (error) {
-  //     if (logoImage) this.removeFile(logoImage.filename);
-  //     if (bannerImage) this.removeFile(bannerImage.filename);
+      if (cityId) {
+        const city = await queryRunner.manager.findOne(City, {
+          where: { id: cityId },
+        });
 
-  //     this.handleDBException(error);
-  //   }
-  // }
+        if (!city) {
+          throw new NotFoundException('Ciudad no existe');
+        }
+
+        business.city = city;
+      }
+
+      queryRunner.manager.merge(Business, business, rest);
+
+      const logoImage = files?.logoImage?.[0];
+      const bannerImage = files?.bannerImage?.[0];
+
+      if (logoImage) validateImage(logoImage, 'logoImage');
+      if (bannerImage) validateImage(bannerImage, 'bannerImage');
+
+      processImage(
+        business,
+        logoImage,
+        'logoImage',
+        this.removeFile.bind(this),
+      );
+
+      processImage(
+        business,
+        bannerImage,
+        'bannerImage',
+        this.removeFile.bind(this),
+      );
+
+      const saved = await queryRunner.manager.save(business);
+
+      await queryRunner.commitTransaction();
+
+      return saved;
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+
+      const logoImage = files?.logoImage?.[0];
+      const bannerImage = files?.bannerImage?.[0];
+
+      if (logoImage) this.removeFile(logoImage.filename);
+      if (bannerImage) this.removeFile(bannerImage.filename);
+
+      this.handleDBException(error);
+    } finally {
+      await queryRunner.release();
+    }
+  }
 
   async remove(id: number) {
     const business = await this.findOne(id);
