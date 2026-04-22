@@ -14,4 +14,8 @@ export class UserRolesController {
   findOne(@Param('userId') userId: number, @Param('roleId') roleId: number) {
     return this.userRolesService.findOne(userId, roleId);
   }
+  @Get()
+  findAll() {
+    return this.userRolesService.findAll();
+  }
 }
