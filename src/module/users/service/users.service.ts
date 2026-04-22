@@ -15,6 +15,7 @@ import { Owner } from 'src/module/owner/entities/owner.entity';
 import { Mandadero } from 'src/module/mandadero/entities/mandadero.entity';
 import { Motorcycle } from 'src/module/motorcycles/entities/motorcycle.entity';
 import { UserRole } from 'src/module/user-roles/entities/user-roles.entity';
+import { Business } from 'src/module/business/entities/business.entity';
 
 @Injectable()
 export class UsersService {
@@ -104,6 +105,20 @@ export class UsersService {
         user: { id: userId },
       });
 
+      const owners = await queryRunner.manager.find(Owner, {
+        where: { user: { id: userId } },
+        withDeleted: true,
+        select: ['id'],
+      });
+
+      const ownersId = owners.map((m) => m.id);
+
+      if (ownersId.length > 0) {
+        await queryRunner.manager.restore(Owner, {
+          id: In(ownersId),
+        });
+      }
+
       await queryRunner.manager.restore(Mandadero, {
         user: { id: userId },
       });
@@ -151,10 +166,22 @@ export class UsersService {
         user: { id: userId },
       });
 
+      const owners = await queryRunner.manager.find(Owner, {
+        where: { user: { id: userId } },
+        select: ['id'],
+      });
+
+      const ownerIds = owners.map((o) => o.id);
+
+      if (ownerIds.length > 0) {
+        await queryRunner.manager.softDelete(Business, {
+          owner: In(ownerIds),
+        });
+      }
+
       await queryRunner.manager.softDelete(Owner, {
         user: { id: userId },
       });
-
       const mandaderos = await queryRunner.manager.find(Mandadero, {
         where: { user: { id: userId } },
         select: ['id'],
