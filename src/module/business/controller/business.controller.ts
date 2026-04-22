@@ -1,5 +1,19 @@
-import { Body, Controller, Delete, Get, Param, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  ParseIntPipe,
+  Patch,
+  Post,
+  UploadedFiles,
+  UseInterceptors,
+} from '@nestjs/common';
+import { FileFieldsInterceptor } from '@nestjs/platform-express';
+
 import { CreateBusinessDto } from '../dto/create-business.dto';
+import { UpdateBusinessDto } from '../dto/update-business.dto';
 import { BusinessService } from '../service/business.service';
 
 @Controller('business')
@@ -17,25 +31,60 @@ export class BusinessController {
   }
 
   @Get()
-  findAll() {
-    return this.businessService.findAll();
+  async findAll() {
+    const data = await this.businessService.findAll();
+
+    return {
+      data,
+      message: 'Listado de negocios',
+    };
   }
 
-  // @Get(':id')
-  // getOne(@Param('id', ParseIntPipe) id: number) {
-  //   return this.businessService.getOne(id);
-  // }
+  @Get(':id')
+  async getOne(@Param('id', ParseIntPipe) id: number) {
+    const data = await this.businessService.findOne(id);
 
-  // @Patch(':id')
-  // update(
-  //   @Param('id') id: string,
-  //   @Body() updateBusinessDto: UpdateBusinessDto,
-  // ) {
-  //   return this.businessService.update(+id, updateBusinessDto);
-  // }
+    return {
+      data,
+      message: 'Negocio encontrado',
+    };
+  }
+
+  @Patch(':id')
+  @UseInterceptors(
+    FileFieldsInterceptor([
+      { name: 'logoImage', maxCount: 1 },
+      { name: 'bannerImage', maxCount: 1 },
+    ]),
+  )
+  async update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateBusinessDto: UpdateBusinessDto,
+    @UploadedFiles()
+    files: {
+      logoImage?: Express.Multer.File[];
+      bannerImage?: Express.Multer.File[];
+    },
+  ) {
+    const data = await this.businessService.update(
+      id,
+      updateBusinessDto,
+      files,
+    );
+
+    return {
+      data,
+      message: 'Negocio actualizado correctamente',
+    };
+  }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.businessService.remove(+id);
+  async remove(@Param('id', ParseIntPipe) id: number) {
+    const data = await this.businessService.remove(id);
+
+    return {
+      data,
+      message: 'Negocio eliminado correctamente',
+    };
   }
 }

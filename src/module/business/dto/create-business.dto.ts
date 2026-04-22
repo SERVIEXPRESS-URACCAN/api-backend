@@ -1,5 +1,11 @@
 import { Transform } from 'class-transformer';
-import { IsNotEmpty, IsNumber, IsPhoneNumber, IsString } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsPhoneNumber,
+  IsString,
+} from 'class-validator';
 
 export class CreateBusinessDto {
   @IsString()
@@ -7,7 +13,8 @@ export class CreateBusinessDto {
   name: string;
 
   @IsNumber()
-  city: number;
+  @IsOptional()
+  city?: number;
 
   @IsNotEmpty()
   @IsString()
