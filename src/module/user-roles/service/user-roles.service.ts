@@ -83,4 +83,14 @@ export class UserRolesService {
 
     return relationUserRole;
   }
+  async findAll() {
+    const relations = await this.dataSource.getRepository(UserRole).find({
+      relations: ['user', 'role'],
+      order: {
+        id: 'DESC',
+      },
+    });
+
+    return relations;
+  }
 }
