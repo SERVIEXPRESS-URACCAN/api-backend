@@ -1,3 +1,4 @@
+import { CategoriesBusiness } from 'src/module/categories-business/entities/categories-business.entity';
 import { Owner } from 'src/module/owner/entities/owner.entity';
 import {
   Column,
@@ -5,6 +6,8 @@ import {
   DeleteDateColumn,
   Entity,
   JoinColumn,
+  JoinTable,
+  ManyToMany,
   OneToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
@@ -30,9 +33,21 @@ export class Business {
   @Column({ type: 'varchar', nullable: false })
   phone?: string;
 
+  @Column({ type: 'varchar', nullable: true })
+  logoImage?: string;
+
+  @Column({ type: 'varchar', nullable: true })
+  bannerImage?: string;
+
   @OneToOne(() => Owner, { eager: true })
   @JoinColumn({ name: 'owner_id', referencedColumnName: 'id' })
   owner: Owner;
+
+  @ManyToMany(() => CategoriesBusiness, (category) => category.businesses, {
+    eager: true,
+  })
+  @JoinTable()
+  categories: CategoriesBusiness[];
 
   @CreateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   createdAt: Date;

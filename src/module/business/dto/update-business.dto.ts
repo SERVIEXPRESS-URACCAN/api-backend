@@ -38,6 +38,14 @@ export class UpdateBusinessDto {
   phone?: string;
 
   @IsOptional()
+  @IsString()
+  logoImage?: string;
+
+  @IsOptional()
+  @IsString()
+  bannerImage?: string;
+
+  @IsOptional()
   @IsArray()
   @IsNumber({}, { each: true })
   businessCategories?: number[];
