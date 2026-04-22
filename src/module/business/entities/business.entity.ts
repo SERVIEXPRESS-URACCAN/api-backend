@@ -1,13 +1,10 @@
-import { CategoriesBusiness } from 'src/module/categories-business/entities/categories-business.entity';
-import { User } from 'src/module/users/entities/user.entity';
+import { Owner } from 'src/module/owner/entities/owner.entity';
 import {
   Column,
   CreateDateColumn,
   DeleteDateColumn,
   Entity,
   JoinColumn,
-  JoinTable,
-  ManyToMany,
   OneToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
@@ -21,30 +18,21 @@ export class Business {
   @Column({ type: 'varchar', length: 50, nullable: false })
   name: string;
 
-  @Column({ type: 'varchar' })
-  description: string;
+  @Column({ type: 'varchar', nullable: true })
+  description?: string;
 
   @Column({ type: 'int4', nullable: false })
   city: number;
 
-  @ManyToMany(() => CategoriesBusiness, (category) => category.businesses)
-  @JoinTable()
-  businessCategories: CategoriesBusiness[];
+  @Column({ type: 'varchar', nullable: true })
+  address?: string;
 
   @Column({ type: 'varchar', nullable: false })
-  address: string;
+  phone?: string;
 
-  @Column({ type: 'varchar', nullable: false })
-  phone: string;
-
-  @OneToOne(() => User, { eager: true })
-  @JoinColumn({ name: 'user_id', referencedColumnName: 'id' })
-  user: User;
-  // days_open: string;
-  // opening_time: string;
-  // closing_time: string;
-  // logo_image: string;
-  // banner_image: string;
+  @OneToOne(() => Owner, { eager: true })
+  @JoinColumn({ name: 'owner_id', referencedColumnName: 'id' })
+  owner: Owner;
 
   @CreateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   createdAt: Date;
