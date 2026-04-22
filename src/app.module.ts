@@ -6,13 +6,14 @@ import { AppService } from './app.service';
 import { AuthModule } from './module/auth/auth.module';
 import { CategoriesBusinessModule } from './module/categories-business/categories-business.module';
 import { CategoriesProductsModule } from './module/categories-products/categories-products.module';
+import { CityModule } from './module/city/city.module';
 import { GenderModule } from './module/gender/gender.module';
 import { MandaderoModule } from './module/mandadero/mandadero.module';
 import { MotorcyclesModule } from './module/motorcycles/motorcycles.module';
 import { OwnerModule } from './module/owner/owner.module';
+import { ProfileModule } from './module/profie/profile.module';
 import { RolesModule } from './module/roles/roles.module';
 import { UsersModule } from './module/users/users.module';
-import { ProfileModule } from './module/profie/profile.module';
 
 @Module({
   imports: [
@@ -47,6 +48,7 @@ import { ProfileModule } from './module/profie/profile.module';
     MandaderoModule,
     MotorcyclesModule,
     OwnerModule,
+    CityModule,
   ],
   controllers: [AppController],
   providers: [AppService],
