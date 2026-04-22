@@ -10,14 +10,13 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Motorcycle } from '../entities/motorcycle.entity';
 import { Mandadero } from 'src/module/mandadero/entities/mandadero.entity';
-import * as fs from 'fs';
-import * as path from 'path';
 
-type UploadedFile = {
-  path: string;
-  mimetype: string;
-  size: number;
-};
+import { UploadedFile } from '../helper/validationFiles.helper';
+import { validateFile } from '../helper/validationFiles.helper';
+import { updateImage } from '../helper/updateImage.helper';
+import { deleteFile } from '../helper/removeOldImage.helper';
+import { ApprovalStatus } from 'src/common/enum/approval-status.enum';
+
 @Injectable()
 export class MotorcyclesService {
   constructor(
@@ -31,6 +30,21 @@ export class MotorcyclesService {
     if (condition) {
       throw new ConflictException(message);
     }
+  }
+
+  private revalidationDocuments(
+    update?: UpdateMotorcycleDto,
+    files?: {
+      circulationImage?: UploadedFile[];
+      insuranceImage?: UploadedFile[];
+    },
+  ): boolean {
+    return Boolean(
+      update?.circulationImage ||
+      update?.insuranceImage ||
+      (files?.circulationImage?.length ?? 0) > 0 ||
+      (files?.insuranceImage?.length ?? 0) > 0,
+    );
   }
 
   async create(createDto: CreateMotorcycleDto) {
@@ -47,12 +61,14 @@ export class MotorcyclesService {
 
     const licenseExists = await this.motorcycleRepository.findOne({
       where: { licensePlate: data.licensePlate },
+      withDeleted: false,
     });
     this.existing(!!licenseExists, 'License plate already registered');
 
     const motorcycle = this.motorcycleRepository.create({
       ...data,
       mandadero,
+      status: ApprovalStatus.PENDING,
     });
     return this.motorcycleRepository.save(motorcycle);
   }
@@ -74,16 +90,56 @@ export class MotorcyclesService {
 
   async update(id: number, update: UpdateMotorcycleDto) {
     const motorcycle = await this.findOne(id);
+
+    if (update.licensePlate) {
+      const exists = await this.motorcycleRepository.findOne({
+        where: { licensePlate: update.licensePlate },
+        withDeleted: false,
+      });
+      if (exists && exists.id !== id) {
+        throw new ConflictException('License plate already registered');
+      }
+    }
+
+    if (this.revalidationDocuments(update)) {
+      motorcycle.status = ApprovalStatus.PENDING;
+    }
+
     Object.assign(motorcycle, update);
     return await this.motorcycleRepository.save(motorcycle);
   }
 
   async remove(id: number) {
-    const result = await this.motorcycleRepository.delete(id);
+    const motorcycle = await this.findOne(id);
+
+    deleteFile(motorcycle.circulationImage);
+    deleteFile(motorcycle.insuranceImage);
+
+    const result = await this.motorcycleRepository.softDelete(id);
+
     if (result.affected === 0) {
       throw new NotFoundException('Motorcycle not found');
     }
     return { message: 'Motorcycle removed successfully' };
+  }
+
+  async restore(id: number) {
+    const motorcycle = await this.motorcycleRepository.findOne({
+      where: { id },
+      withDeleted: true,
+    });
+
+    if (!motorcycle) {
+      throw new NotFoundException('Motorcycle not found');
+    }
+
+    if (!motorcycle.deletedAt) {
+      throw new BadRequestException('Motorcycle is not deleted');
+    }
+
+    await this.motorcycleRepository.restore(id);
+
+    return { message: 'Motorcycle restored successfully' };
   }
 
   async createWithFiles(
@@ -101,6 +157,10 @@ export class MotorcyclesService {
         'Circulation and insurance images are required',
       );
     }
+
+    validateFile(circulation, 'Circulation image');
+    validateFile(insurance, 'Insurance image');
+
     return this.create({
       ...body,
       circulationImage: circulation.path,
@@ -117,57 +177,29 @@ export class MotorcyclesService {
     },
   ) {
     const motorcycle = await this.findOne(id);
+
     const circulation = files?.circulationImage?.[0];
     const insurance = files?.insuranceImage?.[0];
 
-    const maxSize = 3 * 1024 * 1024;
-    const allowdTypes = ['image/jpeg', 'image/png', 'image/jpg'];
-
-    if (circulation && circulation.size > maxSize) {
-      throw new BadRequestException(
-        'Circulation image exceeds the maximum size of 3MB',
-      );
+    if (circulation) {
+      validateFile(circulation, 'Circulation image');
     }
-    if (insurance && insurance.size > maxSize) {
-      throw new BadRequestException(
-        'Insurance image exceeds the maximum size of 3MB',
-      );
+    if (insurance) {
+      validateFile(insurance, 'Insurance image');
     }
 
-    if (
-      (circulation &&
-        circulation.mimetype &&
-        !allowdTypes.includes(circulation.mimetype)) ||
-      (insurance &&
-        insurance.mimetype &&
-        !allowdTypes.includes(insurance.mimetype))
-    ) {
-      throw new BadRequestException(
-        'Only JPEG, PNG, and JPG files are allowed',
-      );
+    motorcycle.circulationImage = updateImage(
+      circulation,
+      motorcycle.circulationImage,
+    );
+    motorcycle.insuranceImage = updateImage(
+      insurance,
+      motorcycle.insuranceImage,
+    );
+
+    if (this.revalidationDocuments(body, files)) {
+      motorcycle.status = ApprovalStatus.PENDING;
     }
-
-    if (circulation?.path && motorcycle.circulationImage) {
-      const oldCirculation = path.join(
-        process.cwd(),
-        motorcycle.circulationImage,
-      );
-
-      if (fs.existsSync(oldCirculation)) {
-        fs.unlinkSync(oldCirculation);
-      }
-      motorcycle.circulationImage = circulation.path;
-    }
-
-    if (insurance?.path && motorcycle.insuranceImage) {
-      const oldInsurance = path.join(process.cwd(), motorcycle.insuranceImage);
-
-      if (fs.existsSync(oldInsurance)) {
-        fs.unlinkSync(oldInsurance);
-      }
-      motorcycle.insuranceImage = insurance.path;
-    }
-
     Object.assign(motorcycle, body);
 
     return this.motorcycleRepository.save(motorcycle);
