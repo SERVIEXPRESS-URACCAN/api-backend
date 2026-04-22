@@ -9,7 +9,10 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { User } from 'src/module/users/entities/user.entity';
 import { DataSource, QueryFailedError, Repository } from 'typeorm';
-import { CreateOwnerDto, Owner, UpdateOwnerDto, validateImage } from '../';
+import { CreateOwnerDto } from '../dto/create-owner.dto';
+import { UpdateOwnerDto } from '../dto/update-owner.dto';
+import { Owner } from '../entities/owner.entity';
+import { validateImage } from '../helper/file.helper';
 import { processImage } from '../helper/owner-file.helper';
 
 @Injectable()

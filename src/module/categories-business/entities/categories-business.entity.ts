@@ -1,8 +1,10 @@
+import { Business } from 'src/module/business/entities/business.entity';
 import {
   Column,
   CreateDateColumn,
   DeleteDateColumn,
   Entity,
+  ManyToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
@@ -14,6 +16,9 @@ export class CategoriesBusiness {
 
   @Column({ type: 'varchar', length: 50, nullable: false, unique: true })
   name: string;
+
+  @ManyToMany(() => CategoriesBusiness, (category) => category.businesses)
+  businesses: Business[];
 
   @CreateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   createdAt: Date;
