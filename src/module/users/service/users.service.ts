@@ -208,6 +208,13 @@ export class UsersService {
   async findOne(id: number): Promise<User> {
     const user = await this.userRepository.findOne({
       where: { id },
+      relations: [
+        'userRoles',
+        'userRoles.role',
+        'owner',
+        'mandadero',
+        'profile',
+      ],
     });
 
     if (!user) {
