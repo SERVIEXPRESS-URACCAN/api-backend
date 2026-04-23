@@ -14,6 +14,8 @@ import { Profile } from 'src/module/profie/entities/profile.entity';
 import { Owner } from 'src/module/owner/entities/owner.entity';
 import { Mandadero } from 'src/module/mandadero/entities/mandadero.entity';
 import { Motorcycle } from 'src/module/motorcycles/entities/motorcycle.entity';
+import { UserRole } from 'src/module/user-roles/entities/user-roles.entity';
+import { Business } from 'src/module/business/entities/business.entity';
 
 @Injectable()
 export class UsersService {
@@ -31,7 +33,7 @@ export class UsersService {
     return this.userRepository.findOne({
       where: { email },
       withDeleted,
-      relations: ['role'],
+      relations: ['userRoles', 'userRoles.role'],
     });
   }
 
@@ -54,15 +56,36 @@ export class UsersService {
       throw new NotFoundException('Role not found');
     }
 
-    const user = this.userRepository.create({
-      email,
-      password: hashedPassword,
-      role,
-    });
+    const queryRunner = this.dataSource.createQueryRunner();
 
-    return this.userRepository.save(user);
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      const user = queryRunner.manager.create(User, {
+        email,
+        password: hashedPassword,
+      });
+
+      const savedUser = await queryRunner.manager.save(user);
+
+      const userRole = queryRunner.manager.create(UserRole, {
+        user: savedUser,
+        role,
+      });
+
+      await queryRunner.manager.save(userRole);
+
+      await queryRunner.commitTransaction();
+
+      return savedUser;
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
   }
-
   async restoreUserGraph(userId: number, newPassword: string) {
     const queryRunner = this.dataSource.createQueryRunner();
 
@@ -81,6 +104,20 @@ export class UsersService {
       await queryRunner.manager.restore(Owner, {
         user: { id: userId },
       });
+
+      const owners = await queryRunner.manager.find(Owner, {
+        where: { user: { id: userId } },
+        withDeleted: true,
+        select: ['id'],
+      });
+
+      const ownersId = owners.map((m) => m.id);
+
+      if (ownersId.length > 0) {
+        await queryRunner.manager.restore(Owner, {
+          id: In(ownersId),
+        });
+      }
 
       await queryRunner.manager.restore(Mandadero, {
         user: { id: userId },
@@ -129,10 +166,22 @@ export class UsersService {
         user: { id: userId },
       });
 
+      const owners = await queryRunner.manager.find(Owner, {
+        where: { user: { id: userId } },
+        select: ['id'],
+      });
+
+      const ownerIds = owners.map((o) => o.id);
+
+      if (ownerIds.length > 0) {
+        await queryRunner.manager.softDelete(Business, {
+          owner: In(ownerIds),
+        });
+      }
+
       await queryRunner.manager.softDelete(Owner, {
         user: { id: userId },
       });
-
       const mandaderos = await queryRunner.manager.find(Mandadero, {
         where: { user: { id: userId } },
         select: ['id'],
@@ -186,6 +235,13 @@ export class UsersService {
   async findOne(id: number): Promise<User> {
     const user = await this.userRepository.findOne({
       where: { id },
+      relations: [
+        'userRoles',
+        'userRoles.role',
+        'owner',
+        'mandadero',
+        'profile',
+      ],
     });
 
     if (!user) {
