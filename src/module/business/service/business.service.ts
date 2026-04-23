@@ -7,10 +7,17 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import * as fs from 'fs';
 import * as path from 'path';
+import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { CategoriesBusiness } from 'src/module/categories-business/entities/categories-business.entity';
 import { City } from 'src/module/city/entities/city.entity';
 import { Owner } from 'src/module/owner/entities/owner.entity';
-import { DataSource, In, QueryFailedError, Repository } from 'typeorm';
+import {
+  DataSource,
+  FindOptionsWhere,
+  In,
+  QueryFailedError,
+  Repository,
+} from 'typeorm';
 import { CreateBusinessDto } from '../dto/create-business.dto';
 import { UpdateBusinessDto } from '../dto/update-business.dto';
 import { Business } from '../entities/business.entity';
@@ -29,17 +36,40 @@ export class BusinessService {
 
     @InjectRepository(Owner)
     private readonly ownerRepository: Repository<Owner>,
-
-    @InjectRepository(City)
-    private readonly cityRepository: Repository<City>,
-    @InjectRepository(CategoriesBusiness)
-    private readonly categoriesRepository: Repository<CategoriesBusiness>,
   ) {}
 
-  findAll() {
-    return this.businessRepository.find({
+  async findAll(paginationDto: PaginationDto, cityId?: number) {
+    const { page = 1, limit = 10 } = paginationDto;
+
+    const safeLimit = Math.min(limit, 50);
+
+    const where: FindOptionsWhere<Business> = {};
+
+    if (cityId) {
+      where.city = { id: cityId };
+    }
+
+    const [data, total] = await this.businessRepository.findAndCount({
+      where,
       relations: ['owner', 'categories', 'city'],
+      skip: (page - 1) * safeLimit,
+      take: safeLimit,
+      order: {
+        createdAt: 'DESC',
+      },
     });
+
+    const lastPage = Math.ceil(total / safeLimit);
+
+    return {
+      data,
+      meta: {
+        total,
+        page,
+        lastPage,
+        hasNextPage: page < lastPage,
+      },
+    };
   }
 
   async findOne(id: number) {
