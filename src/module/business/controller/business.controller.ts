@@ -7,11 +7,13 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  Query,
   UploadedFiles,
   UseInterceptors,
 } from '@nestjs/common';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
 
+import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { CreateBusinessDto } from '../dto/create-business.dto';
 import { UpdateBusinessDto } from '../dto/update-business.dto';
 import { BusinessService } from '../service/business.service';
@@ -31,11 +33,14 @@ export class BusinessController {
   }
 
   @Get()
-  async findAll() {
-    const data = await this.businessService.findAll();
+  async findAll(
+    @Query() paginationDto: PaginationDto,
+    @Query('city') city?: number,
+  ) {
+    const data = await this.businessService.findAll(paginationDto, city);
 
     return {
-      data,
+      ...data,
       message: 'Listado de negocios',
     };
   }
