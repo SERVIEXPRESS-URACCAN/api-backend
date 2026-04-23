@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  ParseIntPipe,
+  Post,
+} from '@nestjs/common';
 import { AssignRoleDto } from '../dto/user-roles.dto';
 import { UserRolesService } from '../service/user-roles.service';
 
@@ -17,5 +25,17 @@ export class UserRolesController {
   @Get()
   findAll() {
     return this.userRolesService.findAll();
+  }
+
+  @Delete(':userId/:roleId')
+  async removeRole(
+    @Param('userId', ParseIntPipe) userId: number,
+    @Param('roleId', ParseIntPipe) roleId: number,
+  ) {
+    return this.userRolesService.removeRole({ userId, roleId });
+  }
+  @Get(':userId')
+  async getRolesByUser(@Param('userId', ParseIntPipe) userId: number) {
+    return this.userRolesService.getRolesByUser(userId);
   }
 }
