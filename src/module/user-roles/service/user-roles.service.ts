@@ -93,4 +93,45 @@ export class UserRolesService {
 
     return relations;
   }
+  async removeRole(dto: AssignRoleDto) {
+    const queryRunner = this.dataSource.createQueryRunner();
+
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      const relation = await queryRunner.manager.findOne(UserRole, {
+        where: {
+          user: { id: dto.userId },
+          role: { id: dto.roleId },
+        },
+      });
+
+      if (!relation) {
+        throw new NotFoundException('El usuario no tiene este rol');
+      }
+
+      await queryRunner.manager.softDelete(UserRole, relation.id);
+
+      await queryRunner.commitTransaction();
+
+      return { message: 'Rol eliminado correctamente' };
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
+  async getRolesByUser(userId: number) {
+    const relations = await this.dataSource.getRepository(UserRole).find({
+      where: {
+        user: { id: userId },
+      },
+      relations: ['role'],
+    });
+
+    return relations.map((r) => r.role);
+  }
 }
