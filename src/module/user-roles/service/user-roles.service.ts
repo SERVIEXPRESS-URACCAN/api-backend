@@ -108,7 +108,7 @@ export class UserRolesService {
       });
 
       if (!relation) {
-        throw new NotFoundException('El usuario no tiene este rol');
+        throw new BadRequestException('El usuario no tiene este rol');
       }
 
       await queryRunner.manager.softDelete(UserRole, relation.id);
