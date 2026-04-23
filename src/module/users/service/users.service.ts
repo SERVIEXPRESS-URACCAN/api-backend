@@ -36,7 +36,12 @@ export class UsersService {
       relations: ['userRoles', 'userRoles.role'],
     });
   }
-
+  async findOneWithRoles(id: number) {
+    return this.userRepository.findOne({
+      where: { id },
+      relations: ['userRoles', 'userRoles.role'],
+    });
+  }
   async create(createUserDto: CreateUserDto) {
     const { email, password } = createUserDto;
 
