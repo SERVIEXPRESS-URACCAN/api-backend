@@ -10,6 +10,8 @@ import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { Auth } from './decorator/auth.decorator';
+import { GetUser } from './decorator/getUser.decorator';
+import { AuthUser } from './interfaces/auth-user.interface';
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
@@ -25,8 +27,11 @@ export class AuthController {
     return this.authService.register(registerDto);
   }
   @Get('order')
-  @Auth('user')
-  createOrder() {
-    return 'Order created by CLIENTE';
+  @Auth('client')
+  createOrder(@GetUser() user: AuthUser) {
+    return {
+      message: 'Order created successfully',
+      userId: user.id,
+    };
   }
 }
