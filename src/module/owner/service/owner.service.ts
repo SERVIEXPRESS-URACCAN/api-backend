@@ -8,6 +8,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import * as fs from 'fs';
 import * as path from 'path';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
+import { AuthUser } from 'src/module/auth/interfaces/auth-user.interface';
 import { User } from 'src/module/users/entities/user.entity';
 import {
   DataSource,
@@ -27,17 +28,17 @@ export class OwnerService {
     private readonly dataSource: DataSource,
     @InjectRepository(Owner)
     private readonly ownerRepository: Repository<Owner>,
-    @InjectRepository(User)
-    private readonly userRepository: Repository<User>,
   ) {}
 
-  async findAll(paginationDto: PaginationDto) {
+  async findAll(paginationDto: PaginationDto, authUser: AuthUser) {
     const { page = 1, limit = 10 } = paginationDto;
 
     const safePage = Math.max(page, 1);
     const safeLimit = Math.min(Math.max(limit, 1), 50);
 
-    const where: FindOptionsWhere<Owner> = {};
+    const where: FindOptionsWhere<Owner> = {
+      user: { id: authUser.id },
+    };
 
     const [data, total] = await this.ownerRepository.findAndCount({
       where,
@@ -63,9 +64,9 @@ export class OwnerService {
     };
   }
 
-  async findOne(id: number) {
+  async findOne(id: number, authUser: AuthUser) {
     const owner = await this.ownerRepository.findOne({
-      where: { id },
+      where: { id, user: { id: authUser.id } },
       relations: ['user'],
     });
 
@@ -78,6 +79,7 @@ export class OwnerService {
 
   async create(
     createOwnerDto: CreateOwnerDto,
+    authUser: AuthUser,
     files?: {
       identificationCardImage?: Express.Multer.File[];
     },
@@ -95,11 +97,15 @@ export class OwnerService {
 
       validateImage(identificationCardImage, 'identificationCardImage');
 
-      const user = await queryRunner.manager.findOne(User, {
-        where: { id: createOwnerDto.user },
+      const existingOwner = await queryRunner.manager.findOne(Owner, {
+        where: { user: { id: authUser.id } },
       });
 
-      if (!user) throw new NotFoundException('User no existe');
+      if (existingOwner) {
+        throw new BadRequestException('Este usuario ya tiene un owner');
+      }
+
+      const user = { id: authUser.id } as User;
 
       const owner = queryRunner.manager.create(Owner, {
         ...createOwnerDto,
@@ -127,21 +133,14 @@ export class OwnerService {
   async update(
     id: number,
     updateOwnerDto: UpdateOwnerDto,
+    authUser: AuthUser,
     files?: {
       identificationCardImage?: Express.Multer.File[];
     },
   ) {
-    const owner = await this.findOne(id);
+    const owner = await this.findOne(id, authUser);
 
-    const { user, ...rest } = updateOwnerDto;
-
-    this.ownerRepository.merge(owner, rest);
-
-    if (user) {
-      const userEntity = await this.userRepository.findOneBy({ id: user });
-      if (!userEntity) throw new NotFoundException('El usuario no existe');
-      owner.user = userEntity;
-    }
+    this.ownerRepository.merge(owner, updateOwnerDto);
 
     const identificationCardImage = files?.identificationCardImage?.[0];
 
@@ -165,20 +164,16 @@ export class OwnerService {
     }
   }
 
-  async remove(id: number) {
-    const owner = await this.findOne(id);
+  async remove(id: number, authUser: AuthUser) {
+    const owner = await this.findOne(id, authUser);
 
-    const result = await this.ownerRepository.softDelete(id);
-
-    if (result.affected === 0) {
-      throw new NotFoundException('Owner no encontrado');
-    }
+    await this.ownerRepository.softDelete(id);
 
     if (owner.identificationCardImage) {
       this.removeFile(owner.identificationCardImage);
     }
 
-    return { sucess: true };
+    return { success: true };
   }
 
   private removeFile(filename: string) {
