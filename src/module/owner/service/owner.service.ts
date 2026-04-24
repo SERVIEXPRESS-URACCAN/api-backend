@@ -1,14 +1,20 @@
 import {
   BadRequestException,
   Injectable,
-  Logger,
+  InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as fs from 'fs';
 import * as path from 'path';
+import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { User } from 'src/module/users/entities/user.entity';
-import { DataSource, QueryFailedError, Repository } from 'typeorm';
+import {
+  DataSource,
+  FindOptionsWhere,
+  QueryFailedError,
+  Repository,
+} from 'typeorm';
 import { CreateOwnerDto } from '../dto/create-owner.dto';
 import { UpdateOwnerDto } from '../dto/update-owner.dto';
 import { Owner } from '../entities/owner.entity';
@@ -17,7 +23,6 @@ import { processImage } from '../helper/owner-file.helper';
 
 @Injectable()
 export class OwnerService {
-  private readonly logger = new Logger('OwnerService');
   constructor(
     private readonly dataSource: DataSource,
     @InjectRepository(Owner)
@@ -26,10 +31,36 @@ export class OwnerService {
     private readonly userRepository: Repository<User>,
   ) {}
 
-  async findAll() {
-    return await this.ownerRepository.find({
+  async findAll(paginationDto: PaginationDto) {
+    const { page = 1, limit = 10 } = paginationDto;
+
+    const safePage = Math.max(page, 1);
+    const safeLimit = Math.min(Math.max(limit, 1), 50);
+
+    const where: FindOptionsWhere<Owner> = {};
+
+    const [data, total] = await this.ownerRepository.findAndCount({
+      where,
       relations: ['user'],
+      skip: (safePage - 1) * safeLimit,
+      take: safeLimit,
+      order: {
+        createdAt: 'DESC',
+      },
     });
+
+    const lastPage = Math.ceil(total / safeLimit);
+
+    return {
+      data,
+      pagination: {
+        total,
+        page: safePage,
+        limit: safeLimit,
+        lastPage,
+        hasNextPage: safePage < lastPage,
+      },
+    };
   }
 
   async findOne(id: number) {
@@ -147,7 +178,7 @@ export class OwnerService {
       this.removeFile(owner.identificationCardImage);
     }
 
-    return { message: 'Eliminado correctamente' };
+    return { sucess: true };
   }
 
   private removeFile(filename: string) {
@@ -158,7 +189,8 @@ export class OwnerService {
     }
   }
 
-  private handleDBException(error: unknown): never {
+  private handleDBException(error: unknown) {
+    console.log(error);
     if (error instanceof QueryFailedError) {
       const err = error as QueryFailedError & {
         driverError: { code?: string; detail?: string };
@@ -168,7 +200,6 @@ export class OwnerService {
         throw new BadRequestException('Dato duplicado');
       }
     }
-    this.logger.error(error);
-    throw new BadRequestException('Error en la base de datos');
+    throw new InternalServerErrorException('Error en la base de datos');
   }
 }
