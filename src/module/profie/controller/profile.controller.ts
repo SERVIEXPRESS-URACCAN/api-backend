@@ -7,7 +7,7 @@ import {
   ParseIntPipe,
   Patch,
 } from '@nestjs/common';
-import { CreateProfileDto } from '../dto/profile.dto';
+import { CreateProfileAdminDto } from '../dto/profile.dto';
 import { ProfileService } from '../service/profile.service';
 import { UpdateProfileDto } from '../dto/update-profile.dto';
 
@@ -16,7 +16,7 @@ export class ProfileController {
   constructor(private readonly profileService: ProfileService) {}
 
   @Post()
-  create(@Body() dto: CreateProfileDto) {
+  create(@Body() dto: CreateProfileAdminDto) {
     return this.profileService.create(dto);
   }
 
