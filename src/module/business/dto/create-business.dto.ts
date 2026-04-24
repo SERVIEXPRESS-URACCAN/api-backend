@@ -1,11 +1,4 @@
-import { Transform } from 'class-transformer';
-import {
-  IsNotEmpty,
-  IsNumber,
-  IsOptional,
-  IsPhoneNumber,
-  IsString,
-} from 'class-validator';
+import { IsNotEmpty, IsNumber, IsPhoneNumber, IsString } from 'class-validator';
 
 export class CreateBusinessDto {
   @IsString()
@@ -13,16 +6,10 @@ export class CreateBusinessDto {
   name: string;
 
   @IsNumber()
-  @IsOptional()
-  city?: number;
-
   @IsNotEmpty()
-  @IsString()
+  city: number;
+
   @IsPhoneNumber('NI')
-  @Transform(({ value }: { value: string }) => {
-    if (value.startsWith('+505')) return value;
-    return `+505${value}`;
-  })
   phone: string;
 
   @IsNotEmpty()

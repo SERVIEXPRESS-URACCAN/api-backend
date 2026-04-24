@@ -5,9 +5,6 @@ export function validateImage(
   field: string,
 ) {
   if (!file) return;
-  if (!file.mimetype.startsWith('image/')) {
-    throw new BadRequestException('el archivo no es imagen');
-  }
 
   if (file.size > 2 * 1024 * 1024) {
     throw new BadRequestException('La imagen muy pesada');
