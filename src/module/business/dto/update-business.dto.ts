@@ -1,3 +1,4 @@
+import { Type } from 'class-transformer';
 import {
   IsArray,
   IsNotEmpty,
@@ -13,6 +14,7 @@ export class UpdateBusinessDto {
   @IsNotEmpty()
   name?: string;
 
+  @Type(() => Number)
   @IsOptional()
   @IsNumber()
   city?: number;
@@ -30,14 +32,6 @@ export class UpdateBusinessDto {
   @IsOptional()
   @IsPhoneNumber('NI')
   phone?: string;
-
-  @IsOptional()
-  @IsString()
-  logoImage?: string;
-
-  @IsOptional()
-  @IsString()
-  bannerImage?: string;
 
   @IsOptional()
   @IsArray()
