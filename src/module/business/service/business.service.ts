@@ -1,33 +1,26 @@
 import {
   BadRequestException,
   Injectable,
-  Logger,
+  InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import * as fs from 'fs';
-import * as path from 'path';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
-import { CategoriesBusiness } from 'src/module/categories-business/entities/categories-business.entity';
-import { City } from 'src/module/city/entities/city.entity';
 import { Owner } from 'src/module/owner/entities/owner.entity';
 import {
   DataSource,
   FindOptionsWhere,
-  In,
   QueryFailedError,
   Repository,
 } from 'typeorm';
 import { CreateBusinessDto } from '../dto/create-business.dto';
 import { UpdateBusinessDto } from '../dto/update-business.dto';
 import { Business } from '../entities/business.entity';
-import { processImage } from '../helper/business-file.helper';
-import { validateImage } from '../helper/file.helper';
 import { formatPhone } from '../helper/phone.helper';
-
+import { BusinessImageService } from './business-image.service';
+import { BusinessRelationsService } from './business-relations.service';
 @Injectable()
 export class BusinessService {
-  private readonly logger = new Logger('BusinessService');
   constructor(
     private readonly dataSource: DataSource,
 
@@ -36,23 +29,28 @@ export class BusinessService {
 
     @InjectRepository(Owner)
     private readonly ownerRepository: Repository<Owner>,
+
+    private readonly businessImageService: BusinessImageService,
+
+    private readonly businessRelationsService: BusinessRelationsService,
   ) {}
 
   async findAll(paginationDto: PaginationDto, cityId?: number) {
     const { page = 1, limit = 10 } = paginationDto;
 
-    const safeLimit = Math.min(limit, 50);
+    const safePage = Math.max(page, 1);
+    const safeLimit = Math.min(Math.max(limit, 1), 50);
 
     const where: FindOptionsWhere<Business> = {};
 
-    if (cityId) {
+    if (cityId !== undefined) {
       where.city = { id: cityId };
     }
 
     const [data, total] = await this.businessRepository.findAndCount({
       where,
       relations: ['owner', 'categories', 'city'],
-      skip: (page - 1) * safeLimit,
+      skip: (safePage - 1) * safeLimit,
       take: safeLimit,
       order: {
         createdAt: 'DESC',
@@ -65,9 +63,9 @@ export class BusinessService {
       data,
       meta: {
         total,
-        page,
+        page: safePage,
         lastPage,
-        hasNextPage: page < lastPage,
+        hasNextPage: safePage < lastPage,
       },
     };
   }
@@ -93,14 +91,10 @@ export class BusinessService {
     try {
       const { city: cityId, phone, ...rest } = createBusinessDto;
 
-      const city = await queryRunner.manager.findOne(City, {
-        where: { id: cityId },
-      });
-
-      if (!city) {
-        throw new NotFoundException('Ciudad no existe');
-      }
-
+      const city = await this.businessRelationsService.getCity(
+        queryRunner.manager,
+        cityId,
+      );
       const business = queryRunner.manager.create(Business, {
         ...rest,
         city,
@@ -149,34 +143,17 @@ export class BusinessService {
         ...rest
       } = updateBusinessDto;
 
-      if (businessCategories) {
-        const uniqueCategories = [...new Set(businessCategories)];
+      await this.businessRelationsService.handleCategories(
+        queryRunner.manager,
+        business,
+        businessCategories,
+      );
 
-        const categories = await queryRunner.manager.findBy(
-          CategoriesBusiness,
-          {
-            id: In(uniqueCategories),
-          },
-        );
-
-        if (categories.length !== uniqueCategories.length) {
-          throw new NotFoundException('Algunas categorías no existen');
-        }
-
-        business.categories = categories;
-      }
-
-      if (cityId) {
-        const city = await queryRunner.manager.findOne(City, {
-          where: { id: cityId },
-        });
-
-        if (!city) {
-          throw new NotFoundException('Ciudad no existe');
-        }
-
-        business.city = city;
-      }
+      await this.businessRelationsService.handleCity(
+        queryRunner.manager,
+        business,
+        cityId,
+      );
 
       if (phone) {
         business.phone = formatPhone(phone);
@@ -184,25 +161,7 @@ export class BusinessService {
 
       queryRunner.manager.merge(Business, business, rest);
 
-      const logoImage = files?.logoImage?.[0];
-      const bannerImage = files?.bannerImage?.[0];
-
-      if (logoImage) validateImage(logoImage, 'logoImage');
-      if (bannerImage) validateImage(bannerImage, 'bannerImage');
-
-      processImage(
-        business,
-        logoImage,
-        'logoImage',
-        this.removeFile.bind(this),
-      );
-
-      processImage(
-        business,
-        bannerImage,
-        'bannerImage',
-        this.removeFile.bind(this),
-      );
+      this.businessImageService.handleImages(business, files);
 
       const saved = await queryRunner.manager.save(business);
 
@@ -212,11 +171,7 @@ export class BusinessService {
     } catch (error) {
       await queryRunner.rollbackTransaction();
 
-      const logoImage = files?.logoImage?.[0];
-      const bannerImage = files?.bannerImage?.[0];
-
-      if (logoImage) this.removeFile(logoImage.filename);
-      if (bannerImage) this.removeFile(bannerImage.filename);
+      this.businessImageService.cleanupOnError(files);
 
       this.handleDBException(error);
     } finally {
@@ -227,32 +182,14 @@ export class BusinessService {
   async remove(id: number) {
     const business = await this.findOne(id);
 
-    const result = await this.businessRepository.softDelete(id);
+    await this.businessRepository.softDelete(id);
 
-    if (result.affected === 0) {
-      throw new NotFoundException('Negocio no encontrado');
-    }
+    this.businessImageService.removeBusinessImages(business);
 
-    if (business.logoImage) {
-      this.removeFile(business.logoImage);
-    }
-
-    if (business.bannerImage) {
-      this.removeFile(business.bannerImage);
-    }
-
-    return { message: 'Eliminado correctamente' };
+    return { success: true };
   }
 
-  private removeFile(filename: string) {
-    const filePath = path.join('./uploads/business', filename);
-
-    if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath);
-    }
-  }
-
-  private handleDBException(error: unknown): never {
+  private handleDBException(error: unknown) {
     if (error instanceof QueryFailedError) {
       const err = error as QueryFailedError & {
         driverError: { code?: string; detail?: string };
@@ -262,7 +199,6 @@ export class BusinessService {
         throw new BadRequestException('Dato duplicado');
       }
     }
-    this.logger.error(error);
-    throw new BadRequestException('Error en la base de datos');
+    throw new InternalServerErrorException('Error en el servidor');
   }
 }
