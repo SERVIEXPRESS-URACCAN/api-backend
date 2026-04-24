@@ -7,12 +7,14 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  Query,
   UploadedFiles,
   UseInterceptors,
 } from '@nestjs/common';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
+import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { CreateOwnerDto } from '../dto/create-owner.dto';
 import { UpdateOwnerDto } from '../dto/update-owner.dto';
 import { OwnerService } from '../service/owner.service';
@@ -45,14 +47,18 @@ export class OwnerController {
     const owner = await this.ownerService.create(createOwnerDto, files);
 
     return {
+      success: true,
       data: owner,
-      message: 'Owner creado con exito',
     };
   }
 
   @Get()
-  findAll() {
-    return this.ownerService.findAll();
+  async findAll(@Query() paginationDto: PaginationDto) {
+    const data = await this.ownerService.findAll(paginationDto);
+
+    return {
+      ...data,
+    };
   }
 
   @Get(':id')
