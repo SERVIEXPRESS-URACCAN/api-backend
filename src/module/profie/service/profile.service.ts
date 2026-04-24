@@ -1,5 +1,5 @@
 import { Gender } from 'src/module/gender/entities/gender.entity';
-import { CreateProfileDto } from '../dto/profile.dto';
+import { CreateProfileAdminDto } from '../dto/profile.dto';
 import { User } from 'src/module/users/entities/user.entity';
 import {
   BadRequestException,
@@ -14,7 +14,7 @@ import { UpdateProfileDto } from '../dto/update-profile.dto';
 export class ProfileService {
   constructor(private readonly dataSource: DataSource) {}
 
-  async create(dto: CreateProfileDto) {
+  async create(dto: CreateProfileAdminDto) {
     const queryRunner = this.dataSource.createQueryRunner();
 
     await queryRunner.connect();
