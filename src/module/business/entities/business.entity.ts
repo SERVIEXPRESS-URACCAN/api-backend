@@ -26,7 +26,7 @@ export class Business {
   @Column({ type: 'varchar', nullable: true })
   description?: string;
 
-  @ManyToOne(() => City, { eager: true })
+  @ManyToOne(() => City)
   @JoinColumn({ name: 'city_id', referencedColumnName: 'id' })
   city: City;
 
