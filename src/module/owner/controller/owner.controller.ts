@@ -9,16 +9,21 @@ import {
   Post,
   Query,
   UploadedFiles,
+  UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
+import { GetUser } from 'src/module/auth/decorator/getUser.decorator';
+import { AuthUser } from 'src/module/auth/interfaces/auth-user.interface';
 import { CreateOwnerDto } from '../dto/create-owner.dto';
 import { UpdateOwnerDto } from '../dto/update-owner.dto';
 import { OwnerService } from '../service/owner.service';
 
+@UseGuards(AuthGuard('jwt'))
 @Controller('owner')
 export class OwnerController {
   constructor(private readonly ownerService: OwnerService) {}
@@ -43,8 +48,9 @@ export class OwnerController {
       identificationCardImage?: Express.Multer.File[];
     },
     @Body() createOwnerDto: CreateOwnerDto,
+    @GetUser() user: AuthUser,
   ) {
-    const owner = await this.ownerService.create(createOwnerDto, files);
+    const owner = await this.ownerService.create(createOwnerDto, user, files);
 
     return {
       success: true,
@@ -53,8 +59,11 @@ export class OwnerController {
   }
 
   @Get()
-  async findAll(@Query() paginationDto: PaginationDto) {
-    const data = await this.ownerService.findAll(paginationDto);
+  async findAll(
+    @Query() paginationDto: PaginationDto,
+    @GetUser() user: AuthUser,
+  ) {
+    const data = await this.ownerService.findAll(paginationDto, user);
 
     return {
       ...data,
@@ -62,8 +71,8 @@ export class OwnerController {
   }
 
   @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.ownerService.findOne(id);
+  findOne(@Param('id', ParseIntPipe) id: number, @GetUser() user: AuthUser) {
+    return this.ownerService.findOne(id, user);
   }
 
   @Patch(':id')
@@ -85,12 +94,13 @@ export class OwnerController {
     @UploadedFiles()
     files: { identificationCardImage?: Express.Multer.File[] },
     @Body() updateOwnerDto: UpdateOwnerDto,
+    @GetUser() user: AuthUser,
   ) {
-    return this.ownerService.update(id, updateOwnerDto, files);
+    return this.ownerService.update(id, updateOwnerDto, user, files);
   }
 
   @Delete(':id')
-  remove(@Param('id', ParseIntPipe) id: number) {
-    return this.ownerService.remove(id);
+  remove(@Param('id', ParseIntPipe) id: number, @GetUser() user: AuthUser) {
+    return this.ownerService.remove(id, user);
   }
 }
