@@ -16,6 +16,8 @@ import { Mandadero } from 'src/module/mandadero/entities/mandadero.entity';
 import { Motorcycle } from 'src/module/motorcycles/entities/motorcycle.entity';
 import { UserRole } from 'src/module/user-roles/entities/user-roles.entity';
 import { Business } from 'src/module/business/entities/business.entity';
+import { RegisterDto } from 'src/module/auth/dto/register.dto';
+import { Gender } from 'src/module/gender/entities/gender.entity';
 
 @Injectable()
 export class UsersService {
@@ -91,20 +93,41 @@ export class UsersService {
       await queryRunner.release();
     }
   }
-  async restoreUserGraph(userId: number, newPassword: string) {
+  async restoreUserGraph(userId: number, dto: RegisterDto) {
     const queryRunner = this.dataSource.createQueryRunner();
 
     await queryRunner.connect();
     await queryRunner.startTransaction();
+    const { profile, password } = dto;
 
     try {
-      const hashedPassword = await bcrypt.hash(newPassword, 10);
+      const hashedPassword = await bcrypt.hash(password, 10);
 
       await queryRunner.manager.restore(User, userId);
 
-      await queryRunner.manager.restore(Profile, {
-        user: { id: userId },
+      const existingProfile = await queryRunner.manager.findOne(Profile, {
+        where: { user: { id: userId } },
+        withDeleted: true,
       });
+
+      const gender = await queryRunner.manager.findOne(Gender, {
+        where: { id: profile.gender_id },
+      });
+
+      if (!gender) {
+        throw new NotFoundException('Gender not found');
+      }
+
+      if (existingProfile) {
+        await queryRunner.manager.restore(Profile, existingProfile.id);
+
+        await queryRunner.manager.update(Profile, existingProfile.id, {
+          name: profile.name,
+          lastName: profile.lastName,
+          cellphone: profile.cellphone,
+          gender,
+        });
+      }
 
       await queryRunner.manager.restore(Owner, {
         user: { id: userId },
@@ -144,8 +167,15 @@ export class UsersService {
       await queryRunner.manager.update(User, userId, {
         password: hashedPassword,
       });
-
       await queryRunner.commitTransaction();
+
+      const userWithRelations = await this.dataSource
+        .getRepository(User)
+        .findOne({
+          where: { id: userId },
+          relations: ['profile', 'userRoles', 'userRoles.role'],
+        });
+      return userWithRelations;
     } catch (error) {
       await queryRunner.rollbackTransaction();
       throw error;
