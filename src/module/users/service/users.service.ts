@@ -167,8 +167,15 @@ export class UsersService {
       await queryRunner.manager.update(User, userId, {
         password: hashedPassword,
       });
-
       await queryRunner.commitTransaction();
+
+      const userWithRelations = await this.dataSource
+        .getRepository(User)
+        .findOne({
+          where: { id: userId },
+          relations: ['profile', 'userRoles', 'userRoles.role'],
+        });
+      return userWithRelations;
     } catch (error) {
       await queryRunner.rollbackTransaction();
       throw error;
