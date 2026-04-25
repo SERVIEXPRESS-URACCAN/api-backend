@@ -79,7 +79,15 @@ export class AuthService {
         await qr.rollbackTransaction();
         await qr.release();
 
-        return this.usersService.restoreUserGraph(existingUser.id, dto);
+        const restoredUser = await this.usersService.restoreUserGraph(
+          existingUser.id,
+          dto,
+        );
+
+        return {
+          message: 'User create successfully',
+          data: restoredUser,
+        };
       }
 
       const hashedPassword = await bcrypt.hash(dto.password, 10);
@@ -97,7 +105,7 @@ export class AuthService {
       });
 
       if (!clientRole) {
-        throw new NotFoundException('Default role CLIENT not found');
+        throw new NotFoundException('Default role not found');
       }
 
       const user = qr.manager.create(User, {
