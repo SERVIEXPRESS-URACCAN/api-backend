@@ -11,6 +11,10 @@ import { DataSource, FindOptionsWhere, Repository } from 'typeorm';
 import { UpdateProfileDto } from '../dto/update-profile.dto';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { InjectRepository } from '@nestjs/typeorm';
+import path from 'path';
+import * as fs from 'fs';
+import { validateImage } from 'src/module/business/helper/file.helper';
+import { processProfileImage } from '../helper/profile-file.helper';
 
 @Injectable()
 export class ProfileService {
@@ -110,8 +114,17 @@ export class ProfileService {
       },
     };
   }
-  async update(id: number, dto: UpdateProfileDto) {
+  private removeFile = (filename: string): void => {
+    const filePath = path.join('./uploads/profile', filename);
+
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+    }
+  };
+  async update(id: number, dto: UpdateProfileDto, file?: Express.Multer.File) {
     const profile = await this.findOne(id);
+
+    this.profileRepository.merge(profile, dto);
 
     if (dto.gender_id) {
       const gender = await this.dataSource.getRepository(Gender).findOne({
@@ -123,11 +136,17 @@ export class ProfileService {
       profile.gender = gender;
     }
 
-    await this.dataSource.getRepository(Profile).save(profile);
+    if (file) {
+      validateImage(file, 'image');
 
-    return {
-      message: 'Profile actualizado correctamente',
-      data: profile,
-    };
+      processProfileImage(profile, file, this.removeFile);
+    }
+
+    try {
+      return await this.profileRepository.save(profile);
+    } catch (error) {
+      if (file) this.removeFile(file.filename);
+      throw error;
+    }
   }
 }
