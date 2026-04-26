@@ -62,8 +62,7 @@ export class CategoriesBusinessService {
         throw new NotFoundException(`categoriesBusiness #${id} not found`);
       }
 
-      await this.categoriesBusinessRepository.softDelete(id);
-      return { message: `categoriesBusiness #${id} deleted successfully` };
+      return this.categoriesBusinessRepository.softDelete(id);
     } catch (error) {
       console.log('Error deleting categoriesBusiness:', error);
       throw error;
