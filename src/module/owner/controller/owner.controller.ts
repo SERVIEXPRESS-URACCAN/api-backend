@@ -73,7 +73,7 @@ export class OwnerController {
   }
 
   @Get(':id')
-  @Auth('owner')
+  @Auth('admin')
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.ownerService.findOne(id);
   }
