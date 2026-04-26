@@ -73,6 +73,18 @@ export class ProfileService {
 
     return profile;
   }
+  async findByUserId(userId: number) {
+    const profile = await this.dataSource.getRepository(Profile).findOne({
+      where: {
+        user: { id: userId },
+      },
+      relations: ['user'],
+    });
+
+    if (!profile) throw new NotFoundException('Profile no encontrado');
+
+    return profile;
+  }
   async findAll() {
     return this.dataSource.getRepository(Profile).find({
       relations: ['user'],
@@ -92,6 +104,36 @@ export class ProfileService {
       profile.gender = gender;
     }
 
-    return { message: 'Profile actualizado correctamente' };
+    await this.dataSource.getRepository(Profile).save(profile);
+
+    return {
+      message: 'Profile actualizado correctamente',
+      data: profile,
+    };
+  }
+  async updateByUserId(userId: number, dto: UpdateProfileDto) {
+    const profile = await this.dataSource.getRepository(Profile).findOne({
+      where: { user: { id: userId } },
+      relations: ['user'],
+    });
+
+    if (!profile) throw new NotFoundException('Profile no encontrado');
+
+    if (dto.gender_id) {
+      const gender = await this.dataSource.getRepository(Gender).findOne({
+        where: { id: dto.gender_id },
+      });
+
+      if (!gender) throw new NotFoundException('Gender no encontrado');
+
+      profile.gender = gender;
+    }
+
+    await this.dataSource.getRepository(Profile).save(profile);
+
+    return {
+      message: 'Perfil actualizado correctamente',
+      data: profile,
+    };
   }
 }
