@@ -10,12 +10,7 @@ import * as path from 'path';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { AuthUser } from 'src/module/auth/interfaces/auth-user.interface';
 import { User } from 'src/module/users/entities/user.entity';
-import {
-  DataSource,
-  FindOptionsWhere,
-  QueryFailedError,
-  Repository,
-} from 'typeorm';
+import { DataSource, QueryFailedError, Repository } from 'typeorm';
 import { CreateOwnerDto } from '../dto/create-owner.dto';
 // import { UpdateOwnerDto } from '../dto/update-owner.dto';
 import { UpdateOwnerDto } from '../dto/update-owner.dto';
@@ -32,18 +27,13 @@ export class OwnerService {
     private readonly ownerRepository: Repository<Owner>,
   ) {}
 
-  async findAll(paginationDto: PaginationDto, authUser: AuthUser) {
+  async findAll(paginationDto: PaginationDto) {
     const { page = 1, limit = 10 } = paginationDto;
 
     const safePage = Math.max(page, 1);
     const safeLimit = Math.min(Math.max(limit, 1), 50);
 
-    const where: FindOptionsWhere<Owner> = {
-      user: { id: authUser.id },
-    };
-
     const [data, total] = await this.ownerRepository.findAndCount({
-      where,
       relations: ['user'],
       skip: (safePage - 1) * safeLimit,
       take: safeLimit,
