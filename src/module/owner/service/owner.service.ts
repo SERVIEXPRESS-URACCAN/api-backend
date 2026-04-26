@@ -17,10 +17,10 @@ import {
   Repository,
 } from 'typeorm';
 import { CreateOwnerDto } from '../dto/create-owner.dto';
-import { UpdateOwnerDto } from '../dto/update-owner.dto';
+// import { UpdateOwnerDto } from '../dto/update-owner.dto';
 import { Owner } from '../entities/owner.entity';
 import { validateImage } from '../helper/file.helper';
-import { processImage } from '../helper/owner-file.helper';
+// import { processImage } from '../helper/owner-file.helper';
 
 @Injectable()
 export class OwnerService {
@@ -64,9 +64,13 @@ export class OwnerService {
     };
   }
 
-  async findOne(id: number, authUser: AuthUser) {
-    const owner = await this.ownerRepository.findOne({
-      where: { id, user: { id: authUser.id } },
+  async findOne(userId: number) {
+    const owner = await this.dataSource.getRepository(Owner).findOne({
+      where: {
+        user: {
+          id: userId,
+        },
+      },
       relations: ['user'],
     });
 
@@ -91,9 +95,9 @@ export class OwnerService {
     const identificationCardImage = files?.identificationCardImage?.[0];
 
     try {
-      if (!identificationCardImage) {
-        throw new BadRequestException('La imagen de la cédula es obligatoria');
-      }
+      // if (!identificationCardImage) {
+      //   throw new BadRequestException('La imagen de la cédula es obligatoria');
+      // }
 
       validateImage(identificationCardImage, 'identificationCardImage');
 
@@ -110,7 +114,7 @@ export class OwnerService {
       const owner = queryRunner.manager.create(Owner, {
         ...createOwnerDto,
         user,
-        identificationCardImage: identificationCardImage.filename,
+        // identificationCardImage: identificationCardImage.filename,
       });
 
       const saved = await queryRunner.manager.save(owner);
@@ -130,39 +134,38 @@ export class OwnerService {
     }
   }
 
-  async update(
-    id: number,
-    updateOwnerDto: UpdateOwnerDto,
-    authUser: AuthUser,
-    files?: {
-      identificationCardImage?: Express.Multer.File[];
-    },
-  ) {
-    const owner = await this.findOne(id, authUser);
+  // async update(
+  //   id: number,
+  //   updateOwnerDto: UpdateOwnerDto,
+  //   files?: {
+  //     identificationCardImage?: Express.Multer.File[];
+  //   },
+  // ) {
+  //   const owner = await this.findOne(id);
 
-    this.ownerRepository.merge(owner, updateOwnerDto);
+  //   this.ownerRepository.merge(owner, updateOwnerDto);
 
-    const identificationCardImage = files?.identificationCardImage?.[0];
+  //   const identificationCardImage = files?.identificationCardImage?.[0];
 
-    if (identificationCardImage) {
-      validateImage(identificationCardImage, 'identificationCardImage');
-    }
+  //   if (identificationCardImage) {
+  //     validateImage(identificationCardImage, 'identificationCardImage');
+  //   }
 
-    processImage(
-      owner,
-      identificationCardImage,
-      'identificationCardImage',
-      this.removeFile.bind(this),
-    );
+  //   processImage(
+  //     owner,
+  //     identificationCardImage,
+  //     'identificationCardImage',
+  //     this.removeFile.bind(this),
+  //   );
 
-    try {
-      return await this.ownerRepository.save(owner);
-    } catch (error) {
-      if (identificationCardImage)
-        this.removeFile(identificationCardImage.filename);
-      this.handleDBException(error);
-    }
-  }
+  //   try {
+  //     return await this.ownerRepository.save(owner);
+  //   } catch (error) {
+  //     if (identificationCardImage)
+  //       this.removeFile(identificationCardImage.filename);
+  //     this.handleDBException(error);
+  //   }
+  // }
 
   private removeFile(filename: string) {
     const filePath = path.join('./uploads/owners', filename);
