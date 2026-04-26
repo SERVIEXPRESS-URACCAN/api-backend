@@ -4,12 +4,10 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, EntityManager, Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { Mandadero } from '../entities/mandadero.entity';
 import { CreateMandaderoDto } from '../dto/create-mandadero.dto';
 import { User } from 'src/module/users/entities/user.entity';
-import { Roles } from 'src/module/roles/entities/roles.entity';
-import { UserRole } from 'src/module/user-roles/entities/user-roles.entity';
 
 import { validateFile } from 'src/common/helper/validationFiles.helper';
 import { updateImage } from 'src/common/helper/updateImage.helper';
@@ -17,6 +15,8 @@ import { ApprovalStatus } from 'src/common/enum/approval-status.enum';
 import { deleteFile } from 'src/common/helper/removeOldImage.helper';
 import { AuthUser } from 'src/module/auth/interfaces/auth-user.interface';
 import { FilterMandaderoDto } from '../dto/mandadero-filter.dto';
+import { MandaderoStatusService } from './mandadero-status.service';
+import { MandaderoPolicyService } from './mandadero-policy.service';
 
 @Injectable()
 export class MandaderoService {
@@ -24,47 +24,26 @@ export class MandaderoService {
     private readonly dataSource: DataSource,
     @InjectRepository(Mandadero)
     private readonly mandaderoRepository: Repository<Mandadero>,
-    @InjectRepository(User)
-    private readonly userRepository: Repository<User>,
+    private readonly statusService: MandaderoStatusService,
+    private readonly policy: MandaderoPolicyService,
   ) {}
 
-  async updateAvailability(available: boolean, user: AuthUser) {
-    const mandadero = await this.mandaderoRepository.findOne({
-      where: { user: { id: user.id } },
-      relations: ['user'],
-    });
-    if (!mandadero) {
-      throw new NotFoundException('Mandadero not found');
-    }
+  async approve(id: number) {
+    return this.statusService.approve(id);
+  }
+  async reject(id: number) {
+    return this.statusService.reject(id);
+  }
 
-    if (mandadero.user.id !== user.id) {
-      throw new BadRequestException('You are not the owner of this mandadero');
-    }
-
-    if (!mandadero.isActive) {
-      throw new BadRequestException(
-        'Cannot change availability of an inactive mandadero',
-      );
-    }
-    if (mandadero.status !== ApprovalStatus.APPROVED) {
-      throw new BadRequestException('Mandadero is not approved');
-    }
-
-    mandadero.available = available;
-    return this.mandaderoRepository.save(mandadero);
+  async updateMyAvailability(available: boolean, user: AuthUser) {
+    return this.statusService.updateMyAvailability(available, user);
+  }
+  async updateAvailabilityById(id: number, available: boolean) {
+    return this.statusService.updateAvailabilityById(id, available);
   }
 
   async updateActive(id: number, isActive: boolean) {
-    const mandadero = await this.mandaderoRepository.findOne({
-      where: { id },
-      relations: ['user'],
-    });
-    if (!mandadero) {
-      throw new NotFoundException('Mandadero not found');
-    }
-
-    mandadero.isActive = isActive;
-    return this.mandaderoRepository.save(mandadero);
+    return this.statusService.updateActive(id, isActive);
   }
 
   async create(dto: CreateMandaderoDto, file?: Express.Multer.File) {
@@ -170,9 +149,11 @@ export class MandaderoService {
 
     if (!mandadero) throw new NotFoundException('Mandadero not found');
 
-    const isAdmin = user.roles?.includes('admin');
+    const isAdmin = user.roles?.some((role) => role === 'admin');
 
-    if (!isAdmin && mandadero.user.id !== user.id) {
+    const isOwner = mandadero.user.id === user.id;
+
+    if (!isAdmin && !isOwner) {
       throw new BadRequestException('Access denied');
     }
 
@@ -189,16 +170,12 @@ export class MandaderoService {
 
   async updateFile(id: number, file: Express.Multer.File, user: AuthUser) {
     const mandadero = await this.findOne(id, user);
-    if (!mandadero) {
-      throw new NotFoundException('Mandadero not found');
-    }
 
     if (!file) {
       throw new BadRequestException('No file uploaded');
     }
-    if (mandadero.user.id !== user.id) {
-      throw new BadRequestException('You are not the owner of this mandadero');
-    }
+
+    this.policy.validateOwner(mandadero, user.id);
 
     if (mandadero.status === ApprovalStatus.APPROVED) {
       throw new BadRequestException(
@@ -216,54 +193,6 @@ export class MandaderoService {
     return this.mandaderoRepository.save(mandadero);
   }
 
-  async approve(id: number) {
-    const queryRunner = this.dataSource.createQueryRunner();
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
-
-    try {
-      const mandadero = await this.findMandaderoOrFail(id, queryRunner.manager);
-
-      this.validateAprovalStatus(mandadero);
-
-      mandadero.status = ApprovalStatus.APPROVED;
-      mandadero.isActive = true;
-
-      await this.assignMandaderoRole(mandadero, queryRunner.manager);
-
-      await queryRunner.manager.save(mandadero);
-
-      await queryRunner.commitTransaction();
-
-      return { message: 'Mandadero approved successfully and role assigned' };
-    } catch (error) {
-      await queryRunner.rollbackTransaction();
-      throw error;
-    } finally {
-      await queryRunner.release();
-    }
-  }
-
-  async reject(id: number) {
-    const mandadero = await this.mandaderoRepository.findOneBy({ id });
-    if (!mandadero) {
-      throw new NotFoundException('Mandadero not found');
-    }
-    if (mandadero.status === ApprovalStatus.APPROVED) {
-      throw new BadRequestException('Cannot reject an approved mandadero');
-    }
-
-    if (mandadero.status === ApprovalStatus.REJECTED) {
-      throw new BadRequestException('Mandadero is already rejected');
-    }
-
-    mandadero.status = ApprovalStatus.REJECTED;
-    mandadero.isActive = false;
-    mandadero.available = false;
-
-    return this.mandaderoRepository.save(mandadero);
-  }
-
   async findMine(user: AuthUser) {
     const mandadero = await this.mandaderoRepository.findOne({
       where: { user: { id: user.id } },
@@ -278,59 +207,5 @@ export class MandaderoService {
       throw new NotFoundException('Mandadero not found');
     }
     return mandadero;
-  }
-
-  private async findMandaderoOrFail(id: number, manager: EntityManager) {
-    const mandadero = await manager.findOne(Mandadero, {
-      where: { id },
-      relations: [
-        'user',
-        'user.userRoles',
-        'user.userRoles.role',
-        'motorcycle',
-      ],
-    });
-    if (!mandadero) {
-      throw new NotFoundException('Mandadero not found');
-    }
-    return mandadero;
-  }
-
-  private validateAprovalStatus(mandadero: Mandadero) {
-    if (mandadero.status === ApprovalStatus.APPROVED) {
-      throw new BadRequestException('Mnandadero is already approved');
-    }
-    if (mandadero.status === ApprovalStatus.REJECTED) {
-      throw new BadRequestException('Cannot approve a rejected mandadero');
-    }
-    if (!mandadero.motorcycle) {
-      throw new BadRequestException('Motorcycle required before approval');
-    }
-    if (mandadero.motorcycle?.status !== ApprovalStatus.APPROVED) {
-      throw new BadRequestException('Motorcycle must be approved');
-    }
-  }
-
-  private async assignMandaderoRole(
-    mandadero: Mandadero,
-    manager: EntityManager,
-  ) {
-    const role = await manager.findOne(Roles, {
-      where: { name: 'mandadero' },
-    });
-    if (!role) {
-      throw new NotFoundException('Role not found');
-    }
-
-    const alreadyHasRole = mandadero.user.userRoles.some(
-      (ur: UserRole) => ur.role?.name === 'mandadero',
-    );
-    if (!alreadyHasRole) {
-      const userRole = manager.create(UserRole, {
-        user: mandadero.user,
-        role,
-      });
-      await manager.save(userRole);
-    }
   }
 }
