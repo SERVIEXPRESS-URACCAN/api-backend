@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -27,18 +26,18 @@ export class MandaderoController {
   constructor(private readonly mandaderoService: MandaderoService) {}
 
   @Get('me')
-  @Auth('mandadero', 'client')
+  @Auth('mandadero')
   getMyMandadero(@GetUser() user: AuthUser) {
     return this.mandaderoService.findOne(user.id, user);
   }
 
   @Patch('me')
-  @Auth('mandadero', 'client')
-  updateMyMandadero(
+  @Auth('mandadero')
+  updateMyAvailability(
     @GetUser() user: AuthUser,
     @Body() body: { available: boolean },
   ) {
-    return this.mandaderoService.updateAvailability(body.available, user);
+    return this.mandaderoService.updateMyAvailability(body.available, user);
   }
   @Post()
   @Auth('admin', 'client')
@@ -51,19 +50,6 @@ export class MandaderoController {
           cb(null, unique + extname(file.originalname));
         },
       }),
-      limits: { fileSize: 3 * 1024 * 1024 },
-
-      fileFilter: (req, file, cb) => {
-        const allowed = ['image/jpeg', 'image/png', 'image/jpg'];
-
-        if (!allowed.includes(file.mimetype)) {
-          return cb(
-            new BadRequestException('Only JPEG and PNG files are allowed'),
-            false,
-          );
-        }
-        cb(null, true);
-      },
     }),
   )
   create(
@@ -78,9 +64,8 @@ export class MandaderoController {
   updateAvailability(
     @Param('id', ParseIntPipe) id: number,
     @Body() body: { available: boolean },
-    @GetUser() user: AuthUser,
   ) {
-    return this.mandaderoService.updateAvailability(body.available, user);
+    return this.mandaderoService.updateAvailabilityById(id, body.available);
   }
 
   @Patch(':id/activate')
