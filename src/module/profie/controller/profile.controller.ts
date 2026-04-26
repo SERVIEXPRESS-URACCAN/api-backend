@@ -18,7 +18,20 @@ import { AuthUser } from 'src/module/auth/interfaces/auth-user.interface';
 export class ProfileController {
   constructor(private readonly profileService: ProfileService) {}
 
+  @Get('me')
+  @Auth('mandadero', 'owner', 'client')
+  getMyProfile(@GetUser() user: AuthUser) {
+    return this.profileService.findOne(user.id);
+  }
+
+  @Patch('me')
+  @Auth('mandadero', 'owner', 'client')
+  updateMyProfile(@GetUser() user: AuthUser, @Body() dto: UpdateProfileDto) {
+    return this.profileService.update(user.id, dto);
+  }
+
   @Post()
+  @Auth('admin')
   create(@Body() dto: CreateProfileAdminDto) {
     return this.profileService.create(dto);
   }
@@ -39,16 +52,5 @@ export class ProfileController {
   @Auth('admin')
   update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateProfileDto) {
     return this.profileService.update(id, dto);
-  }
-  @Get('me')
-  @Auth('mandadero', 'owner')
-  getMyProfile(@GetUser() user: AuthUser) {
-    return this.profileService.findByUserId(user.id);
-  }
-
-  @Patch('me')
-  @Auth('mandadero', 'owner')
-  updateMyProfile(@GetUser() user: AuthUser, @Body() dto: UpdateProfileDto) {
-    return this.profileService.updateByUserId(user.id, dto);
   }
 }

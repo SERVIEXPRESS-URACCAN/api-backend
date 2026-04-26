@@ -44,6 +44,29 @@ export class UsersService {
       relations: ['userRoles', 'userRoles.role'],
     });
   }
+  async findAll(): Promise<User[]> {
+    return this.userRepository.find();
+  }
+
+  async findOne(id: number): Promise<User> {
+    const user = await this.userRepository.findOne({
+      where: { id },
+      relations: [
+        'userRoles',
+        'userRoles.role',
+        'owner',
+        'mandadero',
+        'profile',
+      ],
+    });
+
+    if (!user) {
+      throw new NotFoundException(`User with id ${id} not found`);
+    }
+
+    return user;
+  }
+
   async create(createUserDto: CreateUserDto) {
     const { email, password } = createUserDto;
 
@@ -261,28 +284,5 @@ export class UsersService {
     Object.assign(user, updateUserDto);
 
     return { message: 'user actualizado correctamente' };
-  }
-
-  async findAll(): Promise<User[]> {
-    return this.userRepository.find();
-  }
-
-  async findOne(id: number): Promise<User> {
-    const user = await this.userRepository.findOne({
-      where: { id },
-      relations: [
-        'userRoles',
-        'userRoles.role',
-        'owner',
-        'mandadero',
-        'profile',
-      ],
-    });
-
-    if (!user) {
-      throw new NotFoundException(`User with id ${id} not found`);
-    }
-
-    return user;
   }
 }
