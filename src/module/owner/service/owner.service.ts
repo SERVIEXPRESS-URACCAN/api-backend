@@ -164,18 +164,6 @@ export class OwnerService {
     }
   }
 
-  async remove(id: number, authUser: AuthUser) {
-    const owner = await this.findOne(id, authUser);
-
-    await this.ownerRepository.softDelete(id);
-
-    if (owner.identificationCardImage) {
-      this.removeFile(owner.identificationCardImage);
-    }
-
-    return { success: true };
-  }
-
   private removeFile(filename: string) {
     const filePath = path.join('./uploads/owners', filename);
 

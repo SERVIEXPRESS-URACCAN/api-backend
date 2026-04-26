@@ -1,7 +1,6 @@
 import {
   Body,
   Controller,
-  Delete,
   Get,
   Param,
   ParseIntPipe,
@@ -97,10 +96,5 @@ export class OwnerController {
     @GetUser() user: AuthUser,
   ) {
     return this.ownerService.update(id, updateOwnerDto, user, files);
-  }
-
-  @Delete(':id')
-  remove(@Param('id', ParseIntPipe) id: number, @GetUser() user: AuthUser) {
-    return this.ownerService.remove(id, user);
   }
 }
