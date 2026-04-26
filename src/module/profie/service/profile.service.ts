@@ -11,7 +11,7 @@ import { DataSource, FindOptionsWhere, Repository } from 'typeorm';
 import { UpdateProfileDto } from '../dto/update-profile.dto';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { InjectRepository } from '@nestjs/typeorm';
-import path from 'path';
+import * as path from 'path';
 import * as fs from 'fs';
 import { validateImage } from 'src/module/business/helper/file.helper';
 import { processProfileImage } from '../helper/profile-file.helper';
@@ -73,9 +73,9 @@ export class ProfileService {
       await queryRunner.release();
     }
   }
-  async findOne(id: number) {
+  async findOne(userId: number) {
     const profile = await this.dataSource.getRepository(Profile).findOne({
-      where: { id },
+      where: { user: { id: userId } },
       relations: ['user'],
     });
 
