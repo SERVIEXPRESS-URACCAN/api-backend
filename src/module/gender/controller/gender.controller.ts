@@ -10,6 +10,7 @@ import {
 import { GenderService } from '../services/gender.service';
 import { CreateGenderDto } from '../dto/create-gender.dto';
 import { UpdateGenderDto } from '../dto/update-gender.dto';
+import { Auth } from 'src/module/auth/decorator/auth.decorator';
 
 @Controller('gender')
 export class GenderController {
@@ -25,6 +26,7 @@ export class GenderController {
     return this.genderService.getOne(id);
   }
   @Post()
+  @Auth('admin')
   async create(@Body() createGenderDto: CreateGenderDto) {
     const gender = await this.genderService.create(createGenderDto);
     return {
@@ -33,6 +35,7 @@ export class GenderController {
     };
   }
   @Patch(':id')
+  @Auth('admin')
   update(@Param('id') id: string, @Body() updateGenderDto: UpdateGenderDto) {
     return this.genderService.update(+id, updateGenderDto);
   }

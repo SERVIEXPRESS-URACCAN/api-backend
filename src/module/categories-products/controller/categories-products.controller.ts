@@ -11,6 +11,7 @@ import {
 import { CreateCategoriesProductDto } from '../dto/create-categories-product.dto';
 import { UpdateCategoriesProductDto } from '../dto/update-categories-product.dto';
 import { CategoriesProductsService } from '../service/categories-products.service';
+import { Auth } from 'src/module/auth/decorator/auth.decorator';
 
 @Controller('categories-products')
 export class CategoriesProductsController {
@@ -19,6 +20,7 @@ export class CategoriesProductsController {
   ) {}
 
   @Post()
+  @Auth('admin')
   async create(@Body() createCategoriesProducts: CreateCategoriesProductDto) {
     const categoriesProducts = await this.categoriesProductsService.create(
       createCategoriesProducts,
@@ -40,6 +42,7 @@ export class CategoriesProductsController {
   }
 
   @Patch(':id')
+  @Auth('admin')
   update(
     @Param('id') id: string,
     @Body() updateCategoriesProductsDto: UpdateCategoriesProductDto,
@@ -51,6 +54,7 @@ export class CategoriesProductsController {
   }
 
   @Delete(':id')
+  @Auth('admin')
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.categoriesProductsService.remove(id);
   }
