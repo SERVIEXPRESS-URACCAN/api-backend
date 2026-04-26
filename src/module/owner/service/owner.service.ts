@@ -8,18 +8,16 @@ import { InjectRepository } from '@nestjs/typeorm';
 import * as fs from 'fs';
 import * as path from 'path';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
+import { AuthUser } from 'src/module/auth/interfaces/auth-user.interface';
 import { User } from 'src/module/users/entities/user.entity';
-import {
-  DataSource,
-  FindOptionsWhere,
-  QueryFailedError,
-  Repository,
-} from 'typeorm';
+import { DataSource, QueryFailedError, Repository } from 'typeorm';
 import { CreateOwnerDto } from '../dto/create-owner.dto';
+// import { UpdateOwnerDto } from '../dto/update-owner.dto';
 import { UpdateOwnerDto } from '../dto/update-owner.dto';
 import { Owner } from '../entities/owner.entity';
 import { validateImage } from '../helper/file.helper';
 import { processImage } from '../helper/owner-file.helper';
+// import { processImage } from '../helper/owner-file.helper';
 
 @Injectable()
 export class OwnerService {
@@ -27,8 +25,6 @@ export class OwnerService {
     private readonly dataSource: DataSource,
     @InjectRepository(Owner)
     private readonly ownerRepository: Repository<Owner>,
-    @InjectRepository(User)
-    private readonly userRepository: Repository<User>,
   ) {}
 
   async findAll(paginationDto: PaginationDto) {
@@ -37,10 +33,7 @@ export class OwnerService {
     const safePage = Math.max(page, 1);
     const safeLimit = Math.min(Math.max(limit, 1), 50);
 
-    const where: FindOptionsWhere<Owner> = {};
-
     const [data, total] = await this.ownerRepository.findAndCount({
-      where,
       relations: ['user'],
       skip: (safePage - 1) * safeLimit,
       take: safeLimit,
@@ -63,9 +56,13 @@ export class OwnerService {
     };
   }
 
-  async findOne(id: number) {
-    const owner = await this.ownerRepository.findOne({
-      where: { id },
+  async findOne(userId: number) {
+    const owner = await this.dataSource.getRepository(Owner).findOne({
+      where: {
+        user: {
+          id: userId,
+        },
+      },
       relations: ['user'],
     });
 
@@ -78,6 +75,7 @@ export class OwnerService {
 
   async create(
     createOwnerDto: CreateOwnerDto,
+    authUser: AuthUser,
     files?: {
       identificationCardImage?: Express.Multer.File[];
     },
@@ -89,22 +87,26 @@ export class OwnerService {
     const identificationCardImage = files?.identificationCardImage?.[0];
 
     try {
-      if (!identificationCardImage) {
-        throw new BadRequestException('La imagen de la cédula es obligatoria');
-      }
+      // if (!identificationCardImage) {
+      //   throw new BadRequestException('La imagen de la cédula es obligatoria');
+      // }
 
       validateImage(identificationCardImage, 'identificationCardImage');
 
-      const user = await queryRunner.manager.findOne(User, {
-        where: { id: createOwnerDto.user },
+      const existingOwner = await queryRunner.manager.findOne(Owner, {
+        where: { user: { id: authUser.id } },
       });
 
-      if (!user) throw new NotFoundException('User no existe');
+      if (existingOwner) {
+        throw new BadRequestException('Este usuario ya tiene un owner');
+      }
+
+      const user = { id: authUser.id } as User;
 
       const owner = queryRunner.manager.create(Owner, {
         ...createOwnerDto,
         user,
-        identificationCardImage: identificationCardImage.filename,
+        // identificationCardImage: identificationCardImage.filename,
       });
 
       const saved = await queryRunner.manager.save(owner);
@@ -133,15 +135,7 @@ export class OwnerService {
   ) {
     const owner = await this.findOne(id);
 
-    const { user, ...rest } = updateOwnerDto;
-
-    this.ownerRepository.merge(owner, rest);
-
-    if (user) {
-      const userEntity = await this.userRepository.findOneBy({ id: user });
-      if (!userEntity) throw new NotFoundException('El usuario no existe');
-      owner.user = userEntity;
-    }
+    this.ownerRepository.merge(owner, updateOwnerDto);
 
     const identificationCardImage = files?.identificationCardImage?.[0];
 
@@ -163,22 +157,6 @@ export class OwnerService {
         this.removeFile(identificationCardImage.filename);
       this.handleDBException(error);
     }
-  }
-
-  async remove(id: number) {
-    const owner = await this.findOne(id);
-
-    const result = await this.ownerRepository.softDelete(id);
-
-    if (result.affected === 0) {
-      throw new NotFoundException('Owner no encontrado');
-    }
-
-    if (owner.identificationCardImage) {
-      this.removeFile(owner.identificationCardImage);
-    }
-
-    return { sucess: true };
   }
 
   private removeFile(filename: string) {
