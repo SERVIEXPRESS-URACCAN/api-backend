@@ -6,6 +6,7 @@ import {
   Param,
   ParseIntPipe,
   Patch,
+  Query,
 } from '@nestjs/common';
 import { CreateProfileAdminDto } from '../dto/profile.dto';
 import { ProfileService } from '../service/profile.service';
@@ -13,6 +14,7 @@ import { UpdateProfileDto } from '../dto/update-profile.dto';
 import { Auth } from 'src/module/auth/decorator/auth.decorator';
 import { GetUser } from 'src/module/auth/decorator/getUser.decorator';
 import { AuthUser } from 'src/module/auth/interfaces/auth-user.interface';
+import { PaginationDto } from 'src/common/dto/pagination.dto';
 
 @Controller('profiles')
 export class ProfileController {
@@ -38,8 +40,8 @@ export class ProfileController {
 
   @Get()
   @Auth('admin')
-  findAll() {
-    return this.profileService.findAll();
+  findAll(@Query() paginationDto: PaginationDto) {
+    return this.profileService.findAll(paginationDto);
   }
 
   @Get(':id')

@@ -7,12 +7,18 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { Profile } from '../entities/profile.entity';
-import { DataSource } from 'typeorm';
+import { DataSource, FindOptionsWhere, Repository } from 'typeorm';
 import { UpdateProfileDto } from '../dto/update-profile.dto';
+import { PaginationDto } from 'src/common/dto/pagination.dto';
+import { InjectRepository } from '@nestjs/typeorm';
 
 @Injectable()
 export class ProfileService {
-  constructor(private readonly dataSource: DataSource) {}
+  constructor(
+    private readonly dataSource: DataSource,
+    @InjectRepository(Profile)
+    private readonly profileRepository: Repository<Profile>,
+  ) {}
 
   async create(dto: CreateProfileAdminDto) {
     const queryRunner = this.dataSource.createQueryRunner();
@@ -73,12 +79,37 @@ export class ProfileService {
 
     return profile;
   }
-  async findAll() {
-    return this.dataSource.getRepository(Profile).find({
-      relations: ['user'],
-    });
-  }
+  async findAll(paginationDto: PaginationDto) {
+    const { page = 1, limit = 10 } = paginationDto;
 
+    const safePage = Math.max(page, 1);
+    const safeLimit = Math.min(Math.max(limit, 1), 50);
+
+    const where: FindOptionsWhere<Profile> = {};
+
+    const [data, total] = await this.profileRepository.findAndCount({
+      where,
+      relations: ['user'],
+      skip: (safePage - 1) * safeLimit,
+      take: safeLimit,
+      order: {
+        createdAt: 'DESC',
+      },
+    });
+
+    const lastPage = Math.ceil(total / safeLimit);
+
+    return {
+      data,
+      pagination: {
+        total,
+        page: safePage,
+        limit: safeLimit,
+        lastPage,
+        hasNextPage: safePage < lastPage,
+      },
+    };
+  }
   async update(id: number, dto: UpdateProfileDto) {
     const profile = await this.findOne(id);
 
