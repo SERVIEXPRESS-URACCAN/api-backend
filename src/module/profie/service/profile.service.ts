@@ -92,6 +92,11 @@ export class ProfileService {
       profile.gender = gender;
     }
 
-    return { message: 'Profile actualizado correctamente' };
+    await this.dataSource.getRepository(Profile).save(profile);
+
+    return {
+      message: 'Profile actualizado correctamente',
+      data: profile,
+    };
   }
 }
