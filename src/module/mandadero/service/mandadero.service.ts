@@ -4,25 +4,41 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DataSource, EntityManager, Repository } from 'typeorm';
 import { Mandadero } from '../entities/mandadero.entity';
 import { CreateMandaderoDto } from '../dto/create-mandadero.dto';
 import { User } from 'src/module/users/entities/user.entity';
-import * as path from 'path';
-import * as fs from 'fs';
+import { Roles } from 'src/module/roles/entities/roles.entity';
+import { UserRole } from 'src/module/user-roles/entities/user-roles.entity';
+
+import { validateFile } from 'src/common/helper/validationFiles.helper';
+import { updateImage } from 'src/common/helper/updateImage.helper';
+import { ApprovalStatus } from 'src/common/enum/approval-status.enum';
+import { deleteFile } from 'src/common/helper/removeOldImage.helper';
+import { AuthUser } from 'src/module/auth/interfaces/auth-user.interface';
+import { FilterMandaderoDto } from '../dto/mandadero-filter.dto';
+
 @Injectable()
 export class MandaderoService {
   constructor(
+    private readonly dataSource: DataSource,
     @InjectRepository(Mandadero)
     private readonly mandaderoRepository: Repository<Mandadero>,
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
   ) {}
 
-  async updateAvailability(id: number, available: boolean) {
-    const mandadero = await this.mandaderoRepository.findOneBy({ id });
+  async updateAvailability(available: boolean, user: AuthUser) {
+    const mandadero = await this.mandaderoRepository.findOne({
+      where: { user: { id: user.id } },
+      relations: ['user'],
+    });
     if (!mandadero) {
       throw new NotFoundException('Mandadero not found');
+    }
+
+    if (mandadero.user.id !== user.id) {
+      throw new BadRequestException('You are not the owner of this mandadero');
     }
 
     if (!mandadero.isActive) {
@@ -30,54 +46,135 @@ export class MandaderoService {
         'Cannot change availability of an inactive mandadero',
       );
     }
+    if (mandadero.status !== ApprovalStatus.APPROVED) {
+      throw new BadRequestException('Mandadero is not approved');
+    }
 
     mandadero.available = available;
-
     return this.mandaderoRepository.save(mandadero);
   }
 
   async updateActive(id: number, isActive: boolean) {
-    const mandadero = await this.mandaderoRepository.findOneBy({ id });
+    const mandadero = await this.mandaderoRepository.findOne({
+      where: { id },
+      relations: ['user'],
+    });
     if (!mandadero) {
       throw new NotFoundException('Mandadero not found');
     }
 
     mandadero.isActive = isActive;
-
     return this.mandaderoRepository.save(mandadero);
   }
 
-  async create(dto: CreateMandaderoDto) {
-    const user = await this.userRepository.findOne({
-      where: { id: dto.user },
-    });
+  async create(dto: CreateMandaderoDto, file?: Express.Multer.File) {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
-    if (!user) {
-      throw new NotFoundException('User not found');
+    try {
+      if (!file) {
+        throw new BadRequestException('Identification image is required');
+      }
+      validateFile(file, 'Identification image');
+
+      const user = await queryRunner.manager.findOne(User, {
+        where: { id: dto.user },
+        relations: ['mandadero'],
+      });
+      if (!user) {
+        throw new NotFoundException('User not found');
+      }
+
+      if (user.mandadero) {
+        throw new BadRequestException('User already has a mandadero profile');
+      }
+
+      const mandadero = queryRunner.manager.create(Mandadero, {
+        available: false,
+        isActive: false,
+        status: ApprovalStatus.PENDING,
+        user,
+        imageIdentification: file.filename,
+      });
+
+      const saved = await queryRunner.manager.save(mandadero);
+      await queryRunner.commitTransaction();
+      return saved;
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+
+      if (file) {
+        deleteFile(file.filename, 'mandaderos');
+      }
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
+  async findAll(query: FilterMandaderoDto) {
+    const { page = 1, limit = 10, status, available, userId } = query;
+
+    const qb = this.mandaderoRepository
+      .createQueryBuilder('mandadero')
+      .leftJoinAndSelect('mandadero.user', 'user')
+      .leftJoinAndSelect('user.userRoles', 'userRoles')
+      .leftJoinAndSelect('userRoles.role', 'role')
+      .leftJoinAndSelect('mandadero.motorcycle', 'motorcycle');
+
+    if (status) {
+      qb.andWhere('mandadero.status = :status', { status });
     }
 
-    const mandadero = this.mandaderoRepository.create({
-      available: dto.available,
-      isActive: true,
-      user,
-    });
+    if (available !== undefined) {
+      qb.andWhere('mandadero.available = :available', {
+        available: available,
+      });
+    }
 
-    return this.mandaderoRepository.save(mandadero);
+    if (userId) {
+      qb.andWhere('user.id = :userId', { userId });
+    }
+
+    qb.skip((page - 1) * limit).take(limit);
+
+    const [data, total] = await qb.getManyAndCount();
+
+    const safeLimit = Math.max(1, Math.min(limit, 50));
+    const lastPage = Math.ceil(total / safeLimit);
+    const safePage = Math.max(1, Math.min(page, lastPage));
+
+    return {
+      data,
+      pagination: {
+        total,
+        page: safePage,
+        limit: safeLimit,
+        lastPage,
+        hasNextPage: safePage < lastPage,
+      },
+    };
   }
 
-  async findAll() {
-    return this.mandaderoRepository.find({
-      relations: ['user', 'user.role', 'motorcycle'],
-    });
-  }
-
-  async findOne(id: number) {
+  async findOne(id: number, user: AuthUser) {
     const mandadero = await this.mandaderoRepository.findOne({
       where: { id },
-      relations: ['user', 'user.role', 'motorcycle'],
+      relations: [
+        'user',
+        'user.userRoles',
+        'user.userRoles.role',
+        'motorcycle',
+      ],
     });
 
     if (!mandadero) throw new NotFoundException('Mandadero not found');
+
+    const isAdmin = user.roles?.includes('admin');
+
+    if (!isAdmin && mandadero.user.id !== user.id) {
+      throw new BadRequestException('Access denied');
+    }
 
     return mandadero;
   }
@@ -90,43 +187,150 @@ export class MandaderoService {
     return this.mandaderoRepository.softDelete(id);
   }
 
-  async createWithFile(body: CreateMandaderoDto, file: Express.Multer.File) {
-    const user = await this.userRepository.findOne({
-      where: { id: body.user },
-    });
-
-    if (!user) {
-      throw new NotFoundException('User no encontrado');
-    }
-
-    const mandadero = this.mandaderoRepository.create({
-      available: body.available,
-      isActive: true,
-      user,
-      imageIdentification: file?.filename,
-    });
-
-    return this.mandaderoRepository.save(mandadero);
-  }
-
-  async updateFile(id: number, file: Express.Multer.File) {
-    const mandadero = await this.mandaderoRepository.findOne({ where: { id } });
+  async updateFile(id: number, file: Express.Multer.File, user: AuthUser) {
+    const mandadero = await this.findOne(id, user);
     if (!mandadero) {
       throw new NotFoundException('Mandadero not found');
     }
 
-    if (mandadero.imageIdentification) {
-      const oldFile = path.join(
-        process.cwd(),
-        'uploads/mandaderos',
-        mandadero.imageIdentification,
-      );
-      if (fs.existsSync(oldFile)) {
-        fs.unlinkSync(oldFile);
-      }
+    if (!file) {
+      throw new BadRequestException('No file uploaded');
     }
-    mandadero.imageIdentification = file.filename;
+    if (mandadero.user.id !== user.id) {
+      throw new BadRequestException('You are not the owner of this mandadero');
+    }
+
+    if (mandadero.status === ApprovalStatus.APPROVED) {
+      throw new BadRequestException(
+        'Cannot update file of an approved mandadero',
+      );
+    }
+
+    validateFile(file, 'Identification image');
+
+    mandadero.imageIdentification = updateImage(
+      file,
+      mandadero.imageIdentification,
+      'mandaderos',
+    );
+    return this.mandaderoRepository.save(mandadero);
+  }
+
+  async approve(id: number) {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      const mandadero = await this.findMandaderoOrFail(id, queryRunner.manager);
+
+      this.validateAprovalStatus(mandadero);
+
+      mandadero.status = ApprovalStatus.APPROVED;
+      mandadero.isActive = true;
+
+      await this.assignMandaderoRole(mandadero, queryRunner.manager);
+
+      await queryRunner.manager.save(mandadero);
+
+      await queryRunner.commitTransaction();
+
+      return { message: 'Mandadero approved successfully and role assigned' };
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
+  async reject(id: number) {
+    const mandadero = await this.mandaderoRepository.findOneBy({ id });
+    if (!mandadero) {
+      throw new NotFoundException('Mandadero not found');
+    }
+    if (mandadero.status === ApprovalStatus.APPROVED) {
+      throw new BadRequestException('Cannot reject an approved mandadero');
+    }
+
+    if (mandadero.status === ApprovalStatus.REJECTED) {
+      throw new BadRequestException('Mandadero is already rejected');
+    }
+
+    mandadero.status = ApprovalStatus.REJECTED;
+    mandadero.isActive = false;
+    mandadero.available = false;
 
     return this.mandaderoRepository.save(mandadero);
+  }
+
+  async findMine(user: AuthUser) {
+    const mandadero = await this.mandaderoRepository.findOne({
+      where: { user: { id: user.id } },
+      relations: [
+        'user',
+        'user.userRoles',
+        'user.userRoles.role',
+        'motorcycle',
+      ],
+    });
+    if (!mandadero) {
+      throw new NotFoundException('Mandadero not found');
+    }
+    return mandadero;
+  }
+
+  private async findMandaderoOrFail(id: number, manager: EntityManager) {
+    const mandadero = await manager.findOne(Mandadero, {
+      where: { id },
+      relations: [
+        'user',
+        'user.userRoles',
+        'user.userRoles.role',
+        'motorcycle',
+      ],
+    });
+    if (!mandadero) {
+      throw new NotFoundException('Mandadero not found');
+    }
+    return mandadero;
+  }
+
+  private validateAprovalStatus(mandadero: Mandadero) {
+    if (mandadero.status === ApprovalStatus.APPROVED) {
+      throw new BadRequestException('Mnandadero is already approved');
+    }
+    if (mandadero.status === ApprovalStatus.REJECTED) {
+      throw new BadRequestException('Cannot approve a rejected mandadero');
+    }
+    if (!mandadero.motorcycle) {
+      throw new BadRequestException('Motorcycle required before approval');
+    }
+    if (mandadero.motorcycle?.status !== ApprovalStatus.APPROVED) {
+      throw new BadRequestException('Motorcycle must be approved');
+    }
+  }
+
+  private async assignMandaderoRole(
+    mandadero: Mandadero,
+    manager: EntityManager,
+  ) {
+    const role = await manager.findOne(Roles, {
+      where: { name: 'mandadero' },
+    });
+    if (!role) {
+      throw new NotFoundException('Role not found');
+    }
+
+    const alreadyHasRole = mandadero.user.userRoles.some(
+      (ur: UserRole) => ur.role?.name === 'mandadero',
+    );
+    if (!alreadyHasRole) {
+      const userRole = manager.create(UserRole, {
+        user: mandadero.user,
+        role,
+      });
+      await manager.save(userRole);
+    }
   }
 }
