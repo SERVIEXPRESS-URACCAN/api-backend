@@ -7,6 +7,8 @@ import {
   ParseIntPipe,
   Patch,
   Query,
+  UseInterceptors,
+  UploadedFile,
 } from '@nestjs/common';
 import { CreateProfileAdminDto } from '../dto/profile.dto';
 import { ProfileService } from '../service/profile.service';
@@ -15,6 +17,8 @@ import { Auth } from 'src/module/auth/decorator/auth.decorator';
 import { GetUser } from 'src/module/auth/decorator/getUser.decorator';
 import { AuthUser } from 'src/module/auth/interfaces/auth-user.interface';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
 
 @Controller('profiles')
 export class ProfileController {
@@ -28,10 +32,24 @@ export class ProfileController {
 
   @Patch('me')
   @Auth('mandadero', 'owner', 'client')
-  updateMyProfile(@GetUser() user: AuthUser, @Body() dto: UpdateProfileDto) {
-    return this.profileService.update(user.id, dto);
+  @UseInterceptors(
+    FileInterceptor('image', {
+      storage: diskStorage({
+        destination: './uploads/profile',
+        filename: (req, file, cb) => {
+          const uniqueName = `${Date.now()}-${file.originalname}`;
+          cb(null, uniqueName);
+        },
+      }),
+    }),
+  )
+  updateMyProfile(
+    @GetUser() user: AuthUser,
+    @Body() dto: UpdateProfileDto,
+    @UploadedFile() file?: Express.Multer.File,
+  ) {
+    return this.profileService.update(user.id, dto, file);
   }
-
   @Post()
   @Auth('admin')
   create(@Body() dto: CreateProfileAdminDto) {
@@ -52,7 +70,22 @@ export class ProfileController {
 
   @Patch(':id')
   @Auth('admin')
-  update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateProfileDto) {
-    return this.profileService.update(id, dto);
+  @UseInterceptors(
+    FileInterceptor('image', {
+      storage: diskStorage({
+        destination: './uploads/profile',
+        filename: (req, file, cb) => {
+          const uniqueName = `${Date.now()}-${file.originalname}`;
+          cb(null, uniqueName);
+        },
+      }),
+    }),
+  )
+  update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateProfileDto,
+    @UploadedFile() file?: Express.Multer.File,
+  ) {
+    return this.profileService.update(id, dto, file);
   }
 }
