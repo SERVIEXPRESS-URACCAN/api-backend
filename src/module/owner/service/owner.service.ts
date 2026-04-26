@@ -18,8 +18,10 @@ import {
 } from 'typeorm';
 import { CreateOwnerDto } from '../dto/create-owner.dto';
 // import { UpdateOwnerDto } from '../dto/update-owner.dto';
+import { UpdateOwnerDto } from '../dto/update-owner.dto';
 import { Owner } from '../entities/owner.entity';
 import { validateImage } from '../helper/file.helper';
+import { processImage } from '../helper/owner-file.helper';
 // import { processImage } from '../helper/owner-file.helper';
 
 @Injectable()
@@ -134,38 +136,38 @@ export class OwnerService {
     }
   }
 
-  // async update(
-  //   id: number,
-  //   updateOwnerDto: UpdateOwnerDto,
-  //   files?: {
-  //     identificationCardImage?: Express.Multer.File[];
-  //   },
-  // ) {
-  //   const owner = await this.findOne(id);
+  async update(
+    id: number,
+    updateOwnerDto: UpdateOwnerDto,
+    files?: {
+      identificationCardImage?: Express.Multer.File[];
+    },
+  ) {
+    const owner = await this.findOne(id);
 
-  //   this.ownerRepository.merge(owner, updateOwnerDto);
+    this.ownerRepository.merge(owner, updateOwnerDto);
 
-  //   const identificationCardImage = files?.identificationCardImage?.[0];
+    const identificationCardImage = files?.identificationCardImage?.[0];
 
-  //   if (identificationCardImage) {
-  //     validateImage(identificationCardImage, 'identificationCardImage');
-  //   }
+    if (identificationCardImage) {
+      validateImage(identificationCardImage, 'identificationCardImage');
+    }
 
-  //   processImage(
-  //     owner,
-  //     identificationCardImage,
-  //     'identificationCardImage',
-  //     this.removeFile.bind(this),
-  //   );
+    processImage(
+      owner,
+      identificationCardImage,
+      'identificationCardImage',
+      this.removeFile.bind(this),
+    );
 
-  //   try {
-  //     return await this.ownerRepository.save(owner);
-  //   } catch (error) {
-  //     if (identificationCardImage)
-  //       this.removeFile(identificationCardImage.filename);
-  //     this.handleDBException(error);
-  //   }
-  // }
+    try {
+      return await this.ownerRepository.save(owner);
+    } catch (error) {
+      if (identificationCardImage)
+        this.removeFile(identificationCardImage.filename);
+      this.handleDBException(error);
+    }
+  }
 
   private removeFile(filename: string) {
     const filePath = path.join('./uploads/owners', filename);
