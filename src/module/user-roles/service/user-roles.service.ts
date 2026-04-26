@@ -7,11 +7,17 @@ import { UserRole } from '../entities/user-roles.entity';
 import { Roles } from 'src/module/roles/entities/roles.entity';
 import { User } from 'src/module/users/entities/user.entity';
 import { AssignRoleDto } from '../dto/user-roles.dto';
-import { DataSource } from 'typeorm';
+import { DataSource, FindOptionsWhere, Repository } from 'typeorm';
+import { PaginationDto } from 'src/common/dto/pagination.dto';
+import { InjectRepository } from '@nestjs/typeorm';
 
 @Injectable()
 export class UserRolesService {
-  constructor(private readonly dataSource: DataSource) {}
+  constructor(
+    private readonly dataSource: DataSource,
+    @InjectRepository(UserRole)
+    private readonly userrolesRepository: Repository<UserRole>,
+  ) {}
 
   async assignRole(dto: AssignRoleDto) {
     const queryRunner = this.dataSource.createQueryRunner();
@@ -83,16 +89,38 @@ export class UserRolesService {
 
     return relationUserRole;
   }
-  async findAll() {
-    const relations = await this.dataSource.getRepository(UserRole).find({
+  async findAll(paginationDto: PaginationDto) {
+    const { page = 1, limit = 10 } = paginationDto;
+
+    const safePage = Math.max(page, 1);
+    const safeLimit = Math.min(Math.max(limit, 1), 50);
+
+    const where: FindOptionsWhere<UserRole> = {};
+
+    const [data, total] = await this.userrolesRepository.findAndCount({
+      where,
       relations: ['user', 'role'],
+      skip: (safePage - 1) * safeLimit,
+      take: safeLimit,
       order: {
-        id: 'DESC',
+        createdAt: 'DESC',
       },
     });
 
-    return relations;
+    const lastPage = Math.ceil(total / safeLimit);
+
+    return {
+      data,
+      pagination: {
+        total,
+        page: safePage,
+        limit: safeLimit,
+        lastPage,
+        hasNextPage: safePage < lastPage,
+      },
+    };
   }
+
   async removeRole(dto: AssignRoleDto) {
     const queryRunner = this.dataSource.createQueryRunner();
 
