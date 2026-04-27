@@ -8,14 +8,13 @@ import { DataSource, Repository } from 'typeorm';
 import { Mandadero } from '../entities/mandadero.entity';
 import { User } from 'src/module/users/entities/user.entity';
 import { MandaderoStatusService } from './mandadero-status.service';
-import { MandaderoPolicyService } from './mandadero-policy.service';
 import { AuthUser } from 'src/module/auth/interfaces/auth-user.interface';
 import { CreateMandaderoDto } from '../dto/create-mandadero.dto';
 import { validateFile } from 'src/common/helper/validationFiles.helper';
 import { ApprovalStatus } from 'src/common/enum/approval-status.enum';
 import { deleteFile } from 'src/common/helper/removeOldImage.helper';
 import { FilterMandaderoDto } from '../dto/mandadero-filter.dto';
-import { updateImage } from 'src/common/helper/updateImage.helper';
+import { MandaderoPolicyService } from './mandadero-policy.service';
 
 @Injectable()
 export class MandaderoService {
@@ -23,10 +22,9 @@ export class MandaderoService {
     private readonly dataSource: DataSource,
     @InjectRepository(Mandadero)
     private readonly mandaderoRepository: Repository<Mandadero>,
-    @InjectRepository(User)
-    private readonly userRepository: Repository<User>,
+
+    private readonly mandaderoPolicyService: MandaderoPolicyService,
     private readonly statusService: MandaderoStatusService,
-    private readonly policy: MandaderoPolicyService,
   ) {}
 
   async approve(id: number) {
@@ -49,7 +47,11 @@ export class MandaderoService {
     return this.statusService.updateActive(id, isActive);
   }
 
-  async create(dto: CreateMandaderoDto, file: Express.Multer.File) {
+  async create(
+    dto: CreateMandaderoDto,
+    file: Express.Multer.File,
+    authUser: AuthUser,
+  ) {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -61,8 +63,11 @@ export class MandaderoService {
 
       validateFile(file, 'Identification image');
 
+      const userId =
+        authUser.roles.includes('admin') && dto.user ? dto.user : authUser.id;
+
       const user = await queryRunner.manager.findOne(User, {
-        where: { id: dto.user },
+        where: { id: userId },
         relations: ['mandadero'],
       });
 
@@ -70,9 +75,7 @@ export class MandaderoService {
         throw new NotFoundException('User not found');
       }
 
-      if (user.mandadero) {
-        throw new BadRequestException('User already has a mandadero profile');
-      }
+      this.mandaderoPolicyService.validateCreate(user);
 
       const mandadero = queryRunner.manager.create(Mandadero, {
         available: false,
@@ -157,12 +160,7 @@ export class MandaderoService {
       throw new NotFoundException('Mandadero not found');
     }
 
-    const isAdmin = user.roles?.includes('admin');
-    const isOwner = mandadero.user.id === user.id;
-
-    if (!isAdmin && !isOwner) {
-      throw new BadRequestException('Access denied');
-    }
+    this.mandaderoPolicyService.canAccess(mandadero, user);
 
     return mandadero;
   }
@@ -175,32 +173,6 @@ export class MandaderoService {
     }
 
     return this.mandaderoRepository.softDelete(id);
-  }
-
-  async updateFile(id: number, file: Express.Multer.File, user: AuthUser) {
-    const mandadero = await this.findOne(id, user);
-
-    if (!file) {
-      throw new BadRequestException('No file uploaded');
-    }
-
-    this.policy.validateOwner(mandadero, user.id);
-
-    if (mandadero.status === ApprovalStatus.APPROVED) {
-      throw new BadRequestException(
-        'Cannot update file of an approved mandadero',
-      );
-    }
-
-    validateFile(file, 'Identification image');
-
-    mandadero.imageIdentification = updateImage(
-      file,
-      mandadero.imageIdentification,
-      'mandaderos',
-    );
-
-    return this.mandaderoRepository.save(mandadero);
   }
 
   async findMine(user: AuthUser) {
