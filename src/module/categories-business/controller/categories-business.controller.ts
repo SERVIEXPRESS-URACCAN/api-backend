@@ -8,6 +8,7 @@ import {
   Patch,
   Post,
 } from '@nestjs/common';
+import { Auth } from 'src/module/auth/decorator/auth.decorator';
 import { CreateCategoriesBusinessDto } from '../dto/create-categories-business.dto';
 import { UpdateCategoriesBusinessDto } from '../dto/update-categories-business.dto';
 import { CategoriesBusinessService } from '../service/categories-business.service';
@@ -19,6 +20,7 @@ export class CategoriesBusinessController {
   ) {}
 
   @Post()
+  @Auth('admin')
   async create(
     @Body() createcategoriesBusinessDto: CreateCategoriesBusinessDto,
   ) {
@@ -27,7 +29,7 @@ export class CategoriesBusinessController {
     );
     return {
       data: categoriesBusiness,
-      message: 'categoriesBusiness created successfully',
+      success: true,
     };
   }
 
@@ -42,6 +44,7 @@ export class CategoriesBusinessController {
   }
 
   @Patch(':id')
+  @Auth('admin')
   update(
     @Param('id') id: string,
     @Body() updateCategoriesBusinessDto: UpdateCategoriesBusinessDto,
@@ -53,6 +56,7 @@ export class CategoriesBusinessController {
   }
 
   @Delete(':id')
+  @Auth('admin')
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.categoriesBusinessService.remove(id);
   }

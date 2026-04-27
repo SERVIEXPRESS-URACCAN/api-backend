@@ -1,15 +1,24 @@
 import { User } from 'src/module/users/entities/user.entity';
 import { Motorcycle } from 'src/module/motorcycles/entities/motorcycle.entity';
+import { ApprovalStatus } from 'src/common/enum/approval-status.enum';
 import {
   Column,
+  CreateDateColumn,
+  DeleteDateColumn,
   Entity,
   JoinColumn,
   OneToOne,
   PrimaryGeneratedColumn,
+  UpdateDateColumn,
 } from 'typeorm';
-
 @Entity()
 export class Mandadero {
+  @Column({
+    type: 'enum',
+    enum: ApprovalStatus,
+    default: ApprovalStatus.PENDING,
+  })
+  status: ApprovalStatus;
   @PrimaryGeneratedColumn('increment')
   id: number;
 
@@ -26,6 +35,15 @@ export class Mandadero {
   @OneToOne(() => Motorcycle, (motorcycle) => motorcycle.mandadero)
   motorcycle: Motorcycle;
 
-  //   @Column({ nullable: false })
-  //   imageIdentification: string;
+  @Column({ nullable: true })
+  imageIdentification?: string;
+
+  @CreateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+  createdAt: Date;
+
+  @UpdateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+  updatedAt: Date;
+
+  @DeleteDateColumn({ type: 'timestamp', nullable: true })
+  deletedAt: Date;
 }

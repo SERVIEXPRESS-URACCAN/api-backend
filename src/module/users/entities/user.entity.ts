@@ -1,16 +1,17 @@
+import { Profile } from 'src/module/profie/entities/profile.entity';
 import { Mandadero } from 'src/module/mandadero/entities/mandadero.entity';
-import { Profile } from 'src/module/profile/entities/profile.entity';
-import { Roles } from 'src/module/roles/entities/roles.entity';
+import { Owner } from 'src/module/owner/entities/owner.entity';
 import {
   Column,
   CreateDateColumn,
+  DeleteDateColumn,
   Entity,
-  JoinColumn,
-  ManyToOne,
+  OneToMany,
   OneToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { UserRole } from 'src/module/user-roles/entities/user-roles.entity';
 
 @Entity()
 export class User {
@@ -23,22 +24,27 @@ export class User {
   @Column({ type: 'varchar', nullable: false })
   password: string;
 
-  @OneToOne(() => Profile, (profile) => profile.user)
-  profile: Profile;
+  @OneToOne(() => Owner, (owner) => owner.user)
+  owner: Owner;
 
   @OneToOne(() => Mandadero, (mandadero) => mandadero.user)
   mandadero: Mandadero;
 
+  @OneToOne(() => Profile, (profile) => profile.user)
+  profile: Profile;
+
   @Column({ default: true, type: 'boolean' })
   status: boolean;
 
-  @ManyToOne(() => Roles, (role) => role.user, { eager: true })
-  @JoinColumn({ name: 'role_id', referencedColumnName: 'id' })
-  role: Roles;
+  @OneToMany(() => UserRole, (userrole) => userrole.user)
+  userRoles: UserRole[];
 
   @CreateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   createdAt: Date;
 
   @UpdateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   updatedAt: Date;
+
+  @DeleteDateColumn({ name: 'deletedAt', nullable: true })
+  deletedAt?: Date;
 }

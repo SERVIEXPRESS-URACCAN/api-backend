@@ -1,10 +1,8 @@
-import { IsBoolean, IsNotEmpty, IsNumber } from 'class-validator';
+import { Type } from 'class-transformer';
+import { IsNumber } from 'class-validator';
 
 export class CreateMandaderoDto {
-  @IsBoolean()
-  available: boolean;
-
   @IsNumber()
-  @IsNotEmpty()
+  @Type(() => Number)
   user: number;
 }

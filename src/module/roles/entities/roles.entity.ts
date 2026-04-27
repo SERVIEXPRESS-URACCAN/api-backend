@@ -1,4 +1,4 @@
-import { User } from 'src/module/users/entities/user.entity';
+import { UserRole } from 'src/module/user-roles/entities/user-roles.entity';
 import {
   Column,
   CreateDateColumn,
@@ -26,6 +26,6 @@ export class Roles {
   @DeleteDateColumn({ name: 'deleted_at', nullable: true })
   deletedAt?: Date;
 
-  @OneToMany(() => User, (user) => user.role)
-  user: User[];
+  @OneToMany(() => UserRole, (userrole) => userrole.role)
+  userRoles: UserRole[];
 }
