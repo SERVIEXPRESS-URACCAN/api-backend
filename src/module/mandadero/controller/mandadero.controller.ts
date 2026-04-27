@@ -28,7 +28,7 @@ export class MandaderoController {
   @Get('me')
   @Auth('mandadero')
   getMyMandadero(@GetUser() user: AuthUser) {
-    return this.mandaderoService.findOne(user.id, user);
+    return this.mandaderoService.findMine(user);
   }
 
   @Patch('me')
@@ -55,8 +55,9 @@ export class MandaderoController {
   create(
     @Body() body: CreateMandaderoDto,
     @UploadedFile() file: Express.Multer.File,
+    @GetUser() user: AuthUser,
   ) {
-    return this.mandaderoService.create(body, file);
+    return this.mandaderoService.create(body, file, user);
   }
 
   @Patch(':id/availability')
@@ -92,28 +93,6 @@ export class MandaderoController {
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.mandaderoService.remove(id);
   }
-
-  @Patch(':id/file')
-  @Auth('admin', 'mandadero')
-  @UseInterceptors(
-    FileInterceptor('imageIdentification', {
-      storage: diskStorage({
-        destination: './uploads/mandaderos',
-        filename: (req, file, cb) => {
-          const unique = Date.now() + '-' + Math.round(Math.random() * 1e9);
-          cb(null, unique + extname(file.originalname));
-        },
-      }),
-    }),
-  )
-  updateFile(
-    @Param('id', ParseIntPipe) id: number,
-    @UploadedFile() file: Express.Multer.File,
-    @GetUser() user: AuthUser,
-  ) {
-    return this.mandaderoService.updateFile(id, file, user);
-  }
-
   @Patch(':id/approve')
   @Auth('admin')
   approve(@Param('id', ParseIntPipe) id: number) {
