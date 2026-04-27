@@ -7,7 +7,9 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  Query,
 } from '@nestjs/common';
+import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { Auth } from 'src/module/auth/decorator/auth.decorator';
 import { CreateCategoriesBusinessDto } from '../dto/create-categories-business.dto';
 import { UpdateCategoriesBusinessDto } from '../dto/update-categories-business.dto';
@@ -34,8 +36,8 @@ export class CategoriesBusinessController {
   }
 
   @Get()
-  findAll() {
-    return this.categoriesBusinessService.findAll();
+  async findAll(@Query() paginationDto: PaginationDto) {
+    return this.categoriesBusinessService.findAll(paginationDto);
   }
 
   @Get(':id')

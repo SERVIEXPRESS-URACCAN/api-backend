@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { Repository } from 'typeorm';
 import { CreateCategoriesBusinessDto } from '../dto/create-categories-business.dto';
 import { UpdateCategoriesBusinessDto } from '../dto/update-categories-business.dto';
@@ -23,8 +24,32 @@ export class CategoriesBusinessService {
       throw error;
     }
   }
-  async findAll() {
-    return await this.categoriesBusinessRepository.find();
+  async findAll(paginationDto: PaginationDto) {
+    const { page = 1, limit = 10 } = paginationDto;
+
+    const safePage = Math.max(page, 1);
+    const safeLimit = Math.min(Math.max(limit, 1), 50);
+
+    const [data, total] = await this.categoriesBusinessRepository.findAndCount({
+      relations: ['businesses'],
+      skip: (safePage - 1) * safeLimit,
+      take: safeLimit,
+      order: {
+        createdAt: 'DESC',
+      },
+    });
+
+    const lastPage = Math.ceil(total / safeLimit);
+    return {
+      data,
+      pagination: {
+        total,
+        page: safePage,
+        limit: safeLimit,
+        lastPage,
+        hasNextPage: safePage < lastPage,
+      },
+    };
   }
 
   async findOne(id: number) {
