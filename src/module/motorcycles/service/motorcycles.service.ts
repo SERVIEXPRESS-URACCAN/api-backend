@@ -11,9 +11,10 @@ import { Repository } from 'typeorm';
 import { CreateMotorcycleDto } from '../dto/create-motorcycle.dto';
 import { UpdateMotorcycleDto } from '../dto/update-motorcycle.dto';
 import { Motorcycle } from '../entities/motorcycle.entity';
-import { deleteFile } from '../helper/removeOldImage.helper';
-import { updateImage } from '../helper/updateImage.helper';
-import { validateFile } from '../helper/validationFiles.helper';
+
+import { validateFile } from '../../../common/helper/validationFiles.helper';
+import { updateImage } from '../../../common/helper/updateImage.helper';
+import { deleteFile } from '../../../common/helper/removeOldImage.helper';
 
 type UploadedFile = {
   path: string;
@@ -38,8 +39,8 @@ export class MotorcyclesService {
   private revalidationDocuments(
     update?: UpdateMotorcycleDto,
     files?: {
-      circulationImage?: UploadedFile[];
-      insuranceImage?: UploadedFile[];
+      circulationImage?: Express.Multer.File[];
+      insuranceImage?: Express.Multer.File[];
     },
   ): boolean {
     return Boolean(
@@ -148,8 +149,8 @@ export class MotorcyclesService {
   async createWithFiles(
     body: CreateMotorcycleDto,
     files: {
-      circulationImage?: UploadedFile[];
-      insuranceImage?: UploadedFile[];
+      circulationImage?: Express.Multer.File[];
+      insuranceImage?: Express.Multer.File[];
     },
   ) {
     const circulation = files?.circulationImage?.[0];
@@ -175,8 +176,8 @@ export class MotorcyclesService {
     id: number,
     body: UpdateMotorcycleDto,
     files: {
-      circulationImage?: UploadedFile[];
-      insuranceImage?: UploadedFile[];
+      circulationImage?: Express.Multer.File[];
+      insuranceImage?: Express.Multer.File[];
     },
   ) {
     const motorcycle = await this.findOne(id);

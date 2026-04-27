@@ -1,11 +1,6 @@
 import { BadRequestException } from '@nestjs/common';
 
-export type UploadedFile = {
-  path: string;
-  mimetype: string;
-  size: number;
-};
-export function validateFile(file?: UploadedFile, name = 'file') {
+export function validateFile(file?: Express.Multer.File, name = 'file') {
   if (!file) return;
 
   const maxSize = 3 * 1024 * 1024;

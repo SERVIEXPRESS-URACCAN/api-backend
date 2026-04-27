@@ -18,11 +18,6 @@ import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { extname } from 'path';
 import { diskStorage } from 'multer';
 
-type UploadedFile = {
-  path: string;
-  mimetype: string;
-  size: number;
-};
 @Controller('motorcycles')
 export class MotorcyclesController {
   constructor(private readonly motorcyclesService: MotorcyclesService) {}
@@ -49,8 +44,8 @@ export class MotorcyclesController {
     @Body() body: CreateMotorcycleDto,
     @UploadedFiles()
     files: {
-      circulationImage?: UploadedFile[];
-      insuranceImage?: UploadedFile[];
+      circulationImage?: Express.Multer.File[];
+      insuranceImage?: Express.Multer.File[];
     },
   ) {
     return this.motorcyclesService.createWithFiles(body, files);
@@ -100,8 +95,8 @@ export class MotorcyclesController {
     @Body() body: UpdateMotorcycleDto,
     @UploadedFiles()
     files: {
-      circulationImage?: UploadedFile[];
-      insuranceImage?: UploadedFile[];
+      circulationImage?: Express.Multer.File[];
+      insuranceImage?: Express.Multer.File[];
     },
   ) {
     return this.motorcyclesService.updateWithFiles(id, body, files);

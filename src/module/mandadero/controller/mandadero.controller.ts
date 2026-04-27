@@ -7,6 +7,7 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  Query,
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
@@ -15,18 +16,31 @@ import { CreateMandaderoDto } from '../dto/create-mandadero.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
-
-type UploadedFile = {
-  path: string;
-  mimetype: string;
-  size: number;
-};
+import { AuthUser } from 'src/module/auth/interfaces/auth-user.interface';
+import { FilterMandaderoDto } from '../dto/mandadero-filter.dto';
+import { GetUser } from 'src/module/auth/decorator/getUser.decorator';
+import { Auth } from 'src/module/auth/decorator/auth.decorator';
 
 @Controller('mandadero')
 export class MandaderoController {
-  constructor(private readonly MandaderoService: MandaderoService) {}
+  constructor(private readonly mandaderoService: MandaderoService) {}
 
+  @Get('me')
+  @Auth('mandadero')
+  getMyMandadero(@GetUser() user: AuthUser) {
+    return this.mandaderoService.findMine(user);
+  }
+
+  @Patch('me')
+  @Auth('mandadero')
+  updateMyAvailability(
+    @GetUser() user: AuthUser,
+    @Body() body: { available: boolean },
+  ) {
+    return this.mandaderoService.updateMyAvailability(body.available, user);
+  }
   @Post()
+  @Auth('admin', 'client')
   @UseInterceptors(
     FileInterceptor('imageIdentification', {
       storage: diskStorage({
@@ -41,55 +55,53 @@ export class MandaderoController {
   create(
     @Body() body: CreateMandaderoDto,
     @UploadedFile() file: Express.Multer.File,
+    @GetUser() user: AuthUser,
   ) {
-    return this.MandaderoService.createWithFile(body, file);
+    return this.mandaderoService.create(body, file, user);
   }
 
-  @Patch(':id')
+  @Patch(':id/availability')
+  @Auth('admin')
   updateAvailability(
     @Param('id', ParseIntPipe) id: number,
     @Body() body: { available: boolean },
   ) {
-    return this.MandaderoService.updateAvailability(id, body.available);
+    return this.mandaderoService.updateAvailabilityById(id, body.available);
   }
 
   @Patch(':id/activate')
+  @Auth('admin')
   activate(
     @Param('id', ParseIntPipe) id: number,
     @Body() body: { isActive: boolean },
   ) {
-    return this.MandaderoService.updateActive(id, body.isActive);
+    return this.mandaderoService.updateActive(id, body.isActive);
   }
 
   @Get()
-  findAll() {
-    return this.MandaderoService.findAll();
+  @Auth('admin')
+  findAll(@Query() query: FilterMandaderoDto) {
+    return this.mandaderoService.findAll(query);
   }
   @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.MandaderoService.findOne(id);
+  @Auth('admin')
+  findOne(@Param('id', ParseIntPipe) id: number, @GetUser() user: AuthUser) {
+    return this.mandaderoService.findOne(id, user);
   }
   @Delete(':id')
+  @Auth('admin')
   remove(@Param('id', ParseIntPipe) id: number) {
-    return this.MandaderoService.remove(id);
+    return this.mandaderoService.remove(id);
+  }
+  @Patch(':id/approve')
+  @Auth('admin')
+  approve(@Param('id', ParseIntPipe) id: number) {
+    return this.mandaderoService.approve(id);
   }
 
-  @Patch(':id/file')
-  @UseInterceptors(
-    FileInterceptor('imageIdentification', {
-      storage: diskStorage({
-        destination: './uploads/mandaderos',
-        filename: (req, file, cb) => {
-          const unique = Date.now() + '-' + Math.round(Math.random() * 1e9);
-          cb(null, unique + extname(file.originalname));
-        },
-      }),
-    }),
-  )
-  updateFile(
-    @Param('id', ParseIntPipe) id: number,
-    @UploadedFile() file: Express.Multer.File,
-  ) {
-    return this.MandaderoService.updateFile(id, file);
+  @Patch(':id/reject')
+  @Auth('admin')
+  reject(@Param('id', ParseIntPipe) id: number) {
+    return this.mandaderoService.reject(id);
   }
 }
