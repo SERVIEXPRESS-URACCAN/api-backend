@@ -20,6 +20,8 @@ import { processImage } from '../helper/owner-file.helper';
 import { CreateBusinessDto } from '../../business/dto/create-business.dto';
 import { City } from 'src/module/city/entities/city.entity';
 import { Business } from 'src/module/business/entities/business.entity';
+import { UserRole } from 'src/module/user-roles/entities/user-roles.entity';
+import { Roles } from 'src/module/auth/decorator/roles.decorator';
 // import { processImage } from '../helper/owner-file.helper';
 
 @Injectable()
@@ -97,18 +99,18 @@ export class OwnerService {
 
       validateImage(identificationCardImage, 'identificationCardImage');
 
-      let userId: number;
+      const isAdmin = authUser.roles?.some(
+        (role) => role.toLowerCase() === 'admin',
+      );
 
-      if (authUser.roles.includes('admin') && createOwnerDto.user) {
-        userId = createOwnerDto.user;
-      } else {
-        userId = authUser.id;
-      }
+      const userId =
+        isAdmin && createOwnerDto.user ? createOwnerDto.user : authUser.id;
 
       const user = await queryRunner.manager.findOne(User, {
         where: { id: userId },
-        relations: ['user.userRoles', 'user.userRoles.role'],
+        relations: ['userRoles', 'userRoles.role'],
       });
+
       if (!user) {
         throw new NotFoundException('El usuario no existe');
       }
@@ -120,6 +122,7 @@ export class OwnerService {
       if (existingOwner) {
         throw new BadRequestException('Este usuario ya tiene un owner');
       }
+
       const city = await queryRunner.manager.findOne(City, {
         where: { id: createBusinessDto.city },
       });
@@ -127,29 +130,59 @@ export class OwnerService {
       if (!city) {
         throw new NotFoundException('Ciudad no encontrada');
       }
+
       const owner = queryRunner.manager.create(Owner, {
-        ...createOwnerDto,
+        razonSocial: createOwnerDto.razonSocial,
         user: { id: userId },
         identificationCardImage: identificationCardImage.filename,
       });
 
       await queryRunner.manager.save(owner);
+
       const business = queryRunner.manager.create(Business, {
         ...createBusinessDto,
-        owner: owner,
-        city: city,
+        owner,
+        city,
       });
 
       await queryRunner.manager.save(business);
 
+      const hasOwnerRole = user.userRoles.some(
+        (ur) => ur.role.name.toLowerCase() === 'owner',
+      );
+
+      if (!hasOwnerRole) {
+        const ownerRole = await queryRunner.manager.findOne(Roles, {
+          where: { name: 'owner' },
+        });
+
+        if (!ownerRole) {
+          throw new NotFoundException('Rol owner no existe');
+        }
+
+        user.userRoles.push(
+          queryRunner.manager.create(UserRole, {
+            user,
+            role: ownerRole,
+          }),
+        );
+
+        await queryRunner.manager.save(user);
+      }
+
       await queryRunner.commitTransaction();
 
-      return;
+      return {
+        message: 'Owner y negocio creados correctamente',
+        owner,
+        business,
+      };
     } catch (error) {
       await queryRunner.rollbackTransaction();
 
-      if (identificationCardImage)
+      if (identificationCardImage) {
         this.removeFile(identificationCardImage.filename);
+      }
 
       this.handleDBException(error);
     } finally {
