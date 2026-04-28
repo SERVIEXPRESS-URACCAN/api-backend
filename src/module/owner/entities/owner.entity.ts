@@ -22,7 +22,7 @@ export class Owner {
   @Column({ type: 'varchar', nullable: false })
   razonSocial: string;
 
-  @Column({ nullable: true })
+  @Column({ nullable: false })
   identificationCardImage: string;
 
   @CreateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })

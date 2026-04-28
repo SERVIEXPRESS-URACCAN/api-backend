@@ -48,7 +48,7 @@ export class OwnerController {
     return this.ownerService.findOne(id);
   }
 
-  @Auth('admin', 'owner')
+  @Auth('admin', 'client')
   @Post()
   @UseInterceptors(
     FileFieldsInterceptor([{ name: 'identificationCardImage', maxCount: 1 }], {
@@ -71,11 +71,11 @@ export class OwnerController {
     @Body() createOwnerDto: CreateOwnerDto,
     @GetUser() user: AuthUser,
   ) {
-    const owner = await this.ownerService.create(createOwnerDto, user, files);
+    const result = await this.ownerService.create(createOwnerDto, user, files);
 
     return {
       success: true,
-      data: owner,
+      data: result,
     };
   }
 
