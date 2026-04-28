@@ -28,15 +28,20 @@ export class MandaderoStatusService {
       this.policy.validateApprovalStatus(mandadero);
 
       mandadero.status = ApprovalStatus.APPROVED;
+      mandadero.motorcycle.status = ApprovalStatus.APPROVED;
       mandadero.isActive = true;
+      mandadero.available = false;
 
       await this.assignMandaderoRole(mandadero, queryRunner.manager);
 
+      await queryRunner.manager.save(mandadero.motorcycle);
       await queryRunner.manager.save(mandadero);
 
       await queryRunner.commitTransaction();
 
-      return { message: 'Mandadero approved successfully and role assigned' };
+      return {
+        message: 'Mandadero and Motorcycle approved successfully',
+      };
     } catch (error) {
       await queryRunner.rollbackTransaction();
       throw error;
