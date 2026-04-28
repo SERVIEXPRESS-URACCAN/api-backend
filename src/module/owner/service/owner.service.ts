@@ -17,11 +17,10 @@ import { UpdateOwnerDto } from '../dto/update-owner.dto';
 import { Owner } from '../entities/owner.entity';
 import { validateImage } from '../helper/file.helper';
 import { processImage } from '../helper/owner-file.helper';
-import { CreateBusinessDto } from '../../business/dto/create-business.dto';
 import { City } from 'src/module/city/entities/city.entity';
 import { Business } from 'src/module/business/entities/business.entity';
 import { UserRole } from 'src/module/user-roles/entities/user-roles.entity';
-import { Roles } from 'src/module/auth/decorator/roles.decorator';
+import { Roles } from 'src/module/roles/entities/roles.entity';
 // import { processImage } from '../helper/owner-file.helper';
 
 @Injectable()
@@ -80,7 +79,6 @@ export class OwnerService {
 
   async create(
     createOwnerDto: CreateOwnerDto,
-    createBusinessDto: CreateBusinessDto,
     authUser: AuthUser,
     files?: {
       identificationCardImage?: Express.Multer.File[];
@@ -124,7 +122,7 @@ export class OwnerService {
       }
 
       const city = await queryRunner.manager.findOne(City, {
-        where: { id: createBusinessDto.city },
+        where: { id: createOwnerDto.business.city },
       });
 
       if (!city) {
@@ -140,7 +138,7 @@ export class OwnerService {
       await queryRunner.manager.save(owner);
 
       const business = queryRunner.manager.create(Business, {
-        ...createBusinessDto,
+        ...createOwnerDto.business,
         owner,
         city,
       });

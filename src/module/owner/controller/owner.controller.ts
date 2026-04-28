@@ -71,12 +71,7 @@ export class OwnerController {
     @Body() createOwnerDto: CreateOwnerDto,
     @GetUser() user: AuthUser,
   ) {
-    const result = await this.ownerService.create(
-      createOwnerDto,
-      createOwnerDto.business,
-      user,
-      files,
-    );
+    const result = await this.ownerService.create(createOwnerDto, user, files);
 
     return {
       success: true,
