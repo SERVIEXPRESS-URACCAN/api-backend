@@ -17,6 +17,9 @@ import { UpdateOwnerDto } from '../dto/update-owner.dto';
 import { Owner } from '../entities/owner.entity';
 import { validateImage } from '../helper/file.helper';
 import { processImage } from '../helper/owner-file.helper';
+import { CreateBusinessDto } from '../../business/dto/create-business.dto';
+import { City } from 'src/module/city/entities/city.entity';
+import { Business } from 'src/module/business/entities/business.entity';
 // import { processImage } from '../helper/owner-file.helper';
 
 @Injectable()
@@ -75,6 +78,7 @@ export class OwnerService {
 
   async create(
     createOwnerDto: CreateOwnerDto,
+    createBusinessDto: CreateBusinessDto,
     authUser: AuthUser,
     files?: {
       identificationCardImage?: Express.Multer.File[];
@@ -87,33 +91,60 @@ export class OwnerService {
     const identificationCardImage = files?.identificationCardImage?.[0];
 
     try {
-      // if (!identificationCardImage) {
-      //   throw new BadRequestException('La imagen de la cédula es obligatoria');
-      // }
+      if (!identificationCardImage) {
+        throw new BadRequestException('La imagen de la cédula es obligatoria');
+      }
 
       validateImage(identificationCardImage, 'identificationCardImage');
 
+      let userId: number;
+
+      if (authUser.roles.includes('admin') && createOwnerDto.user) {
+        userId = createOwnerDto.user;
+      } else {
+        userId = authUser.id;
+      }
+
+      const user = await queryRunner.manager.findOne(User, {
+        where: { id: userId },
+        relations: ['user.userRoles', 'user.userRoles.role'],
+      });
+      if (!user) {
+        throw new NotFoundException('El usuario no existe');
+      }
+
       const existingOwner = await queryRunner.manager.findOne(Owner, {
-        where: { user: { id: authUser.id } },
+        where: { user: { id: userId } },
       });
 
       if (existingOwner) {
         throw new BadRequestException('Este usuario ya tiene un owner');
       }
-
-      const user = { id: authUser.id } as User;
-
-      const owner = queryRunner.manager.create(Owner, {
-        ...createOwnerDto,
-        user,
-        // identificationCardImage: identificationCardImage.filename,
+      const city = await queryRunner.manager.findOne(City, {
+        where: { id: createBusinessDto.city },
       });
 
-      const saved = await queryRunner.manager.save(owner);
+      if (!city) {
+        throw new NotFoundException('Ciudad no encontrada');
+      }
+      const owner = queryRunner.manager.create(Owner, {
+        ...createOwnerDto,
+        user: { id: userId },
+        identificationCardImage: identificationCardImage.filename,
+      });
+
+      await queryRunner.manager.save(owner);
+      const business = queryRunner.manager.create(Business, {
+        ...createBusinessDto,
+        owner: owner,
+        city: city,
+      });
+
+      await queryRunner.manager.save(business);
 
       await queryRunner.commitTransaction();
 
-      return saved;
+      return;
     } catch (error) {
       await queryRunner.rollbackTransaction();
 
