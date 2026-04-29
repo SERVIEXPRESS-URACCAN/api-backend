@@ -83,6 +83,16 @@ export class ProfileService {
 
     return profile;
   }
+  async findOneByAdmin(id: number) {
+    const profile = await this.dataSource.getRepository(Profile).findOne({
+      where: { id },
+      relations: ['user'],
+    });
+
+    if (!profile) throw new NotFoundException('Profile no encontrado');
+
+    return profile;
+  }
   async findAll(paginationDto: PaginationDto) {
     const { page = 1, limit = 10 } = paginationDto;
 

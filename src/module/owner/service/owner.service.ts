@@ -76,6 +76,20 @@ export class OwnerService {
 
     return owner;
   }
+  async findOneByAdmin(id: number) {
+    const owner = await this.dataSource.getRepository(Owner).findOne({
+      where: {
+        id,
+      },
+      relations: ['user'],
+    });
+
+    if (!owner) {
+      throw new NotFoundException('Propietario no encontrado');
+    }
+
+    return owner;
+  }
 
   async create(
     createOwnerDto: CreateOwnerDto,
