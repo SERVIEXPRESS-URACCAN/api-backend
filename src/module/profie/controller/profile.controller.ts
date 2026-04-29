@@ -65,7 +65,7 @@ export class ProfileController {
   @Get(':id')
   @Auth('admin')
   findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.profileService.findOne(id);
+    return this.profileService.findOneByAdmin(id);
   }
 
   @Patch(':id')

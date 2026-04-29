@@ -17,6 +17,10 @@ import { UpdateOwnerDto } from '../dto/update-owner.dto';
 import { Owner } from '../entities/owner.entity';
 import { validateImage } from '../helper/file.helper';
 import { processImage } from '../helper/owner-file.helper';
+import { City } from 'src/module/city/entities/city.entity';
+import { Business } from 'src/module/business/entities/business.entity';
+import { UserRole } from 'src/module/user-roles/entities/user-roles.entity';
+import { Roles } from 'src/module/roles/entities/roles.entity';
 // import { processImage } from '../helper/owner-file.helper';
 
 @Injectable()
@@ -72,6 +76,20 @@ export class OwnerService {
 
     return owner;
   }
+  async findOneByAdmin(id: number) {
+    const owner = await this.dataSource.getRepository(Owner).findOne({
+      where: {
+        id,
+      },
+      relations: ['user'],
+    });
+
+    if (!owner) {
+      throw new NotFoundException('Propietario no encontrado');
+    }
+
+    return owner;
+  }
 
   async create(
     createOwnerDto: CreateOwnerDto,
@@ -87,38 +105,103 @@ export class OwnerService {
     const identificationCardImage = files?.identificationCardImage?.[0];
 
     try {
-      // if (!identificationCardImage) {
-      //   throw new BadRequestException('La imagen de la cédula es obligatoria');
-      // }
+      if (!identificationCardImage) {
+        throw new BadRequestException('La imagen de la cédula es obligatoria');
+      }
 
       validateImage(identificationCardImage, 'identificationCardImage');
 
+      const isAdmin = authUser.roles?.some(
+        (role) => role.toLowerCase() === 'admin',
+      );
+
+      const userId =
+        isAdmin && createOwnerDto.user ? createOwnerDto.user : authUser.id;
+
+      const user = await queryRunner.manager.findOne(User, {
+        where: { id: userId },
+        relations: ['userRoles', 'userRoles.role'],
+      });
+
+      if (!user) {
+        throw new NotFoundException('El usuario no existe');
+      }
+
       const existingOwner = await queryRunner.manager.findOne(Owner, {
-        where: { user: { id: authUser.id } },
+        where: { user: { id: userId } },
       });
 
       if (existingOwner) {
         throw new BadRequestException('Este usuario ya tiene un owner');
       }
 
-      const user = { id: authUser.id } as User;
-
-      const owner = queryRunner.manager.create(Owner, {
-        ...createOwnerDto,
-        user,
-        // identificationCardImage: identificationCardImage.filename,
+      const city = await queryRunner.manager.findOne(City, {
+        where: { id: createOwnerDto.business.city },
       });
 
-      const saved = await queryRunner.manager.save(owner);
+      if (!city) {
+        throw new NotFoundException('Ciudad no encontrada');
+      }
+
+      const owner = queryRunner.manager.create(Owner, {
+        razonSocial: createOwnerDto.razonSocial,
+        user: { id: userId },
+        identificationCardImage: identificationCardImage.filename,
+      });
+
+      await queryRunner.manager.save(owner);
+
+      const userWithRoles = await queryRunner.manager.findOne(User, {
+        where: { id: userId },
+        relations: ['userRoles', 'userRoles.role'],
+      });
+
+      if (!userWithRoles) {
+        throw new NotFoundException('Usuario no encontrado');
+      }
+
+      const hasOwnerRole = userWithRoles.userRoles.some(
+        (ur) => ur.role.name.toLowerCase() === 'owner',
+      );
+
+      if (!hasOwnerRole) {
+        const ownerRole = await queryRunner.manager.findOne(Roles, {
+          where: { name: 'owner' },
+        });
+
+        if (!ownerRole) {
+          throw new NotFoundException('Rol owner no existe');
+        }
+
+        const userRole = queryRunner.manager.create(UserRole, {
+          user: { id: userWithRoles.id },
+          role: { id: ownerRole.id },
+        });
+
+        await queryRunner.manager.save(UserRole, userRole);
+      }
+
+      const business = queryRunner.manager.create(Business, {
+        ...createOwnerDto.business,
+        owner,
+        city,
+      });
+
+      await queryRunner.manager.save(business);
 
       await queryRunner.commitTransaction();
 
-      return saved;
+      return {
+        message: 'Owner y negocio creados correctamente',
+        owner,
+        business,
+      };
     } catch (error) {
       await queryRunner.rollbackTransaction();
 
-      if (identificationCardImage)
+      if (identificationCardImage) {
         this.removeFile(identificationCardImage.filename);
+      }
 
       this.handleDBException(error);
     } finally {

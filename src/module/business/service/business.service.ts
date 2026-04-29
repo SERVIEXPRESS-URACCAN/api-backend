@@ -11,9 +11,9 @@ import {
   DataSource,
   FindOptionsWhere,
   QueryFailedError,
+  QueryRunner,
   Repository,
 } from 'typeorm';
-import { CreateBusinessDto } from '../dto/create-business.dto';
 import { UpdateBusinessDto } from '../dto/update-business.dto';
 import { Business } from '../entities/business.entity';
 import { formatPhone } from '../helper/phone.helper';
@@ -70,7 +70,7 @@ export class BusinessService {
     };
   }
 
-  async findOne(id: number) {
+  async findOneByAdmin(id: number) {
     const business = await this.businessRepository.findOne({
       where: { id },
       relations: ['owner', 'categories', 'city'],
@@ -83,45 +83,67 @@ export class BusinessService {
     return business;
   }
 
-  async create(createBusinessDto: CreateBusinessDto) {
-    const queryRunner = this.dataSource.createQueryRunner();
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
+  async findOne(userId: number) {
+    const business = await this.dataSource.getRepository(Business).findOne({
+      where: {
+        owner: {
+          user: {
+            id: userId,
+          },
+        },
+      },
+      relations: ['owner', 'owner.user', 'categories', 'city'],
+    });
 
-    try {
-      const { city: cityId, phone, ...rest } = createBusinessDto;
-
-      const city = await this.businessRelationsService.getCity(
-        queryRunner.manager,
-        cityId,
+    if (!business) {
+      throw new NotFoundException(
+        `El negocio para el usuario ${userId} no existe`,
       );
-      const business = queryRunner.manager.create(Business, {
-        ...rest,
-        city,
-        phone: formatPhone(phone),
-      });
-
-      const saved = await queryRunner.manager.save(business);
-
-      await queryRunner.commitTransaction();
-
-      return saved;
-    } catch (error) {
-      await queryRunner.rollbackTransaction();
-      this.handleDBException(error);
-    } finally {
-      await queryRunner.release();
     }
+
+    return business;
   }
 
-  async update(
-    id: number,
+  private async updateBusiness(
+    queryRunner: QueryRunner,
+    business: Business,
     updateBusinessDto: UpdateBusinessDto,
     files?: {
       logoImage?: Express.Multer.File[];
       bannerImage?: Express.Multer.File[];
     },
   ) {
+    const {
+      businessCategories,
+      city: cityId,
+      phone,
+      ...rest
+    } = updateBusinessDto;
+
+    await this.businessRelationsService.handleCategories(
+      queryRunner.manager,
+      business,
+      businessCategories,
+    );
+
+    await this.businessRelationsService.handleCity(
+      queryRunner.manager,
+      business,
+      cityId,
+    );
+
+    if (phone) {
+      business.phone = formatPhone(phone);
+    }
+
+    queryRunner.manager.merge(Business, business, rest);
+
+    this.businessImageService.handleImages(business, files);
+
+    return await queryRunner.manager.save(business);
+  }
+
+  async update(id: number, dto: UpdateBusinessDto, files?) {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -136,59 +158,60 @@ export class BusinessService {
         throw new NotFoundException(`Negocio con id ${id} no existe`);
       }
 
-      const {
-        businessCategories,
-        city: cityId,
-        phone,
-        ...rest
-      } = updateBusinessDto;
-
-      await this.businessRelationsService.handleCategories(
-        queryRunner.manager,
+      const saved = await this.updateBusiness(
+        queryRunner,
         business,
-        businessCategories,
+        dto,
+        files,
       );
-
-      await this.businessRelationsService.handleCity(
-        queryRunner.manager,
-        business,
-        cityId,
-      );
-
-      if (phone) {
-        business.phone = formatPhone(phone);
-      }
-
-      queryRunner.manager.merge(Business, business, rest);
-
-      this.businessImageService.handleImages(business, files);
-
-      const saved = await queryRunner.manager.save(business);
 
       await queryRunner.commitTransaction();
-
       return saved;
     } catch (error) {
       await queryRunner.rollbackTransaction();
-
       this.businessImageService.cleanupOnError(files);
-
       this.handleDBException(error);
     } finally {
       await queryRunner.release();
     }
   }
 
-  async remove(id: number) {
-    const business = await this.findOne(id);
+  async updateMyBusiness(userId: number, dto: UpdateBusinessDto, files?) {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
-    await this.businessRepository.softDelete(id);
+    try {
+      const business = await queryRunner.manager.findOne(Business, {
+        where: {
+          owner: {
+            user: { id: userId },
+          },
+        },
+        relations: ['categories', 'city', 'owner', 'owner.user'],
+      });
 
-    this.businessImageService.removeBusinessImages(business);
+      if (!business) {
+        throw new NotFoundException(`No tienes un negocio asociado`);
+      }
 
-    return { success: true };
+      const saved = await this.updateBusiness(
+        queryRunner,
+        business,
+        dto,
+        files,
+      );
+
+      await queryRunner.commitTransaction();
+      return saved;
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      this.businessImageService.cleanupOnError(files);
+      this.handleDBException(error);
+    } finally {
+      await queryRunner.release();
+    }
   }
-
   private handleDBException(error: unknown) {
     if (error instanceof QueryFailedError) {
       const err = error as QueryFailedError & {

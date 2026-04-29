@@ -25,16 +25,6 @@ export class MandaderoPolicyService {
     }
   }
 
-  canUpdateFile(mandadero: Mandadero, user: AuthUser): void {
-    this.canAccess(mandadero, user);
-
-    if (mandadero.status === ApprovalStatus.APPROVED) {
-      throw new BadRequestException(
-        'Cannot update file of an approved mandadero',
-      );
-    }
-  }
-
   validateAvailabilityChange(mandadero: Mandadero): void {
     if (!mandadero.isActive) {
       throw new BadRequestException(
@@ -60,8 +50,13 @@ export class MandaderoPolicyService {
       throw new BadRequestException('Motorcycle required before approval');
     }
 
-    if (mandadero.motorcycle.status !== ApprovalStatus.APPROVED) {
-      throw new BadRequestException('Motorcycle must be approved');
+    if (mandadero.motorcycle.status === ApprovalStatus.REJECTED) {
+      throw new BadRequestException(
+        'Cannot approve because motorcycle is rejected',
+      );
+    }
+    if (mandadero.motorcycle.status === ApprovalStatus.APPROVED) {
+      throw new BadRequestException('Motorcycle is already approved');
     }
   }
 
@@ -73,5 +68,17 @@ export class MandaderoPolicyService {
     if (mandadero.status === ApprovalStatus.REJECTED) {
       throw new BadRequestException('Mandadero is already rejected');
     }
+  }
+
+  buildNewMandadero(user: User, image: string) {
+    this.validateCreate(user);
+
+    return {
+      user,
+      available: false,
+      isActive: false,
+      status: ApprovalStatus.PENDING,
+      imageIdentification: image,
+    };
   }
 }

@@ -1,18 +1,12 @@
-import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { IsInt, IsNotEmpty, IsString } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class CreateMotorcycleDto {
-  @IsNotEmpty()
+  @Type(() => Number)
+  @IsInt()
   mandaderoId: number;
 
   @IsString()
   @IsNotEmpty()
   licensePlate: string;
-
-  @IsString()
-  @IsOptional()
-  circulationImage?: string;
-
-  @IsString()
-  @IsOptional()
-  insuranceImage?: string;
 }

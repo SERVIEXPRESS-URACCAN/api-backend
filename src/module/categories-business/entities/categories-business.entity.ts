@@ -17,7 +17,7 @@ export class CategoriesBusiness {
   @Column({ type: 'varchar', length: 50, nullable: false, unique: true })
   name: string;
 
-  @ManyToMany(() => CategoriesBusiness, (category) => category.businesses)
+  @ManyToMany(() => Business, (business) => business.categories)
   businesses: Business[];
 
   @CreateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
