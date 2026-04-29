@@ -137,15 +137,16 @@ export class OwnerService {
 
       await queryRunner.manager.save(owner);
 
-      const business = queryRunner.manager.create(Business, {
-        ...createOwnerDto.business,
-        owner,
-        city,
+      const userWithRoles = await queryRunner.manager.findOne(User, {
+        where: { id: userId },
+        relations: ['userRoles', 'userRoles.role'],
       });
 
-      await queryRunner.manager.save(business);
+      if (!userWithRoles) {
+        throw new NotFoundException('Usuario no encontrado');
+      }
 
-      const hasOwnerRole = user.userRoles.some(
+      const hasOwnerRole = userWithRoles.userRoles.some(
         (ur) => ur.role.name.toLowerCase() === 'owner',
       );
 
@@ -158,15 +159,21 @@ export class OwnerService {
           throw new NotFoundException('Rol owner no existe');
         }
 
-        user.userRoles.push(
-          queryRunner.manager.create(UserRole, {
-            user,
-            role: ownerRole,
-          }),
-        );
+        const userRole = queryRunner.manager.create(UserRole, {
+          user: { id: userWithRoles.id },
+          role: { id: ownerRole.id },
+        });
 
-        await queryRunner.manager.save(user);
+        await queryRunner.manager.save(UserRole, userRole);
       }
+
+      const business = queryRunner.manager.create(Business, {
+        ...createOwnerDto.business,
+        owner,
+        city,
+      });
+
+      await queryRunner.manager.save(business);
 
       await queryRunner.commitTransaction();
 
