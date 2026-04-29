@@ -45,7 +45,7 @@ export class OwnerController {
   @Get(':id')
   @Auth('admin')
   findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.ownerService.findOne(id);
+    return this.ownerService.findOneByAdmin(id);
   }
 
   @Auth('admin', 'client')
