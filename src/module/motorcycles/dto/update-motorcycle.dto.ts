@@ -16,12 +16,4 @@ export class UpdateMotorcycleDto {
   @IsOptional()
   @IsString()
   licensePlate?: string;
-
-  @IsOptional()
-  @IsString()
-  circulationImage?: string;
-
-  @IsOptional()
-  @IsString()
-  insuranceImage?: string;
 }

@@ -28,15 +28,20 @@ export class MandaderoStatusService {
       this.policy.validateApprovalStatus(mandadero);
 
       mandadero.status = ApprovalStatus.APPROVED;
+      mandadero.motorcycle.status = ApprovalStatus.APPROVED;
       mandadero.isActive = true;
+      mandadero.available = false;
 
       await this.assignMandaderoRole(mandadero, queryRunner.manager);
 
+      await queryRunner.manager.save(mandadero.motorcycle);
       await queryRunner.manager.save(mandadero);
 
       await queryRunner.commitTransaction();
 
-      return { message: 'Mandadero approved successfully and role assigned' };
+      return {
+        message: 'Mandadero and Motorcycle approved successfully',
+      };
     } catch (error) {
       await queryRunner.rollbackTransaction();
       throw error;
@@ -46,18 +51,36 @@ export class MandaderoStatusService {
   }
 
   async reject(id: number) {
-    const mandadero = await this.mandaderoRepository.findOneBy({ id });
-    if (!mandadero) {
-      throw new NotFoundException('Mandadero not found');
+    const queryRunner = this.dataSource.createQueryRunner();
+
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      const mandadero = await this.findMandaderoOrFail(id, queryRunner.manager);
+
+      this.policy.validateRejection(mandadero);
+
+      mandadero.status = ApprovalStatus.REJECTED;
+      mandadero.motorcycle.status = ApprovalStatus.REJECTED;
+
+      mandadero.isActive = false;
+      mandadero.available = false;
+
+      await queryRunner.manager.save(mandadero.motorcycle);
+      await queryRunner.manager.save(mandadero);
+
+      await queryRunner.commitTransaction();
+
+      return {
+        message: 'Mandadero and Motorcycle rejected successfully',
+      };
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
     }
-
-    this.policy.validateRejection(mandadero);
-
-    mandadero.status = ApprovalStatus.REJECTED;
-    mandadero.isActive = false;
-    mandadero.available = false;
-
-    return this.mandaderoRepository.save(mandadero);
   }
 
   async updateMyAvailability(available: boolean, user: AuthUser) {
