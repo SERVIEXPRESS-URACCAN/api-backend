@@ -14,11 +14,11 @@ import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
-import { UpdateBusinessDto } from '../dto/update-business.dto';
-import { BusinessService } from '../service/business.service';
 import { Auth } from 'src/module/auth/decorator/auth.decorator';
 import { GetUser } from 'src/module/auth/decorator/getUser.decorator';
 import { AuthUser } from 'src/module/auth/interfaces/auth-user.interface';
+import { UpdateBusinessDto } from '../dto/update-business.dto';
+import { BusinessService } from '../service/business.service';
 
 @Controller('business')
 export class BusinessController {
@@ -87,7 +87,7 @@ export class BusinessController {
   @Auth('admin')
   @Get(':id')
   async getOne(@Param('id', ParseIntPipe) id: number) {
-    const data = await this.businessService.findOne(id);
+    const data = await this.businessService.findOneByAdmin(id);
 
     return {
       data,
