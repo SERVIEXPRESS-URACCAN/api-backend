@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   ConflictException,
   Injectable,
   NotFoundException,
@@ -41,12 +40,6 @@ export class MandaderoSolicitudService {
     const insurance = files?.insuranceImage?.[0];
 
     try {
-      if (!imageIdentification || !circulation || !insurance) {
-        throw new BadRequestException(
-          'All files are required (imageIdentification, circulation, insurance)',
-        );
-      }
-
       const user = await queryRunner.manager.findOne(User, {
         where: { id: authUser.id },
         relations: ['mandadero'],
@@ -62,23 +55,24 @@ export class MandaderoSolicitudService {
         Mandadero,
         this.mandaderoPolicyService.buildNewMandadero(
           user,
-          imageIdentification.filename,
+          imageIdentification!.filename,
         ),
       );
 
       const savedMandadero = await queryRunner.manager.save(mandadero);
 
+      const plate = dto.licensePlate.trim().replace(/\s+/g, '').toUpperCase();
       const exists = await queryRunner.manager.findOne(Motorcycle, {
-        where: { licensePlate: dto.licensePlate },
+        where: { licensePlate: plate },
       });
       if (exists) {
         throw new ConflictException('License plate already registered');
       }
 
       const motorcycle = queryRunner.manager.create(Motorcycle, {
-        licensePlate: dto.licensePlate,
-        circulationImage: circulation.filename,
-        insuranceImage: insurance.filename,
+        licensePlate: plate,
+        circulationImage: circulation!.filename,
+        insuranceImage: insurance!.filename,
         status: ApprovalStatus.PENDING,
         mandadero: savedMandadero,
       });
