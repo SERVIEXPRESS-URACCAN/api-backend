@@ -1,12 +1,13 @@
 import { PaginationDto } from 'src/common/dto/pagination.dto';
-import { IsOptional, IsEnum, IsNumber } from 'class-validator';
+import { IsOptional, IsEnum, IsInt, Min, IsBoolean } from 'class-validator';
 import { ApprovalStatus } from 'src/common/enum/approval-status.enum';
 import { Transform, Type } from 'class-transformer';
 
 export class FilterMandaderoDto extends PaginationDto {
   @IsOptional()
-  @IsNumber()
   @Type(() => Number)
+  @IsInt()
+  @Min(1)
   userId?: number;
 
   @IsOptional()
@@ -14,6 +15,11 @@ export class FilterMandaderoDto extends PaginationDto {
   status?: ApprovalStatus;
 
   @IsOptional()
-  @Transform(({ value }) => value === 'true')
+  @Transform(({ value }: { value: string }) => {
+    if (value === 'true') return true;
+    if (value === 'false') return false;
+    return value;
+  })
+  @IsBoolean()
   available?: boolean;
 }
