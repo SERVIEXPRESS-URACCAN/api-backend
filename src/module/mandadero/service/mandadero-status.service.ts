@@ -2,7 +2,11 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Mandadero } from '../entities/mandadero.entity';
 import { DataSource, EntityManager, Repository } from 'typeorm';
 import { AuthUser } from 'src/module/auth/interfaces/auth-user.interface';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { ApprovalStatus } from 'src/common/enum/approval-status.enum';
 import { Roles } from 'src/module/roles/entities/roles.entity';
 import { UserRole } from 'src/module/user-roles/entities/user-roles.entity';
@@ -105,7 +109,13 @@ export class MandaderoStatusService {
     if (!mandadero) {
       throw new NotFoundException('Mandadero not found');
     }
+    if (available && !mandadero.isActive)
+      throw new BadRequestException('Only active mandaderos can be available');
 
+    if (mandadero.status !== ApprovalStatus.APPROVED)
+      throw new BadRequestException(
+        'Only approved mandaderos can have their availability updated',
+      );
     mandadero.available = available;
 
     return this.mandaderoRepository.save(mandadero);
@@ -119,8 +129,16 @@ export class MandaderoStatusService {
     if (!mandadero) {
       throw new NotFoundException('Mandadero not found');
     }
+    if (mandadero.status !== ApprovalStatus.APPROVED)
+      throw new BadRequestException(
+        'Only approved mandaderos can be activated/deactivated',
+      );
 
     mandadero.isActive = isActive;
+
+    if (!isActive) {
+      mandadero.available = false;
+    }
     return this.mandaderoRepository.save(mandadero);
   }
 

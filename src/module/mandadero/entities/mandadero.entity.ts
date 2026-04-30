@@ -25,7 +25,7 @@ export class Mandadero {
   @Column({ default: false })
   available: boolean;
 
-  @Column({ default: true })
+  @Column({ default: false })
   isActive: boolean;
 
   @OneToOne(() => User, (user) => user.mandadero)

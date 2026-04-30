@@ -12,6 +12,8 @@ import { AuthUser } from 'src/module/auth/interfaces/auth-user.interface';
 import { FilterMandaderoDto } from '../dto/mandadero-filter.dto';
 import { GetUser } from 'src/module/auth/decorator/getUser.decorator';
 import { Auth } from 'src/module/auth/decorator/auth.decorator';
+import { UpdateAvailabilityDto } from '../dto/update-availability.dto';
+import { UpdateActiveDto } from '../dto/update-active.dto';
 
 @Controller('mandadero')
 export class MandaderoController {
@@ -22,12 +24,20 @@ export class MandaderoController {
   getMyMandadero(@GetUser() user: AuthUser) {
     return this.mandaderoService.findMine(user);
   }
+  @Patch('me/availability')
+  @Auth('mandadero')
+  updateMyAvailability(
+    @Body() body: UpdateAvailabilityDto,
+    @GetUser() user: AuthUser,
+  ) {
+    return this.mandaderoService.updateMyAvailability(body.available, user);
+  }
 
   @Patch(':id/availability')
-  @Auth('admin', 'mandadero')
+  @Auth('admin')
   updateAvailability(
     @Param('id', ParseIntPipe) id: number,
-    @Body() body: { available: boolean },
+    @Body() body: UpdateAvailabilityDto,
   ) {
     return this.mandaderoService.updateAvailabilityById(id, body.available);
   }
@@ -36,7 +46,7 @@ export class MandaderoController {
   @Auth('admin')
   activate(
     @Param('id', ParseIntPipe) id: number,
-    @Body() body: { isActive: boolean },
+    @Body() body: UpdateActiveDto,
   ) {
     return this.mandaderoService.updateActive(id, body.isActive);
   }
@@ -48,8 +58,8 @@ export class MandaderoController {
   }
   @Get(':id')
   @Auth('admin')
-  findOne(@Param('id', ParseIntPipe) id: number, @GetUser() user: AuthUser) {
-    return this.mandaderoService.findOne(id, user);
+  findOne(@Param('id', ParseIntPipe) id: number) {
+    return this.mandaderoService.findOne(id);
   }
   @Patch(':id/approve')
   @Auth('admin')

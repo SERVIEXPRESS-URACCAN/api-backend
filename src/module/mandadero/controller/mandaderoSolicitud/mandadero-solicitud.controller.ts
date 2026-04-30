@@ -61,13 +61,11 @@ export class MandaderoSolicitudController {
       insuranceImage?: Express.Multer.File[];
     },
   ) {
-    const imageIdentification = files.imageIdentification?.[0];
-    const circulationImage = files.circulationImage?.[0];
-    const insuranceImage = files.insuranceImage?.[0];
+    const imageIdentification = files?.imageIdentification?.[0];
+    const circulationImage = files?.circulationImage?.[0];
+    const insuranceImage = files?.insuranceImage?.[0];
 
-    validateFile(imageIdentification, 'imageIdentification');
-    validateFile(circulationImage, 'circulationImage');
-    validateFile(insuranceImage, 'insuranceImage');
+    validateFile({ imageIdentification, circulationImage, insuranceImage });
 
     return this.mandaderoSolicitudService.create(body, files, user);
   }
