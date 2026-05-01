@@ -1,9 +1,5 @@
 import { CreateProductDto } from '../dto/porducts.dto';
-import {
-  ForbiddenException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { Product } from '../entities/products.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -30,10 +26,6 @@ export class ProductService {
 
     if (!business) {
       throw new NotFoundException('Business not found');
-    }
-
-    if (business.owner.id !== user.id) {
-      throw new ForbiddenException('This business is not yours');
     }
 
     const category = await this.categoryRepository.findOne({
