@@ -168,4 +168,31 @@ export class ProductService {
     if (!product) throw new NotFoundException('Product not found');
     return this.productRepository.save(updatedProduct);
   }
+
+  async removeByOwner(id: number, user: AuthUser) {
+    const business = await this.businessRepository.findOne({
+      where: { owner: { id: user.id } },
+    });
+
+    if (!business) {
+      throw new NotFoundException('Business not found');
+    }
+
+    const product = await this.productRepository.findOne({
+      where: {
+        id,
+        business: {
+          id: business.id,
+        },
+      },
+    });
+
+    if (!product) {
+      throw new NotFoundException('Product not found');
+    }
+
+    await this.productRepository.remove(product);
+
+    return { message: 'Product deleted successfully' };
+  }
 }

@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseIntPipe,
@@ -53,6 +54,15 @@ export class ProductsController {
     @GetUser() user: AuthUser,
   ) {
     return this.productsService.update(id, updateProductDto, user);
+  }
+
+  @Delete(':id')
+  @Auth('owner')
+  removeByOwner(
+    @Param('id', ParseIntPipe) id: number,
+    @GetUser() user: AuthUser,
+  ) {
+    return this.productsService.removeByOwner(id, user);
   }
 
   @Get('admin')

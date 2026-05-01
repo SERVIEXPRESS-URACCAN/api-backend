@@ -7,7 +7,6 @@ import {
   ManyToOne,
   CreateDateColumn,
   UpdateDateColumn,
-  DeleteDateColumn,
 } from 'typeorm';
 @Entity()
 export class Product {
@@ -40,7 +39,4 @@ export class Product {
 
   @UpdateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   updatedAt: Date;
-
-  @DeleteDateColumn({ type: 'timestamp', nullable: true })
-  deletedAt: Date;
 }
