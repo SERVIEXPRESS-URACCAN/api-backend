@@ -15,10 +15,14 @@ import { ProductService } from '../service/products.service';
 import { CreateProductAdmin } from '../dto/createProductAdmin.dto';
 import { UpdateProductDto } from '../dto/updateProduct.dto';
 import { UpdateProductAdminDto } from '../dto/updateProductAdmin.dto';
+import { ProductAdminService } from '../service/productsAdmin.service';
 
 @Controller('products')
 export class ProductsController {
-  constructor(private readonly productsService: ProductService) {}
+  constructor(
+    private readonly productsService: ProductService,
+    private readonly productsAdminService: ProductAdminService,
+  ) {}
 
   @Post()
   @Auth('owner')
@@ -54,19 +58,19 @@ export class ProductsController {
   @Get('admin')
   @Auth('admin')
   findAllByAdmin() {
-    return this.productsService.findAllByAdmin();
+    return this.productsAdminService.findAllByAdmin();
   }
 
   @Get('admin/:id')
   @Auth('admin')
   findOneByAdmin(@Param('id', ParseIntPipe) id: number) {
-    return this.productsService.findOneByAdmin(id);
+    return this.productsAdminService.findOneByAdmin(id);
   }
 
   @Post('admin')
   @Auth('admin')
   createByAdmin(@Body() createProductAdminDto: CreateProductAdmin) {
-    return this.productsService.createByAdmin(createProductAdminDto);
+    return this.productsAdminService.createByAdmin(createProductAdminDto);
   }
 
   @Patch('admin/:id')
@@ -75,6 +79,6 @@ export class ProductsController {
     @Param('id', ParseIntPipe) id: number,
     @Body() updateProductAdminDto: UpdateProductAdminDto,
   ) {
-    return this.productsService.updateByAdmin(id, updateProductAdminDto);
+    return this.productsAdminService.updateByAdmin(id, updateProductAdminDto);
   }
 }

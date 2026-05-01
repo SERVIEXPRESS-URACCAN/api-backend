@@ -1,15 +1,14 @@
-import { CreateProductDto } from '../dto/porducts.dto';
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { Product } from '../entities/products.entity';
-import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { Product } from '../entities/products.entity';
 import { Business } from 'src/module/business/entities/business.entity';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { CategoriesProduct } from 'src/module/categories-products/entities/categories-product.entity';
-import { AuthUser } from 'src/module/auth/interfaces/auth-user.interface';
-import { UpdateProductDto } from '../dto/updateProduct.dto';
+import { CreateProductAdmin } from '../dto/createProductAdmin.dto';
+import { UpdateProductAdminDto } from '../dto/updateProductAdmin.dto';
 
 @Injectable()
-export class ProductService {
+export class ProductAdminService {
   constructor(
     @InjectRepository(Product)
     private readonly productRepository: Repository<Product>,
@@ -18,23 +17,10 @@ export class ProductService {
     @InjectRepository(CategoriesProduct)
     private readonly categoryRepository: Repository<CategoriesProduct>,
   ) {}
-
-  async findAllByOwner(user: AuthUser) {
-    const business = await this.businessRepository.findOne({
-      where: { owner: { id: user.id } },
-    });
-
-    if (!business) {
-      throw new NotFoundException('Business not found');
-    }
-
+  async findAllByAdmin() {
     return this.productRepository.find({
-      where: {
-        business: {
-          id: business.id,
-        },
-      },
       relations: {
+        business: true,
         category: true,
       },
       select: {
@@ -44,7 +30,10 @@ export class ProductService {
         price: true,
         imageUrl: true,
         status: true,
-
+        business: {
+          id: true,
+          name: true,
+        },
         category: {
           id: true,
           name: true,
@@ -52,24 +41,11 @@ export class ProductService {
       },
     });
   }
-
-  async findOne(id: number, user: AuthUser) {
-    const business = await this.businessRepository.findOne({
-      where: { owner: { id: user.id } },
-    });
-
-    if (!business) {
-      throw new NotFoundException('Business not found');
-    }
-
+  async findOneByAdmin(id: number) {
     const product = await this.productRepository.findOne({
-      where: {
-        id,
-        business: {
-          id: business.id,
-        },
-      },
+      where: { id },
       relations: {
+        business: true,
         category: true,
       },
       select: {
@@ -79,6 +55,10 @@ export class ProductService {
         price: true,
         imageUrl: true,
         status: true,
+        business: {
+          id: true,
+          name: true,
+        },
         category: {
           id: true,
           name: true,
@@ -92,11 +72,11 @@ export class ProductService {
 
     return product;
   }
-  async create(createProductDto: CreateProductDto, user: AuthUser) {
-    const { categoryId, ...data } = createProductDto;
+  async createByAdmin(createProductAdminDto: CreateProductAdmin) {
+    const { businessId, categoryId, ...data } = createProductAdminDto;
 
     const business = await this.businessRepository.findOne({
-      where: { owner: { id: user.id } },
+      where: { id: businessId },
     });
 
     if (!business) {
@@ -121,23 +101,14 @@ export class ProductService {
     return await this.productRepository.save(product);
   }
 
-  async update(id: number, updateProductDto: UpdateProductDto, user: AuthUser) {
-    const business = await this.businessRepository.findOne({
-      where: { owner: { id: user.id } },
-    });
-
-    if (!business) {
-      throw new NotFoundException('Business not found');
-    }
-
+  async updateByAdmin(
+    id: number,
+    updateProductAdminDto: UpdateProductAdminDto,
+  ) {
     const product = await this.productRepository.findOne({
-      where: {
-        id,
-        business: {
-          id: business.id,
-        },
-      },
+      where: { id },
       relations: {
+        business: true,
         category: true,
       },
     });
@@ -146,26 +117,43 @@ export class ProductService {
       throw new NotFoundException('Product not found');
     }
 
-    if (updateProductDto.categoryId) {
-      const category = await this.categoryRepository.findOne({
-        where: { id: updateProductDto.categoryId },
+    let category = product.category;
+    let business = product.business;
+
+    if (updateProductAdminDto.categoryId) {
+      const foundCategory = await this.categoryRepository.findOne({
+        where: { id: updateProductAdminDto.categoryId },
       });
 
-      if (!category) {
+      if (!foundCategory) {
         throw new NotFoundException('Category not found');
       }
 
-      product.category = category;
+      category = foundCategory;
+    }
+
+    if (updateProductAdminDto.businessId) {
+      const foundBusiness = await this.businessRepository.findOne({
+        where: { id: updateProductAdminDto.businessId },
+      });
+
+      if (!foundBusiness) {
+        throw new NotFoundException('Business not found');
+      }
+
+      business = foundBusiness;
     }
 
     const updatedProduct = {
       ...product,
-      ...updateProductDto,
-      price: updateProductDto.price
-        ? updateProductDto.price.toString()
+      ...updateProductAdminDto,
+      price: updateProductAdminDto.price
+        ? updateProductAdminDto.price.toString()
         : product.price,
+      category,
+      business,
     };
-    if (!product) throw new NotFoundException('Product not found');
+
     return this.productRepository.save(updatedProduct);
   }
 }
