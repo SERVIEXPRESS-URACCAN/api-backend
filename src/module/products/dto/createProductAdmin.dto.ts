@@ -1,7 +1,6 @@
 import { IsInt } from 'class-validator';
 import { CreateProductDto } from './porducts.dto';
-
-export class CreateProductAdminDto extends CreateProductDto {
+export class CreateProductAdmin extends CreateProductDto {
   @IsInt()
   businessId: number;
 }
