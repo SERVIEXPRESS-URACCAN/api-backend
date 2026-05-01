@@ -30,9 +30,5 @@ export class CreateProductDto {
 
   @IsNumber()
   @Type(() => Number)
-  businessId: number;
-
-  @IsNumber()
-  @Type(() => Number)
   categoryId: number;
 }

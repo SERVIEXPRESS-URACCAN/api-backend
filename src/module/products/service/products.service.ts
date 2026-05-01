@@ -22,11 +22,10 @@ export class ProductService {
     private readonly categoryRepository: Repository<CategoriesProduct>,
   ) {}
   async create(createProductDto: CreateProductDto, user: AuthUser) {
-    const { businessId, categoryId, ...data } = createProductDto;
+    const { categoryId, ...data } = createProductDto;
 
     const business = await this.businessRepository.findOne({
-      where: { id: businessId },
-      relations: ['owner'],
+      where: { owner: { id: user.id } },
     });
 
     if (!business) {
