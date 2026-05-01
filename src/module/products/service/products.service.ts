@@ -77,7 +77,45 @@ export class ProductService {
       },
     });
   }
+  async findOne(id: number, user: AuthUser) {
+    const business = await this.businessRepository.findOne({
+      where: { owner: { id: user.id } },
+    });
 
+    if (!business) {
+      throw new NotFoundException('Business not found');
+    }
+
+    const product = await this.productRepository.findOne({
+      where: {
+        id,
+        business: {
+          id: business.id,
+        },
+      },
+      relations: {
+        category: true,
+      },
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        price: true,
+        imageUrl: true,
+        status: true,
+        category: {
+          id: true,
+          name: true,
+        },
+      },
+    });
+
+    if (!product) {
+      throw new NotFoundException('Product not found');
+    }
+
+    return product;
+  }
   async findOneByAdmin(id: number) {
     const product = await this.productRepository.findOne({
       where: { id },

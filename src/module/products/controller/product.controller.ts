@@ -32,6 +32,12 @@ export class ProductsController {
     return this.productsService.findAllByOwner(user);
   }
 
+  @Get(':id')
+  @Auth('owner')
+  findOne(@Param('id', ParseIntPipe) id: number, @GetUser() user: AuthUser) {
+    return this.productsService.findOne(id, user);
+  }
+
   @Get('admin')
   @Auth('admin')
   findAllByAdmin() {
