@@ -14,6 +14,7 @@ import { GetUser } from 'src/module/auth/decorator/getUser.decorator';
 import { ProductService } from '../service/products.service';
 import { CreateProductAdmin } from '../dto/createProductAdmin.dto';
 import { UpdateProductDto } from '../dto/updateProduct.dto';
+import { UpdateProductAdminDto } from '../dto/updateProductAdmin.dto';
 
 @Controller('products')
 export class ProductsController {
@@ -66,5 +67,14 @@ export class ProductsController {
   @Auth('admin')
   createByAdmin(@Body() createProductAdminDto: CreateProductAdmin) {
     return this.productsService.createByAdmin(createProductAdminDto);
+  }
+
+  @Patch('admin/:id')
+  @Auth('admin')
+  updateByAdmin(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateProductAdminDto: UpdateProductAdminDto,
+  ) {
+    return this.productsService.updateByAdmin(id, updateProductAdminDto);
   }
 }
