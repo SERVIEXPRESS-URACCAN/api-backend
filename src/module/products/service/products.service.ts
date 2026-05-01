@@ -18,6 +18,40 @@ export class ProductService {
     @InjectRepository(CategoriesProduct)
     private readonly categoryRepository: Repository<CategoriesProduct>,
   ) {}
+
+  async findAllByOwner(user: AuthUser) {
+    const business = await this.businessRepository.findOne({
+      where: { owner: { id: user.id } },
+    });
+
+    if (!business) {
+      throw new NotFoundException('Business not found');
+    }
+
+    return this.productRepository.find({
+      where: {
+        business: {
+          id: business.id,
+        },
+      },
+      relations: {
+        category: true,
+      },
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        price: true,
+        imageUrl: true,
+        status: true,
+
+        category: {
+          id: true,
+          name: true,
+        },
+      },
+    });
+  }
   async create(createProductDto: CreateProductDto, user: AuthUser) {
     const { categoryId, ...data } = createProductDto;
 

@@ -1,4 +1,4 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import { Body, Controller, Get, Post } from '@nestjs/common';
 import { CreateProductDto } from '../dto/porducts.dto';
 import { AuthUser } from 'src/module/auth/interfaces/auth-user.interface';
 import { Auth } from 'src/module/auth/decorator/auth.decorator';
@@ -18,9 +18,15 @@ export class ProductsController {
   ) {
     return this.productsService.create(createProductDto, user);
   }
+
+  @Get()
+  @Auth('owner')
+  findAll(@GetUser() user: AuthUser) {
+    return this.productsService.findAllByOwner(user);
+  }
+
   @Post('admin')
   @Auth('admin')
-  @Post()
   createByAdmin(@Body() createProductAdminDto: CreateProductAdmin) {
     return this.productsService.createByAdmin(createProductAdminDto);
   }
