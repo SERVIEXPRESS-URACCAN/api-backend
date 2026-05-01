@@ -7,6 +7,7 @@ import { Business } from 'src/module/business/entities/business.entity';
 import { CategoriesProduct } from 'src/module/categories-products/entities/categories-product.entity';
 import { AuthUser } from 'src/module/auth/interfaces/auth-user.interface';
 import { CreateProductAdmin } from '../dto/createProductAdmin.dto';
+import { UpdateProductDto } from '../dto/updateProduct.dto';
 
 @Injectable()
 export class ProductService {
@@ -203,5 +204,53 @@ export class ProductService {
     });
 
     return await this.productRepository.save(product);
+  }
+
+  async update(id: number, updateProductDto: UpdateProductDto, user: AuthUser) {
+    const business = await this.businessRepository.findOne({
+      where: { owner: { id: user.id } },
+    });
+
+    if (!business) {
+      throw new NotFoundException('Business not found');
+    }
+
+    const product = await this.productRepository.findOne({
+      where: {
+        id,
+        business: {
+          id: business.id,
+        },
+      },
+      relations: {
+        category: true,
+      },
+    });
+
+    if (!product) {
+      throw new NotFoundException('Product not found');
+    }
+
+    if (updateProductDto.categoryId) {
+      const category = await this.categoryRepository.findOne({
+        where: { id: updateProductDto.categoryId },
+      });
+
+      if (!category) {
+        throw new NotFoundException('Category not found');
+      }
+
+      product.category = category;
+    }
+
+    const updatedProduct = {
+      ...product,
+      ...updateProductDto,
+      price: updateProductDto.price
+        ? updateProductDto.price.toString()
+        : product.price,
+    };
+    if (!product) throw new NotFoundException('Product not found');
+    return this.productRepository.save(updatedProduct);
   }
 }

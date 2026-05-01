@@ -4,6 +4,7 @@ import {
   Get,
   Param,
   ParseIntPipe,
+  Patch,
   Post,
 } from '@nestjs/common';
 import { CreateProductDto } from '../dto/porducts.dto';
@@ -12,6 +13,7 @@ import { Auth } from 'src/module/auth/decorator/auth.decorator';
 import { GetUser } from 'src/module/auth/decorator/getUser.decorator';
 import { ProductService } from '../service/products.service';
 import { CreateProductAdmin } from '../dto/createProductAdmin.dto';
+import { UpdateProductDto } from '../dto/updateProduct.dto';
 
 @Controller('products')
 export class ProductsController {
@@ -36,6 +38,16 @@ export class ProductsController {
   @Auth('owner')
   findOne(@Param('id', ParseIntPipe) id: number, @GetUser() user: AuthUser) {
     return this.productsService.findOne(id, user);
+  }
+
+  @Patch(':id')
+  @Auth('owner')
+  update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateProductDto: UpdateProductDto,
+    @GetUser() user: AuthUser,
+  ) {
+    return this.productsService.update(id, updateProductDto, user);
   }
 
   @Get('admin')
