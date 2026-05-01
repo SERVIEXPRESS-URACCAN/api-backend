@@ -156,4 +156,18 @@ export class ProductAdminService {
 
     return this.productRepository.save(updatedProduct);
   }
+
+  async removeByAdmin(id: number) {
+    const product = await this.productRepository.findOne({
+      where: { id },
+    });
+
+    if (!product) {
+      throw new NotFoundException('Product not found');
+    }
+
+    await this.productRepository.remove(product);
+
+    return { message: 'Product deleted successfully' };
+  }
 }

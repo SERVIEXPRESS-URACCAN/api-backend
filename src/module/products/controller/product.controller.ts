@@ -91,4 +91,10 @@ export class ProductsController {
   ) {
     return this.productsAdminService.updateByAdmin(id, updateProductAdminDto);
   }
+
+  @Delete('admin/:id')
+  @Auth('admin')
+  removeByAdmin(@Param('id', ParseIntPipe) id: number) {
+    return this.productsAdminService.removeByAdmin(id);
+  }
 }
