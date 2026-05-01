@@ -24,6 +24,11 @@ export class ProductsController {
   findAll(@GetUser() user: AuthUser) {
     return this.productsService.findAllByOwner(user);
   }
+  @Get('admin')
+  @Auth('admin')
+  findAllByAdmin() {
+    return this.productsService.findAllByAdmin();
+  }
 
   @Post('admin')
   @Auth('admin')

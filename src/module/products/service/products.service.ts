@@ -52,6 +52,31 @@ export class ProductService {
       },
     });
   }
+
+  async findAllByAdmin() {
+    return this.productRepository.find({
+      relations: {
+        business: true,
+        category: true,
+      },
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        price: true,
+        imageUrl: true,
+        status: true,
+        business: {
+          id: true,
+          name: true,
+        },
+        category: {
+          id: true,
+          name: true,
+        },
+      },
+    });
+  }
   async create(createProductDto: CreateProductDto, user: AuthUser) {
     const { categoryId, ...data } = createProductDto;
 
