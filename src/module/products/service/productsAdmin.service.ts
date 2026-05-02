@@ -116,16 +116,8 @@ export class ProductAdminService {
   }
 
   async removeByAdmin(id: number) {
-    const product = await this.productRepository.findOne({
-      where: { id },
-    });
+    const product = await this.productSharedService.findProduct(id);
 
-    if (!product) {
-      throw new NotFoundException('Product not found');
-    }
-
-    await this.productRepository.remove(product);
-
-    return { message: 'Product deleted successfully' };
+    return this.productSharedService.removeProduct(product);
   }
 }

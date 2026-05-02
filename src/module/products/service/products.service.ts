@@ -137,21 +137,12 @@ export class ProductService {
       throw new NotFoundException('Business not found');
     }
 
-    const product = await this.productRepository.findOne({
-      where: {
-        id,
-        business: {
-          id: business.id,
-        },
-      },
-    });
+    const product = await this.productSharedService.findProduct(id);
 
-    if (!product) {
-      throw new NotFoundException('Product not found');
+    if (product.business.id !== business.id) {
+      throw new ForbiddenException('This product is not yours');
     }
 
-    await this.productRepository.remove(product);
-
-    return { message: 'Product deleted successfully' };
+    return this.productSharedService.removeProduct(product);
   }
 }

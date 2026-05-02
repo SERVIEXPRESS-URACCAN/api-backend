@@ -81,4 +81,12 @@ export class ProductSharedService {
 
     return this.productRepository.save(updatedProduct);
   }
+
+  async removeProduct(product: Product) {
+    await this.productRepository.remove(product);
+
+    return {
+      message: 'Product deleted successfully',
+    };
+  }
 }
