@@ -25,6 +25,39 @@ export class ProductsController {
     private readonly productsAdminService: ProductAdminService,
   ) {}
 
+  @Get('admin')
+  @Auth('admin')
+  findAllByAdmin() {
+    return this.productsAdminService.findAllByAdmin();
+  }
+
+  @Get('admin/:id')
+  @Auth('admin')
+  findOneByAdmin(@Param('id', ParseIntPipe) id: number) {
+    return this.productsAdminService.findOneByAdmin(id);
+  }
+
+  @Post('admin')
+  @Auth('admin')
+  createByAdmin(@Body() createProductAdminDto: CreateProductAdmin) {
+    return this.productsAdminService.createByAdmin(createProductAdminDto);
+  }
+
+  @Patch('admin/:id')
+  @Auth('admin')
+  updateByAdmin(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateProductAdminDto: UpdateProductAdminDto,
+  ) {
+    return this.productsAdminService.updateByAdmin(id, updateProductAdminDto);
+  }
+
+  @Delete('admin/:id')
+  @Auth('admin')
+  removeByAdmin(@Param('id', ParseIntPipe) id: number) {
+    return this.productsAdminService.removeByAdmin(id);
+  }
+
   @Post()
   @Auth('owner')
   create(
@@ -63,38 +96,5 @@ export class ProductsController {
     @GetUser() user: AuthUser,
   ) {
     return this.productsService.removeByOwner(id, user);
-  }
-
-  @Get('admin')
-  @Auth('admin')
-  findAllByAdmin() {
-    return this.productsAdminService.findAllByAdmin();
-  }
-
-  @Get('admin/:id')
-  @Auth('admin')
-  findOneByAdmin(@Param('id', ParseIntPipe) id: number) {
-    return this.productsAdminService.findOneByAdmin(id);
-  }
-
-  @Post('admin')
-  @Auth('admin')
-  createByAdmin(@Body() createProductAdminDto: CreateProductAdmin) {
-    return this.productsAdminService.createByAdmin(createProductAdminDto);
-  }
-
-  @Patch('admin/:id')
-  @Auth('admin')
-  updateByAdmin(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() updateProductAdminDto: UpdateProductAdminDto,
-  ) {
-    return this.productsAdminService.updateByAdmin(id, updateProductAdminDto);
-  }
-
-  @Delete('admin/:id')
-  @Auth('admin')
-  removeByAdmin(@Param('id', ParseIntPipe) id: number) {
-    return this.productsAdminService.removeByAdmin(id);
   }
 }

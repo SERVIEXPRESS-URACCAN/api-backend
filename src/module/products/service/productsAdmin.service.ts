@@ -26,54 +26,10 @@ export class ProductAdminService {
         business: true,
         category: true,
       },
-      select: {
-        id: true,
-        name: true,
-        description: true,
-        price: true,
-        imageUrl: true,
-        status: true,
-        business: {
-          id: true,
-          name: true,
-        },
-        category: {
-          id: true,
-          name: true,
-        },
-      },
     });
   }
-  async findOneByAdmin(id: number) {
-    const product = await this.productRepository.findOne({
-      where: { id },
-      relations: {
-        business: true,
-        category: true,
-      },
-      select: {
-        id: true,
-        name: true,
-        description: true,
-        price: true,
-        imageUrl: true,
-        status: true,
-        business: {
-          id: true,
-          name: true,
-        },
-        category: {
-          id: true,
-          name: true,
-        },
-      },
-    });
-
-    if (!product) {
-      throw new NotFoundException('Product not found');
-    }
-
-    return product;
+  findOneByAdmin(id: number) {
+    return this.productSharedService.findProduct(id);
   }
   async createByAdmin(dto: CreateProductAdmin) {
     const { businessId, ...rest } = dto;

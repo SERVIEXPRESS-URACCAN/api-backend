@@ -68,37 +68,14 @@ export class ProductService {
       throw new NotFoundException('Business not found');
     }
 
-    const product = await this.productRepository.findOne({
-      where: {
-        id,
-        business: {
-          id: business.id,
-        },
-      },
-      relations: {
-        category: true,
-      },
-      select: {
-        id: true,
-        name: true,
-        description: true,
-        price: true,
-        imageUrl: true,
-        status: true,
-        category: {
-          id: true,
-          name: true,
-        },
-      },
-    });
+    const product = await this.productSharedService.findProduct(id);
 
-    if (!product) {
-      throw new NotFoundException('Product not found');
+    if (product.business.id !== business.id) {
+      throw new ForbiddenException('This product is not yours');
     }
 
     return product;
   }
-
   async create(dto: CreateProductDto, user: AuthUser) {
     const business = await this.businessRepository.findOne({
       where: { owner: { id: user.id } },
