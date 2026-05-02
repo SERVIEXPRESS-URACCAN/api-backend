@@ -1,4 +1,11 @@
 import { PartialType } from '@nestjs/mapped-types';
-import { CreateProductAdmin } from './createProductAdmin.dto';
+import { UpdateProductDto } from './updateProduct.dto';
+import { IsInt, IsOptional } from 'class-validator';
+import { Type } from 'class-transformer';
 
-export class UpdateProductAdminDto extends PartialType(CreateProductAdmin) {}
+export class UpdateProductAdminDto extends PartialType(UpdateProductDto) {
+  @IsInt()
+  @Type(() => Number)
+  @IsOptional()
+  businessId?: number;
+}

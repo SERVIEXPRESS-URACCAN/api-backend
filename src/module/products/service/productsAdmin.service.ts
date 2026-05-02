@@ -94,40 +94,15 @@ export class ProductAdminService {
       business,
     );
   }
-  async updateByAdmin(
-    id: number,
-    updateProductAdminDto: UpdateProductAdminDto,
-  ) {
-    const product = await this.productRepository.findOne({
-      where: { id },
-      relations: {
-        business: true,
-        category: true,
-      },
-    });
 
-    if (!product) {
-      throw new NotFoundException('Product not found');
-    }
+  async updateByAdmin(id: number, dto: UpdateProductAdminDto) {
+    const product = await this.productSharedService.findProduct(id);
 
-    let category = product.category;
     let business = product.business;
 
-    if (updateProductAdminDto.categoryId) {
-      const foundCategory = await this.categoryRepository.findOne({
-        where: { id: updateProductAdminDto.categoryId },
-      });
-
-      if (!foundCategory) {
-        throw new NotFoundException('Category not found');
-      }
-
-      category = foundCategory;
-    }
-
-    if (updateProductAdminDto.businessId) {
+    if (dto.businessId !== undefined) {
       const foundBusiness = await this.businessRepository.findOne({
-        where: { id: updateProductAdminDto.businessId },
+        where: { id: dto.businessId },
       });
 
       if (!foundBusiness) {
@@ -137,17 +112,7 @@ export class ProductAdminService {
       business = foundBusiness;
     }
 
-    const updatedProduct = {
-      ...product,
-      ...updateProductAdminDto,
-      price: updateProductAdminDto.price
-        ? updateProductAdminDto.price.toString()
-        : product.price,
-      category,
-      business,
-    };
-
-    return this.productRepository.save(updatedProduct);
+    return this.productSharedService.updateProduct(product, dto, business);
   }
 
   async removeByAdmin(id: number) {

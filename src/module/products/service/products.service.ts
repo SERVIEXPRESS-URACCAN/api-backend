@@ -1,5 +1,9 @@
 import { CreateProductDto } from '../dto/porducts.dto';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Product } from '../entities/products.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -106,7 +110,7 @@ export class ProductService {
 
     return this.productSharedService.createProduct(dto, business);
   }
-  async update(id: number, updateProductDto: UpdateProductDto, user: AuthUser) {
+  async update(id: number, dto: UpdateProductDto, user: AuthUser) {
     const business = await this.businessRepository.findOne({
       where: { owner: { id: user.id } },
     });
@@ -115,43 +119,13 @@ export class ProductService {
       throw new NotFoundException('Business not found');
     }
 
-    const product = await this.productRepository.findOne({
-      where: {
-        id,
-        business: {
-          id: business.id,
-        },
-      },
-      relations: {
-        category: true,
-      },
-    });
+    const product = await this.productSharedService.findProduct(id);
 
-    if (!product) {
-      throw new NotFoundException('Product not found');
+    if (product.business.id !== business.id) {
+      throw new ForbiddenException('This product is not yours');
     }
 
-    if (updateProductDto.categoryId) {
-      const category = await this.categoryRepository.findOne({
-        where: { id: updateProductDto.categoryId },
-      });
-
-      if (!category) {
-        throw new NotFoundException('Category not found');
-      }
-
-      product.category = category;
-    }
-
-    const updatedProduct = {
-      ...product,
-      ...updateProductDto,
-      price: updateProductDto.price
-        ? updateProductDto.price.toString()
-        : product.price,
-    };
-    if (!product) throw new NotFoundException('Product not found');
-    return this.productRepository.save(updatedProduct);
+    return this.productSharedService.updateProduct(product, dto);
   }
 
   async removeByOwner(id: number, user: AuthUser) {

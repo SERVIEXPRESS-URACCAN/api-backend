@@ -5,6 +5,7 @@ import { Repository } from 'typeorm';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { Business } from 'src/module/business/entities/business.entity';
 import { CreateProductDto } from '../dto/porducts.dto';
+import { UpdateProductDto } from '../dto/updateProduct.dto';
 
 @Injectable()
 export class ProductSharedService {
@@ -27,6 +28,21 @@ export class ProductSharedService {
 
     return category;
   }
+  async findProduct(id: number): Promise<Product> {
+    const product = await this.productRepository.findOne({
+      where: { id },
+      relations: {
+        business: true,
+        category: true,
+      },
+    });
+
+    if (!product) {
+      throw new NotFoundException('Product not found');
+    }
+
+    return product;
+  }
   async createProduct(dto: CreateProductDto, business: Business) {
     const { categoryId, ...data } = dto;
 
@@ -40,5 +56,29 @@ export class ProductSharedService {
     });
 
     return this.productRepository.save(product);
+  }
+
+  async updateProduct(
+    product: Product,
+    dto: UpdateProductDto,
+    business?: Business,
+  ) {
+    let category = product.category;
+
+    if (dto.categoryId !== undefined) {
+      category = await this.findCategory(dto.categoryId);
+    }
+
+    const updatedProduct = this.productRepository.merge(product, {
+      name: dto.name ?? product.name,
+      description: dto.description ?? product.description,
+      price: dto.price !== undefined ? dto.price.toString() : product.price,
+      imageUrl: dto.imageUrl ?? product.imageUrl,
+      status: dto.status ?? product.status,
+      category,
+      business: business ?? product.business,
+    });
+
+    return this.productRepository.save(updatedProduct);
   }
 }
