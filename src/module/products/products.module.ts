@@ -6,10 +6,11 @@ import { CategoriesProduct } from '../categories-products/entities/categories-pr
 import { ProductsController } from './controller/product.controller';
 import { ProductService } from './service/products.service';
 import { ProductAdminService } from './service/productsAdmin.service';
+import { ProductSharedService } from './service/productsShared.service';
 
 @Module({
   imports: [TypeOrmModule.forFeature([Product, CategoriesProduct, Business])],
   controllers: [ProductsController],
-  providers: [ProductService, ProductAdminService],
+  providers: [ProductService, ProductAdminService, ProductSharedService],
 })
 export class ProductsModule {}

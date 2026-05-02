@@ -6,12 +6,15 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { CategoriesProduct } from 'src/module/categories-products/entities/categories-product.entity';
 import { CreateProductAdmin } from '../dto/createProductAdmin.dto';
 import { UpdateProductAdminDto } from '../dto/updateProductAdmin.dto';
+import { ProductSharedService } from './productsShared.service';
 
 @Injectable()
 export class ProductAdminService {
   constructor(
     @InjectRepository(Product)
     private readonly productRepository: Repository<Product>,
+    private readonly productSharedService: ProductSharedService,
+
     @InjectRepository(Business)
     private readonly businessRepository: Repository<Business>,
     @InjectRepository(CategoriesProduct)
@@ -72,8 +75,8 @@ export class ProductAdminService {
 
     return product;
   }
-  async createByAdmin(createProductAdminDto: CreateProductAdmin) {
-    const { businessId, categoryId, ...data } = createProductAdminDto;
+  async createByAdmin(dto: CreateProductAdmin) {
+    const { businessId, ...rest } = dto;
 
     const business = await this.businessRepository.findOne({
       where: { id: businessId },
@@ -83,24 +86,14 @@ export class ProductAdminService {
       throw new NotFoundException('Business not found');
     }
 
-    const category = await this.categoryRepository.findOne({
-      where: { id: categoryId },
-    });
-
-    if (!category) {
-      throw new NotFoundException('Category not found');
-    }
-
-    const product = this.productRepository.create({
-      ...data,
-      price: data.price.toString(),
+    return this.productSharedService.createProduct(
+      {
+        ...rest,
+        categoryId: dto.categoryId,
+      },
       business,
-      category,
-    });
-
-    return await this.productRepository.save(product);
+    );
   }
-
   async updateByAdmin(
     id: number,
     updateProductAdminDto: UpdateProductAdminDto,
