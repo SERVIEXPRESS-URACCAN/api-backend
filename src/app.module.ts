@@ -5,6 +5,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './module/auth/auth.module';
 import { BusinessModule } from './module/business/business.module';
+import { CartModule } from './module/cart/cart.module';
 import { CategoriesBusinessModule } from './module/categories-business/categories-business.module';
 import { CategoriesProductsModule } from './module/categories-products/categories-products.module';
 import { CityModule } from './module/city/city.module';
@@ -14,8 +15,8 @@ import { MotorcyclesModule } from './module/motorcycles/motorcycles.module';
 import { OwnerModule } from './module/owner/owner.module';
 import { ProfileModule } from './module/profie/profile.module';
 import { RolesModule } from './module/roles/roles.module';
-import { UsersModule } from './module/users/users.module';
 import { UserRolesModule } from './module/user-roles/user-roles.module';
+import { UsersModule } from './module/users/users.module';
 
 @Module({
   imports: [
@@ -53,6 +54,7 @@ import { UserRolesModule } from './module/user-roles/user-roles.module';
     OwnerModule,
     CityModule,
     BusinessModule,
+    CartModule,
   ],
   controllers: [AppController],
   providers: [AppService],
