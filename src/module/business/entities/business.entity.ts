@@ -1,3 +1,4 @@
+import { Cart } from 'src/module/cart/entities/cart.entity';
 import { CategoriesBusiness } from 'src/module/categories-business/entities/categories-business.entity';
 import { City } from 'src/module/city/entities/city.entity';
 import { Owner } from 'src/module/owner/entities/owner.entity';
@@ -32,6 +33,8 @@ export class Business {
   @JoinColumn({ name: 'city_id', referencedColumnName: 'id' })
   city: City;
 
+  @OneToMany(() => Cart, (cart) => cart.business)
+  carts: Cart[];
   @Column({ type: 'varchar', nullable: true })
   address?: string;
 
