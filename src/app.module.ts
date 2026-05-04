@@ -16,6 +16,7 @@ import { OwnerModule } from './module/owner/owner.module';
 import { ProfileModule } from './module/profie/profile.module';
 import { RolesModule } from './module/roles/roles.module';
 import { UserRolesModule } from './module/user-roles/user-roles.module';
+import { ProductsModule } from './module/products/products.module';
 import { UsersModule } from './module/users/users.module';
 
 @Module({
@@ -29,6 +30,7 @@ import { UsersModule } from './module/users/users.module';
     AuthModule,
     ProfileModule,
     UserRolesModule,
+    ProductsModule,
 
     ConfigModule.forRoot({ isGlobal: true }),
 

@@ -2,6 +2,7 @@ import { Cart } from 'src/module/cart/entities/cart.entity';
 import { CategoriesBusiness } from 'src/module/categories-business/entities/categories-business.entity';
 import { City } from 'src/module/city/entities/city.entity';
 import { Owner } from 'src/module/owner/entities/owner.entity';
+import { Product } from 'src/module/products/entities/products.entity';
 import {
   Column,
   CreateDateColumn,
@@ -55,6 +56,9 @@ export class Business {
   })
   @JoinTable()
   categories: CategoriesBusiness[];
+
+  @OneToMany(() => Product, (product) => product.business)
+  products: Product[];
 
   @CreateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   createdAt: Date;
