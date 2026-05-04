@@ -13,11 +13,12 @@ import { CityModule } from './module/city/city.module';
 import { GenderModule } from './module/gender/gender.module';
 import { MandaderoModule } from './module/mandadero/mandadero.module';
 import { MotorcyclesModule } from './module/motorcycles/motorcycles.module';
+import { OrderModule } from './module/order/order.module';
 import { OwnerModule } from './module/owner/owner.module';
+import { ProductsModule } from './module/products/products.module';
 import { ProfileModule } from './module/profie/profile.module';
 import { RolesModule } from './module/roles/roles.module';
 import { UserRolesModule } from './module/user-roles/user-roles.module';
-import { ProductsModule } from './module/products/products.module';
 import { UsersModule } from './module/users/users.module';
 
 @Module({
@@ -59,6 +60,7 @@ import { UsersModule } from './module/users/users.module';
     BusinessModule,
     CartModule,
     CartItemsModule,
+    OrderModule,
   ],
   controllers: [AppController],
   providers: [AppService],
