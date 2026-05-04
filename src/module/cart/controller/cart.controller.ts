@@ -1,34 +1,27 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
-import { CartService } from './cart.service';
-import { CreateCartDto } from './dto/create-cart.dto';
-import { UpdateCartDto } from './dto/update-cart.dto';
+import { Controller, Get, Query } from '@nestjs/common';
+import { Auth } from 'src/module/auth/decorator/auth.decorator';
+import { GetUser } from 'src/module/auth/decorator/getUser.decorator';
+import { AuthUser } from 'src/module/auth/interfaces/auth-user.interface';
+import { GetOrCreateCartDto } from '../dto/get-or-create-cart.dto';
+import { CartService } from '../service/cart.service';
 
+@Auth('client')
 @Controller('cart')
 export class CartController {
   constructor(private readonly cartService: CartService) {}
 
-  @Post()
-  create(@Body() createCartDto: CreateCartDto) {
-    return this.cartService.create(createCartDto);
-  }
-
   @Get()
-  findAll() {
-    return this.cartService.findAll();
+  getOrCreateCart(@Query() dto: GetOrCreateCartDto, @GetUser() user: AuthUser) {
+    return this.cartService.getOrCreateCart(user.id, dto.businessId);
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.cartService.findOne(+id);
-  }
+  // @Patch(':id/checkout')
+  // checkout(@Param('id') id: number) {
+  //   return this.cartService.checkoutCart(id);
+  // }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateCartDto: UpdateCartDto) {
-    return this.cartService.update(+id, updateCartDto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.cartService.remove(+id);
-  }
+  // @Delete(':id')
+  // remove(@Param('id') id: number) {
+  //   return this.cartService.deleteCart(id);
+  // }
 }
