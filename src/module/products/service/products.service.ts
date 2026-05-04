@@ -1,16 +1,16 @@
-import { CreateProductDto } from '../dto/porducts.dto';
 import {
   ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Product } from '../entities/products.entity';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { Business } from 'src/module/business/entities/business.entity';
-import { CategoriesProduct } from 'src/module/categories-products/entities/categories-product.entity';
 import { AuthUser } from 'src/module/auth/interfaces/auth-user.interface';
+import { BusinessService } from 'src/module/business/service/business.service';
+import { CategoriesProduct } from 'src/module/categories-products/entities/categories-product.entity';
+import { Repository } from 'typeorm';
+import { CreateProductDto } from '../dto/porducts.dto';
 import { UpdateProductDto } from '../dto/updateProduct.dto';
+import { Product } from '../entities/products.entity';
 import { ProductSharedService } from './productsShared.service';
 
 @Injectable()
@@ -19,16 +19,15 @@ export class ProductService {
     @InjectRepository(Product)
     private readonly productRepository: Repository<Product>,
     private readonly productSharedService: ProductSharedService,
-    @InjectRepository(Business)
-    private readonly businessRepository: Repository<Business>,
+
     @InjectRepository(CategoriesProduct)
     private readonly categoryRepository: Repository<CategoriesProduct>,
+
+    private readonly businessService: BusinessService,
   ) {}
 
   async findAllByOwner(user: AuthUser) {
-    const business = await this.businessRepository.findOne({
-      where: { owner: { id: user.id } },
-    });
+    const business = await this.businessService.findOne(user.id);
 
     if (!business) {
       throw new NotFoundException('Business not found');
@@ -60,9 +59,7 @@ export class ProductService {
   }
 
   async findOne(id: number, user: AuthUser) {
-    const business = await this.businessRepository.findOne({
-      where: { owner: { id: user.id } },
-    });
+    const business = await this.businessService.findOne(user.id);
 
     if (!business) {
       throw new NotFoundException('Business not found');
@@ -77,9 +74,7 @@ export class ProductService {
     return product;
   }
   async create(dto: CreateProductDto, user: AuthUser) {
-    const business = await this.businessRepository.findOne({
-      where: { owner: { id: user.id } },
-    });
+    const business = await this.businessService.findOne(user.id);
 
     if (!business) {
       throw new NotFoundException('Business not found');
@@ -88,9 +83,7 @@ export class ProductService {
     return this.productSharedService.createProduct(dto, business);
   }
   async update(id: number, dto: UpdateProductDto, user: AuthUser) {
-    const business = await this.businessRepository.findOne({
-      where: { owner: { id: user.id } },
-    });
+    const business = await this.businessService.findOne(user.id);
 
     if (!business) {
       throw new NotFoundException('Business not found');
@@ -106,9 +99,7 @@ export class ProductService {
   }
 
   async removeByOwner(id: number, user: AuthUser) {
-    const business = await this.businessRepository.findOne({
-      where: { owner: { id: user.id } },
-    });
+    const business = await this.businessService.findOne(user.id);
 
     if (!business) {
       throw new NotFoundException('Business not found');
