@@ -1,4 +1,5 @@
 import { Business } from 'src/module/business/entities/business.entity';
+import { CartItem } from 'src/module/cart-items/entities/cart-item.entity';
 import { User } from 'src/module/users/entities/user.entity';
 import {
   Column,
@@ -6,6 +7,7 @@ import {
   Entity,
   JoinColumn,
   ManyToOne,
+  OneToMany,
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { CartStatus } from '../enum/cart-status.enum';
@@ -28,6 +30,9 @@ export class Cart {
   @ManyToOne(() => Business, (business) => business.carts)
   @JoinColumn({ name: 'businessId', referencedColumnName: 'id' })
   business: Business;
+
+  @OneToMany(() => CartItem, (cartItem) => cartItem.cart, { cascade: true })
+  items: CartItem[];
 
   @Column({
     type: 'enum',

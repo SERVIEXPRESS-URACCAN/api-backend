@@ -21,5 +21,6 @@ import { FileService } from './service/file.service';
     BusinessImageService,
     BusinessRelationsService,
   ],
+  exports: [BusinessService],
 })
 export class BusinessModule {}
