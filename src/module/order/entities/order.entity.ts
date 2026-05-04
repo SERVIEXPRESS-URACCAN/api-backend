@@ -1,4 +1,5 @@
 import { Business } from 'src/module/business/entities/business.entity';
+import { OrderItem } from 'src/module/order-items/entities/order-item.entity';
 import { User } from 'src/module/users/entities/user.entity';
 import {
   Column,
@@ -6,6 +7,7 @@ import {
   Entity,
   JoinColumn,
   ManyToOne,
+  OneToMany,
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { OrderStatus } from '../enum/orderStatus';
@@ -30,8 +32,8 @@ export class Order {
   @JoinColumn({ name: 'businessId' })
   business: Business;
 
-  // @OneToMany(() => OrderItem, (item) => item.order, { cascade: true })
-  // items: OrderItem[];
+  @OneToMany(() => OrderItem, (item) => item.order, { cascade: true })
+  items: OrderItem[];
 
   @Column({
     type: 'enum',
