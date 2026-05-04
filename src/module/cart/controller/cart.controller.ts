@@ -1,4 +1,12 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import {
+  Controller,
+  Delete,
+  Get,
+  Param,
+  ParseIntPipe,
+  Patch,
+  Query,
+} from '@nestjs/common';
 import { Auth } from 'src/module/auth/decorator/auth.decorator';
 import { GetUser } from 'src/module/auth/decorator/getUser.decorator';
 import { AuthUser } from 'src/module/auth/interfaces/auth-user.interface';
@@ -15,13 +23,18 @@ export class CartController {
     return this.cartService.getOrCreateCart(user.id, dto.businessId);
   }
 
-  // @Patch(':id/checkout')
-  // checkout(@Param('id') id: number) {
-  //   return this.cartService.checkoutCart(id);
-  // }
+  @Get(':id')
+  findOne(@Param('id', ParseIntPipe) id: number, @GetUser() user: AuthUser) {
+    return this.cartService.findOne(id, user.id);
+  }
 
-  // @Delete(':id')
-  // remove(@Param('id') id: number) {
-  //   return this.cartService.deleteCart(id);
-  // }
+  @Patch(':id/checkout')
+  checkout(@Param('id', ParseIntPipe) id: number, @GetUser() user: AuthUser) {
+    return this.cartService.checkoutCart(id, user.id);
+  }
+
+  @Delete(':id')
+  remove(@Param('id', ParseIntPipe) id: number, @GetUser() user: AuthUser) {
+    return this.cartService.deleteCart(id, user.id);
+  }
 }
