@@ -5,6 +5,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './module/auth/auth.module';
 import { BusinessModule } from './module/business/business.module';
+import { CartItemsModule } from './module/cart-items/cart-items.module';
 import { CartModule } from './module/cart/cart.module';
 import { CategoriesBusinessModule } from './module/categories-business/categories-business.module';
 import { CategoriesProductsModule } from './module/categories-products/categories-products.module';
@@ -57,6 +58,7 @@ import { UsersModule } from './module/users/users.module';
     CityModule,
     BusinessModule,
     CartModule,
+    CartItemsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
