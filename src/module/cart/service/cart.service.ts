@@ -17,17 +17,18 @@ export class CartService {
   ) {}
 
   async getOrCreateCart(userId: number, businessId: number) {
+    if (!businessId) {
+      throw new BadRequestException('businessId is required');
+    }
+
     let cart = await this.cartRepository.findOne({
       where: {
         userId,
         businessId,
         status: CartStatus.ACTIVE,
       },
+      relations: ['items', 'items.product'],
     });
-
-    if (!businessId) {
-      throw new BadRequestException('businessId is required');
-    }
 
     if (!cart) {
       cart = this.cartRepository.create({
@@ -36,6 +37,11 @@ export class CartService {
       });
 
       await this.cartRepository.save(cart);
+
+      cart = await this.cartRepository.findOne({
+        where: { id: cart.id },
+        relations: ['items', 'items.product'],
+      });
     }
 
     return cart;
@@ -44,6 +50,7 @@ export class CartService {
   async findOne(cartId: number, userId: number) {
     const cart = await this.cartRepository.findOne({
       where: { id: cartId },
+      relations: ['items', 'items.product'],
     });
 
     if (!cart) {
@@ -60,6 +67,7 @@ export class CartService {
   async checkoutCart(cartId: number, userId: number) {
     const cart = await this.cartRepository.findOne({
       where: { id: cartId },
+      relations: ['items'],
     });
 
     if (!cart) {
