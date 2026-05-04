@@ -20,6 +20,7 @@ import { ProfileModule } from './module/profie/profile.module';
 import { RolesModule } from './module/roles/roles.module';
 import { UserRolesModule } from './module/user-roles/user-roles.module';
 import { UsersModule } from './module/users/users.module';
+import { OrderItemsModule } from './module/order-items/order-items.module';
 
 @Module({
   imports: [
@@ -61,6 +62,7 @@ import { UsersModule } from './module/users/users.module';
     CartModule,
     CartItemsModule,
     OrderModule,
+    OrderItemsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
