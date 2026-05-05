@@ -14,16 +14,26 @@ import { AuthUser } from 'src/module/auth/interfaces/auth-user.interface';
 import { OrderStatus } from '../enum/orderStatus';
 import { OrderService } from '../service/order.service';
 
+import { Auth } from 'src/module/auth/decorator/auth.decorator';
+
 @Controller('orders')
 export class OrderController {
   constructor(private readonly orderService: OrderService) {}
 
   @Get()
+  @Auth('client')
   getMyOrders(@GetUser() user: AuthUser) {
     return this.orderService.getMyOrders(user.id);
   }
 
+  @Get('business')
+  @Auth('owner')
+  getBusinessOrders(@GetUser() user: AuthUser) {
+    return this.orderService.getBusinessOrders(user.id);
+  }
+
   @Get(':id')
+  @Auth('client', 'owner')
   getOrderById(
     @Param('id', ParseIntPipe) id: number,
     @GetUser() user: AuthUser,
@@ -32,19 +42,23 @@ export class OrderController {
   }
 
   @Post('checkout/:cartId')
+  @Auth('client')
   checkout(
     @Param('cartId', ParseIntPipe) cartId: number,
     @GetUser() user: AuthUser,
   ) {
+    console.log('USER DEBUG:', user);
     return this.orderService.createOrderFromCart(user.id, cartId);
   }
 
   @Patch(':id/status')
+  @Auth('owner')
   updateStatus(
     @Param('id', ParseIntPipe) id: number,
     @Body('status') status: OrderStatus,
     @GetUser() user: AuthUser,
   ) {
+    console.log(user.roles);
     return this.orderService.updateStatus(id, status, user);
   }
 }
