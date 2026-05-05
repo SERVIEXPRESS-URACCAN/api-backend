@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, Not, Repository } from 'typeorm';
+import { DataSource, FindOptionsWhere, Not, Repository } from 'typeorm';
 
 import { Cart } from 'src/module/cart/entities/cart.entity';
 import { CartStatus } from 'src/module/cart/enum/cart-status.enum';
@@ -130,7 +130,8 @@ export class OrderService {
 
     return order;
   }
-  async getBusinessOrders(userId: number) {
+
+  async getBusinessOrders(userId: number, status?: OrderStatus) {
     const business = await this.businessRepository.findOne({
       where: {
         owner: {
@@ -144,13 +145,22 @@ export class OrderService {
       throw new NotFoundException('Business not found');
     }
 
+    const where: FindOptionsWhere<Order> = {
+      businessId: business.id,
+    };
+
+    if (status) {
+      where.status = status;
+    } else {
+      where.status = Not(OrderStatus.CANCELLED);
+    }
+
     return this.orderRepository.find({
-      where: { businessId: business.id, status: Not(OrderStatus.CANCELLED) },
+      where,
       relations: ['items', 'items.product'],
       order: { createdAt: 'DESC' },
     });
   }
-
   async updateStatus(orderId: number, status: OrderStatus, user: AuthUser) {
     const order = await this.orderRepository.findOne({
       where: { id: orderId },

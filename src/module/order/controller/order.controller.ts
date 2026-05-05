@@ -6,6 +6,7 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  Query,
 } from '@nestjs/common';
 
 import { GetUser } from 'src/module/auth/decorator/getUser.decorator';
@@ -28,8 +29,11 @@ export class OrderController {
 
   @Get('business')
   @Auth('owner')
-  getBusinessOrders(@GetUser() user: AuthUser) {
-    return this.orderService.getBusinessOrders(user.id);
+  getBusinessOrders(
+    @GetUser() user: AuthUser,
+    @Query('status') status?: OrderStatus,
+  ) {
+    return this.orderService.getBusinessOrders(user.id, status);
   }
   @Get('available')
   @Auth('mandadero')
