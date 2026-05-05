@@ -10,7 +10,7 @@ import {
   OneToMany,
   PrimaryGeneratedColumn,
 } from 'typeorm';
-import { OrderStatus } from '../enum/orderStatus';
+import { DeliveryStatus, OrderStatus } from '../enum/orderStatus';
 // import { OrderItem } from 'src/module/order-items/entities/order-item.entity';
 
 @Entity()
@@ -34,6 +34,20 @@ export class Order {
 
   @OneToMany(() => OrderItem, (item) => item.order, { cascade: true })
   items: OrderItem[];
+
+  @Column({
+    type: 'enum',
+    enum: DeliveryStatus,
+    default: DeliveryStatus.WAITING,
+  })
+  deliveryStatus: DeliveryStatus;
+
+  @Column({ nullable: true })
+  mandaderoId?: number;
+
+  @ManyToOne(() => User, { nullable: true })
+  @JoinColumn({ name: 'mandaderoId' })
+  mandadero?: User;
 
   @Column({
     type: 'enum',
