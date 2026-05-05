@@ -21,6 +21,7 @@ import { RolesModule } from './module/roles/roles.module';
 import { UserRolesModule } from './module/user-roles/user-roles.module';
 import { UsersModule } from './module/users/users.module';
 import { OrderItemsModule } from './module/order-items/order-items.module';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { OrderItemsModule } from './module/order-items/order-items.module';
     ProfileModule,
     UserRolesModule,
     ProductsModule,
+    ScheduleModule.forRoot(),
 
     ConfigModule.forRoot({ isGlobal: true }),
 
