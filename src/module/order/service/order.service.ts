@@ -13,6 +13,7 @@ import { AuthUser } from 'src/module/auth/interfaces/auth-user.interface';
 import { OrderItem } from 'src/module/order-items/entities/order-item.entity';
 import { Order } from '../entities/order.entity';
 import { OrderStatus } from '../enum/orderStatus';
+import { Business } from 'src/module/business/entities/business.entity';
 
 @Injectable()
 export class OrderService {
@@ -27,6 +28,9 @@ export class OrderService {
 
     @InjectRepository(Cart)
     private readonly cartRepository: Repository<Cart>,
+
+    @InjectRepository(Business)
+    private readonly businessRepository: Repository<Business>,
   ) {}
 
   async createOrderFromCart(userId: number, cartId: number) {
@@ -65,11 +69,10 @@ export class OrderService {
       let total = 0;
 
       const orderItems = cart.items.map((item) => {
-        const product = item.product;
-
-        if (!product) {
+        if (!item.product) {
           throw new NotFoundException('Product not found in cart item');
         }
+        const product = item.product;
 
         const price = Number(product.price);
         const subtotal = price * item.quantity;
@@ -127,6 +130,26 @@ export class OrderService {
 
     return order;
   }
+  async getBusinessOrders(userId: number) {
+    const business = await this.businessRepository.findOne({
+      where: {
+        owner: {
+          user: { id: userId },
+        },
+      },
+      relations: ['owner', 'owner.user'],
+    });
+
+    if (!business) {
+      throw new NotFoundException('Business not found');
+    }
+
+    return this.orderRepository.find({
+      where: { businessId: business.id },
+      relations: ['items', 'items.product'],
+      order: { createdAt: 'DESC' },
+    });
+  }
 
   async updateStatus(orderId: number, status: OrderStatus, user: AuthUser) {
     const order = await this.orderRepository.findOne({
@@ -135,14 +158,10 @@ export class OrderService {
 
     if (!order) throw new NotFoundException('Order not found');
 
-    const isBusiness = user.roles === 'business';
-    const isClient = user.roles === 'client';
+    const isOwner = user.roles.includes('owner');
+    const isClient = user.roles.includes('client');
 
-    if (isClient && status !== OrderStatus.CANCELLED) {
-      throw new BadRequestException('Clients can only cancel orders');
-    }
-
-    if (isBusiness) {
+    if (isOwner) {
       const validTransitions: Record<OrderStatus, OrderStatus[]> = {
         PENDING: [OrderStatus.ACCEPTED, OrderStatus.CANCELLED],
         ACCEPTED: [OrderStatus.PREPARING, OrderStatus.CANCELLED],
@@ -160,9 +179,18 @@ export class OrderService {
           `Cannot change from ${order.status} to ${status}`,
         );
       }
+
+      order.status = status;
+      return this.orderRepository.save(order);
+    }
+
+    if (isClient && status !== OrderStatus.CANCELLED) {
+      throw new BadRequestException('Clients can only cancel orders');
     }
 
     order.status = status;
     return this.orderRepository.save(order);
+
+    throw new BadRequestException('Invalid user role for status update');
   }
 }
