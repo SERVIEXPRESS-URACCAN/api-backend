@@ -276,10 +276,17 @@ export class OrderService {
       throw new BadRequestException('Only delivery can update delivery status');
     }
 
+    if (order.deliveryStatus === DeliveryStatus.WAITING) {
+      throw new BadRequestException('Order has not been assigned yet');
+    }
+
+    if (!order.mandaderoId) {
+      throw new BadRequestException('Order has no delivery person assigned');
+    }
+
     if (order.mandaderoId !== user.id) {
       throw new BadRequestException('You are not assigned to this order');
     }
-
     const validTransitions: Record<DeliveryStatus, DeliveryStatus[]> = {
       WAITING: [DeliveryStatus.ASSIGNED],
       ASSIGNED: [DeliveryStatus.PICKED_UP],
