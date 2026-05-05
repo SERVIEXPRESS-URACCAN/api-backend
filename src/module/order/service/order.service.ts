@@ -231,9 +231,9 @@ export class OrderService {
 
     if (!order) throw new NotFoundException('Order not found');
 
-    const isDelivery = user.roles.includes('delivery');
+    const isMandadero = user.roles.includes('mandadero');
 
-    if (!isDelivery) {
+    if (!isMandadero) {
       throw new BadRequestException('Only delivery can update delivery status');
     }
 
