@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, Not, Repository } from 'typeorm';
 
 import { Cart } from 'src/module/cart/entities/cart.entity';
 import { CartStatus } from 'src/module/cart/enum/cart-status.enum';
@@ -145,7 +145,7 @@ export class OrderService {
     }
 
     return this.orderRepository.find({
-      where: { businessId: business.id },
+      where: { businessId: business.id, status: Not(OrderStatus.CANCELLED) },
       relations: ['items', 'items.product'],
       order: { createdAt: 'DESC' },
     });
@@ -182,13 +182,42 @@ export class OrderService {
       return this.orderRepository.save(order);
     }
 
-    if (isClient && status !== OrderStatus.CANCELLED) {
-      throw new BadRequestException('Clients can only cancel orders');
+    if (isClient) {
+      if (status !== OrderStatus.CANCELLED) {
+        throw new BadRequestException('Clients can only cancel orders');
+      }
+
+      const now = new Date();
+      const createdAt = new Date(order.createdAt);
+
+      const diffInMs = now.getTime() - createdAt.getTime();
+      const diffInMinutes = diffInMs / (1000 * 60);
+
+      if (diffInMinutes > 30) {
+        throw new BadRequestException(
+          'You can only cancel within 5 minutes of placing the order',
+        );
+      }
+
+      if (order.status === OrderStatus.PREPARING) {
+        throw new BadRequestException(
+          'Order is already being prepared and cannot be cancelled',
+        );
+      }
+
+      order.status = OrderStatus.CANCELLED;
+
+      order.deliveryStatus = DeliveryStatus.WAITING;
+
+      order.status = OrderStatus.CANCELLED;
+
+      await this.orderRepository.save(order);
+
+      return {
+        message: 'Order cancelled successfully',
+        data: order,
+      };
     }
-
-    order.status = status;
-    return this.orderRepository.save(order);
-
     throw new BadRequestException('Invalid user role for status update');
   }
 

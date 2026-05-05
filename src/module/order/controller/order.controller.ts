@@ -11,7 +11,7 @@ import {
 import { GetUser } from 'src/module/auth/decorator/getUser.decorator';
 import { AuthUser } from 'src/module/auth/interfaces/auth-user.interface';
 
-import { OrderStatus } from '../enum/orderStatus';
+import { DeliveryStatus, OrderStatus } from '../enum/orderStatus';
 import { OrderService } from '../service/order.service';
 
 import { Auth } from 'src/module/auth/decorator/auth.decorator';
@@ -30,6 +30,11 @@ export class OrderController {
   @Auth('owner')
   getBusinessOrders(@GetUser() user: AuthUser) {
     return this.orderService.getBusinessOrders(user.id);
+  }
+  @Get('available')
+  @Auth('mandadero')
+  getAvailableOrders() {
+    return this.orderService.getAvailableOrders();
   }
 
   @Get(':id')
@@ -52,7 +57,7 @@ export class OrderController {
   }
 
   @Patch(':id/status')
-  @Auth('owner')
+  @Auth('owner', 'client')
   updateStatus(
     @Param('id', ParseIntPipe) id: number,
     @Body('status') status: OrderStatus,
@@ -60,5 +65,24 @@ export class OrderController {
   ) {
     console.log(user.roles);
     return this.orderService.updateStatus(id, status, user);
+  }
+
+  @Patch(':id/accept')
+  @Auth('mandadero')
+  acceptOrder(
+    @Param('id', ParseIntPipe) id: number,
+    @GetUser() user: AuthUser,
+  ) {
+    return this.orderService.acceptOrderMandadero(id, user);
+  }
+
+  @Patch(':id/delivery-status')
+  @Auth('mandadero')
+  updateDeliveryStatus(
+    @Param('id', ParseIntPipe) id: number,
+    @Body('status') status: DeliveryStatus,
+    @GetUser() user: AuthUser,
+  ) {
+    return this.orderService.updateDeliveryStatus(id, status, user);
   }
 }
