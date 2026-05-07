@@ -22,6 +22,7 @@ async function bootstrap() {
     prefix: '/uploads/',
   });
 
-  await app.listen(process.env.PORT ?? 3000);
+  app.enableCors();
+  await app.listen(process.env.PORT ?? 4000);
 }
 bootstrap();
