@@ -18,6 +18,11 @@ import { CartService } from '../service/cart.service';
 export class CartController {
   constructor(private readonly cartService: CartService) {}
 
+  @Get('my-carts')
+  getMyCarts(@GetUser() user: AuthUser) {
+    return this.cartService.getUserCarts(user.id);
+  }
+
   @Get()
   getOrCreateCart(@Query() dto: GetOrCreateCartDto, @GetUser() user: AuthUser) {
     return this.cartService.getOrCreateCart(user.id, dto.businessId);

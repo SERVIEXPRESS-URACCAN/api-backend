@@ -5,10 +5,10 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Cart } from 'src/module/cart/entities/cart.entity';
+import { Repository } from 'typeorm';
+
 import { CartService } from 'src/module/cart/service/cart.service';
 import { ProductSharedService } from 'src/module/products/service/productsShared.service';
-import { Repository } from 'typeorm';
 import { AddCartItemDto } from '../dto/add-cart-item.dto';
 import { CartItem } from '../entities/cart-item.entity';
 
@@ -17,8 +17,6 @@ export class CartItemsService {
   constructor(
     @InjectRepository(CartItem)
     private readonly cartItemRepository: Repository<CartItem>,
-    @InjectRepository(Cart)
-    private readonly cartRepository: Repository<Cart>,
 
     private readonly productSharedService: ProductSharedService,
     private readonly cartService: CartService,
@@ -33,6 +31,10 @@ export class CartItemsService {
       userId,
       product.business.id,
     );
+
+    if (!cart) {
+      throw new NotFoundException('Cart not found or could not be created');
+    }
 
     let item = await this.cartItemRepository.findOne({
       where: {
@@ -55,6 +57,10 @@ export class CartItemsService {
   }
 
   async updateQuantity(itemId: number, userId: number, quantity: number) {
+    if (quantity <= 0) {
+      throw new BadRequestException('Quantity must be greater than 0');
+    }
+
     const item = await this.cartItemRepository.findOne({
       where: { id: itemId },
       relations: ['cart'],
@@ -64,12 +70,8 @@ export class CartItemsService {
       throw new NotFoundException('Cart item not found');
     }
 
-    if (item.cart.userId !== userId) {
-      throw new ForbiddenException('You do not own this cart');
-    }
-
-    if (quantity <= 0) {
-      throw new BadRequestException('Quantity must be greater than 0');
+    if (!item.cart || item.cart.userId !== userId) {
+      throw new ForbiddenException('You do not own this cart item');
     }
 
     item.quantity = quantity;
@@ -87,8 +89,8 @@ export class CartItemsService {
       throw new NotFoundException('Cart item not found');
     }
 
-    if (item.cart.userId !== userId) {
-      throw new ForbiddenException('You do not own this cart');
+    if (!item.cart || item.cart.userId !== userId) {
+      throw new ForbiddenException('You do not own this cart item');
     }
 
     await this.cartItemRepository.remove(item);
