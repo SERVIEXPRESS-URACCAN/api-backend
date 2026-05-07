@@ -6,7 +6,6 @@ import { MandaderoStatusService } from './mandadero-status.service';
 import { AuthUser } from 'src/module/auth/interfaces/auth-user.interface';
 
 import { FilterMandaderoDto } from '../dto/mandadero-filter.dto';
-import { MandaderoPolicyService } from './mandadero-policy.service';
 
 @Injectable()
 export class MandaderoService {
@@ -14,7 +13,6 @@ export class MandaderoService {
     @InjectRepository(Mandadero)
     private readonly mandaderoRepository: Repository<Mandadero>,
 
-    private readonly mandaderoPolicyService: MandaderoPolicyService,
     private readonly statusService: MandaderoStatusService,
   ) {}
 
@@ -83,7 +81,7 @@ export class MandaderoService {
     };
   }
 
-  async findOne(id: number, user: AuthUser) {
+  async findOne(id: number) {
     const mandadero = await this.mandaderoRepository.findOne({
       where: { id },
       relations: [
@@ -97,8 +95,6 @@ export class MandaderoService {
     if (!mandadero) {
       throw new NotFoundException('Mandadero not found');
     }
-
-    this.mandaderoPolicyService.canAccess(mandadero, user);
 
     return mandadero;
   }

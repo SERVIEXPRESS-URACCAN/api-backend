@@ -51,7 +51,7 @@ export class BusinessController {
       },
     ),
   )
-  async updateMyBusines(
+  async updateMyBusiness(
     @GetUser() user: AuthUser,
     @Body() updateBusinessDto: UpdateBusinessDto,
     @UploadedFiles()
