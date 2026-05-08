@@ -7,6 +7,9 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  Query,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
 import { CreateProductDto } from '../dto/porducts.dto';
 import { AuthUser } from 'src/module/auth/interfaces/auth-user.interface';
@@ -17,6 +20,10 @@ import { CreateProductAdmin } from '../dto/createProductAdmin.dto';
 import { UpdateProductDto } from '../dto/updateProduct.dto';
 import { UpdateProductAdminDto } from '../dto/updateProductAdmin.dto';
 import { ProductAdminService } from '../service/productsAdmin.service';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
+import { extname } from 'path';
+import { validateFile } from 'src/common/helper/validationFiles.helper';
 
 @Controller('products')
 export class ProductsController {
@@ -60,17 +67,38 @@ export class ProductsController {
 
   @Post()
   @Auth('owner')
+  @UseInterceptors(
+    FileInterceptor('image', {
+      storage: diskStorage({
+        destination: './uploads',
+        filename: (req, file, cb) => {
+          const uniqueName = Date.now() + extname(file.originalname);
+          cb(null, uniqueName);
+        },
+      }),
+    }),
+  )
   create(
+    @UploadedFile() file: Express.Multer.File,
     @Body() createProductDto: CreateProductDto,
     @GetUser() user: AuthUser,
   ) {
-    return this.productsService.create(createProductDto, user);
+    validateFile({ image: file });
+    return this.productsService.create(createProductDto, file, user);
   }
 
   @Get()
   @Auth('owner')
-  findAll(@GetUser() user: AuthUser) {
-    return this.productsService.findAllByOwner(user);
+  findAll(
+    @GetUser() user: AuthUser,
+    @Query('page') page = 1,
+    @Query('limit') limit = 10,
+  ) {
+    return this.productsService.findAllByOwner(
+      user,
+      Number(page),
+      Number(limit),
+    );
   }
 
   @Get(':id')

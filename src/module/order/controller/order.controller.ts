@@ -41,6 +41,15 @@ export class OrderController {
     return this.orderService.getAvailableOrders();
   }
 
+  @Get('my-orders')
+  @Auth('mandadero')
+  getMandaderoOrders(
+    @GetUser() user: AuthUser,
+    @Query('status') status?: DeliveryStatus,
+  ) {
+    return this.orderService.getMandaderoOrders(user.id, status);
+  }
+
   @Get(':id')
   @Auth('client', 'owner')
   getOrderById(
