@@ -26,14 +26,17 @@ export class ProductService {
     private readonly businessService: BusinessService,
   ) {}
 
-  async findAllByOwner(user: AuthUser) {
+  async findAllByOwner(user: AuthUser, page = 1, limit = 10) {
     const business = await this.businessService.findOne(user.id);
 
     if (!business) {
       throw new NotFoundException('Business not found');
     }
 
-    return this.productRepository.find({
+    const safeLimit = Math.min(limit, 30);
+    const skip = (page - 1) * safeLimit;
+
+    const [data, total] = await this.productRepository.findAndCount({
       where: {
         business: {
           id: business.id,
@@ -55,7 +58,19 @@ export class ProductService {
           name: true,
         },
       },
+      take: safeLimit,
+
+      skip,
     });
+    return {
+      data,
+      meta: {
+        total,
+        page,
+        limit: safeLimit,
+        lastPage: Math.ceil(total / safeLimit),
+      },
+    };
   }
 
   async findOne(id: number, user: AuthUser) {
@@ -73,14 +88,23 @@ export class ProductService {
 
     return product;
   }
-  async create(dto: CreateProductDto, user: AuthUser) {
+  async create(
+    dto: CreateProductDto,
+    file: Express.Multer.File,
+    user: AuthUser,
+  ) {
     const business = await this.businessService.findOne(user.id);
 
     if (!business) {
       throw new NotFoundException('Business not found');
     }
 
-    return this.productSharedService.createProduct(dto, business);
+    const imageUrl = `/uploads/${file.filename}`;
+
+    return this.productSharedService.createProduct(
+      { ...dto, imageUrl },
+      business,
+    );
   }
   async update(id: number, dto: UpdateProductDto, user: AuthUser) {
     const business = await this.businessService.findOne(user.id);

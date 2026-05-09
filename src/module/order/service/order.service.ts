@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, FindOptionsWhere, Not, Repository } from 'typeorm';
+import { DataSource, FindOptionsWhere, Repository } from 'typeorm';
 
 import { Cart } from 'src/module/cart/entities/cart.entity';
 import { CartStatus } from 'src/module/cart/enum/cart-status.enum';
@@ -151,8 +151,6 @@ export class OrderService {
 
     if (status) {
       where.status = status;
-    } else {
-      where.status = Not(OrderStatus.CANCELLED);
     }
 
     return this.orderRepository.find({
@@ -313,6 +311,24 @@ export class OrderService {
         deliveryStatus: DeliveryStatus.WAITING,
       },
       relations: ['items', 'items.product', 'business'],
+    });
+  }
+
+  async getMandaderoOrders(mandaderoId: number, status?: DeliveryStatus) {
+    const where: FindOptionsWhere<Order> = {
+      mandaderoId,
+    };
+
+    if (status) {
+      where.deliveryStatus = status;
+    }
+
+    return this.orderRepository.find({
+      where,
+      relations: ['items', 'items.product', 'business'],
+      order: {
+        createdAt: 'DESC',
+      },
     });
   }
 }
