@@ -25,7 +25,8 @@ export class AuthService {
     private readonly dataSource: DataSource,
   ) {}
   async login(dto: LoginDto) {
-    const { email, password } = dto;
+    const email = dto.email.toLowerCase().trim();
+    const { password } = dto;
 
     const user = await this.usersService.findByEmail(email, true);
 
@@ -34,9 +35,7 @@ export class AuthService {
     }
 
     if (user.deletedAt) {
-      throw new ForbiddenException(
-        'Account not available. Please register again.',
-      );
+      throw new ForbiddenException('Account not available.');
     }
 
     const hashedPassword = await bcrypt.compare(password, user.password);
@@ -67,8 +66,10 @@ export class AuthService {
     try {
       const { profile, ...userData } = dto;
 
+      const normalizeEmail = dto.email.toLowerCase().trim();
+
       const existingUser = await qr.manager.findOne(User, {
-        where: { email: dto.email },
+        where: { email: normalizeEmail },
         withDeleted: true,
       });
 
@@ -81,7 +82,10 @@ export class AuthService {
 
         const restoredUser = await this.usersService.restoreUserGraph(
           existingUser.id,
-          dto,
+          {
+            ...dto,
+            email: normalizeEmail,
+          },
         );
 
         return {
@@ -110,6 +114,7 @@ export class AuthService {
 
       const user = qr.manager.create(User, {
         ...userData,
+        email: normalizeEmail,
         password: hashedPassword,
       });
 
