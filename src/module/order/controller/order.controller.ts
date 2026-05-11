@@ -15,6 +15,7 @@ import { AuthUser } from 'src/module/auth/interfaces/auth-user.interface';
 import { DeliveryStatus, OrderStatus } from '../enum/orderStatus';
 import { OrderService } from '../service/order.service';
 
+import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { Auth } from 'src/module/auth/decorator/auth.decorator';
 
 @Controller('orders')
@@ -23,8 +24,11 @@ export class OrderController {
 
   @Get()
   @Auth('client')
-  getMyOrders(@GetUser() user: AuthUser) {
-    return this.orderService.getMyOrders(user.id);
+  getMyOrders(
+    @GetUser() user: AuthUser,
+    @Query() paginationDto: PaginationDto,
+  ) {
+    return this.orderService.getMyOrders(user.id, paginationDto);
   }
 
   @Get('business')
