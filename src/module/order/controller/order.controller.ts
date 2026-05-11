@@ -17,6 +17,7 @@ import { OrderService } from '../service/order.service';
 
 import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { Auth } from 'src/module/auth/decorator/auth.decorator';
+import { GetBusinessOrderDto } from '../dto/getBusinessOrder.dto';
 
 @Controller('orders')
 export class OrderController {
@@ -35,9 +36,9 @@ export class OrderController {
   @Auth('owner')
   getBusinessOrders(
     @GetUser() user: AuthUser,
-    @Query('status') status?: OrderStatus,
+    @Query() query: GetBusinessOrderDto,
   ) {
-    return this.orderService.getBusinessOrders(user.id, status);
+    return this.orderService.getBusinessOrders(user.id, query);
   }
   @Get('available')
   @Auth('mandadero')
