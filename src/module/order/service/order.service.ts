@@ -13,6 +13,7 @@ import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { AuthUser } from 'src/module/auth/interfaces/auth-user.interface';
 import { Business } from 'src/module/business/entities/business.entity';
 import { OrderItem } from 'src/module/order-items/entities/order-item.entity';
+import { GetBusinessOrderDto } from '../dto/getBusinessOrder.dto';
 import { Order } from '../entities/order.entity';
 import { DeliveryStatus, OrderStatus } from '../enum/orderStatus';
 
@@ -150,7 +151,9 @@ export class OrderService {
     return order;
   }
 
-  async getBusinessOrders(userId: number, status?: OrderStatus) {
+  async getBusinessOrders(userId: number, query: GetBusinessOrderDto) {
+    const { page = 1, limit = 10, status } = query;
+
     const business = await this.businessRepository.findOne({
       where: {
         owner: {
@@ -172,11 +175,27 @@ export class OrderService {
       where.status = status;
     }
 
-    return this.orderRepository.find({
+    const [orders, total] = await this.orderRepository.findAndCount({
       where,
+      take: limit,
+      skip: (page - 1) * limit,
       relations: ['items', 'items.product'],
-      order: { createdAt: 'DESC' },
+      order: {
+        createdAt: 'DESC',
+      },
     });
+
+    return {
+      data: orders,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+        hasNextPage: page * limit < total,
+        hasPreviousPage: page > 1,
+      },
+    };
   }
   async updateStatus(orderId: number, status: OrderStatus, user: AuthUser) {
     const order = await this.orderRepository.findOne({
