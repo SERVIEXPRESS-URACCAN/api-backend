@@ -20,10 +20,6 @@ export class CreateProductDto {
   @Type(() => Number)
   price: number;
 
-  @IsString()
-  @IsOptional()
-  imageUrl: string;
-
   @IsBoolean()
   @IsOptional()
   status?: boolean;

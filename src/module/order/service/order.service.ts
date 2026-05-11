@@ -185,7 +185,9 @@ export class OrderService {
           `Cannot change from ${order.status} to ${status}`,
         );
       }
-
+      if (status === OrderStatus.ACCEPTED) {
+        order.acceptedAt = new Date();
+      }
       order.status = status;
       return this.orderRepository.save(order);
     }
@@ -194,39 +196,55 @@ export class OrderService {
       if (status !== OrderStatus.CANCELLED) {
         throw new BadRequestException('Clients can only cancel orders');
       }
-
-      const now = new Date();
-      const createdAt = new Date(order.createdAt);
-
-      const diffInMs = now.getTime() - createdAt.getTime();
-      const diffInMinutes = diffInMs / (1000 * 60);
-
-      if (diffInMinutes > 30) {
-        throw new BadRequestException(
-          'You can only cancel within 5 minutes of placing the order',
-        );
+      if (
+        [
+          OrderStatus.PREPARING,
+          OrderStatus.READY,
+          OrderStatus.CANCELLED,
+        ].includes(order.status)
+      ) {
+        throw new BadRequestException('This order can no longer be cancelled');
       }
+      if (order.status === OrderStatus.PENDING) {
+        order.status = OrderStatus.CANCELLED;
+        order.deliveryStatus = DeliveryStatus.WAITING;
 
-      if (order.status === OrderStatus.PREPARING) {
-        throw new BadRequestException(
-          'Order is already being prepared and cannot be cancelled',
-        );
+        await this.orderRepository.save(order);
+
+        return {
+          message: 'Order cancelled successfully',
+          data: order,
+        };
       }
+      if (order.status === OrderStatus.ACCEPTED) {
+        if (!order.acceptedAt) {
+          throw new BadRequestException('Accepted date not found');
+        }
 
-      order.status = OrderStatus.CANCELLED;
+        const now = new Date();
 
-      order.deliveryStatus = DeliveryStatus.WAITING;
+        const diffInMs = now.getTime() - new Date(order.acceptedAt).getTime();
+        const diffInMinutes = diffInMs / (1000 * 60);
 
-      order.status = OrderStatus.CANCELLED;
+        if (diffInMinutes > 5) {
+          throw new BadRequestException(
+            'You can only cancel within 5 minutes  after the order was accepted',
+          );
+        }
 
-      await this.orderRepository.save(order);
+        order.status = OrderStatus.CANCELLED;
 
-      return {
-        message: 'Order cancelled successfully',
-        data: order,
-      };
+        order.deliveryStatus = DeliveryStatus.WAITING;
+
+        await this.orderRepository.save(order);
+
+        return {
+          message: 'Order cancelled successfully',
+          data: order,
+        };
+      }
+      throw new BadRequestException('Invalid user role for status update');
     }
-    throw new BadRequestException('Invalid user role for status update');
   }
 
   async acceptOrderMandadero(orderId: number, user: AuthUser) {
