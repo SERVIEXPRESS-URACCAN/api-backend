@@ -22,8 +22,6 @@ import { UpdateProductAdminDto } from '../dto/updateProductAdmin.dto';
 import { ProductAdminService } from '../service/productsAdmin.service';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
-import { extname } from 'path';
-import { validateFile } from 'src/common/helper/validationFiles.helper';
 
 @Controller('products')
 export class ProductsController {
@@ -46,17 +44,53 @@ export class ProductsController {
 
   @Post('admin')
   @Auth('admin')
-  createByAdmin(@Body() createProductAdminDto: CreateProductAdmin) {
-    return this.productsAdminService.createByAdmin(createProductAdminDto);
+  @UseInterceptors(
+    FileInterceptor('image', {
+      storage: diskStorage({
+        destination: './uploads/products',
+
+        filename: (req, file, cb) => {
+          const uniqueName = `${Date.now()}-${file.originalname}`;
+
+          cb(null, uniqueName);
+        },
+      }),
+    }),
+  )
+  createByAdmin(
+    @Body() createProductAdminDto: CreateProductAdmin,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    return this.productsAdminService.createByAdmin(createProductAdminDto, file);
   }
 
   @Patch('admin/:id')
   @Auth('admin')
+  @UseInterceptors(
+    FileInterceptor('image', {
+      storage: diskStorage({
+        destination: './uploads/products',
+
+        filename: (req, file, cb) => {
+          const uniqueName = `${Date.now()}-${file.originalname}`;
+
+          cb(null, uniqueName);
+        },
+      }),
+    }),
+  )
   updateByAdmin(
     @Param('id', ParseIntPipe) id: number,
+
     @Body() updateProductAdminDto: UpdateProductAdminDto,
+
+    @UploadedFile() file?: Express.Multer.File,
   ) {
-    return this.productsAdminService.updateByAdmin(id, updateProductAdminDto);
+    return this.productsAdminService.updateByAdmin(
+      id,
+      updateProductAdminDto,
+      file,
+    );
   }
 
   @Delete('admin/:id')
@@ -70,9 +104,11 @@ export class ProductsController {
   @UseInterceptors(
     FileInterceptor('image', {
       storage: diskStorage({
-        destination: './uploads',
+        destination: './uploads/products',
+
         filename: (req, file, cb) => {
-          const uniqueName = Date.now() + extname(file.originalname);
+          const uniqueName = `${Date.now()}-${file.originalname}`;
+
           cb(null, uniqueName);
         },
       }),
@@ -83,7 +119,6 @@ export class ProductsController {
     @Body() createProductDto: CreateProductDto,
     @GetUser() user: AuthUser,
   ) {
-    validateFile({ image: file });
     return this.productsService.create(createProductDto, file, user);
   }
 
@@ -109,14 +144,27 @@ export class ProductsController {
 
   @Patch(':id')
   @Auth('owner')
+  @UseInterceptors(
+    FileInterceptor('image', {
+      storage: diskStorage({
+        destination: './uploads/products',
+
+        filename: (req, file, cb) => {
+          const uniqueName = `${Date.now()}-${file.originalname}`;
+
+          cb(null, uniqueName);
+        },
+      }),
+    }),
+  )
   update(
     @Param('id', ParseIntPipe) id: number,
-    @Body() updateProductDto: UpdateProductDto,
+    @UploadedFile() file: Express.Multer.File,
+    @Body() dto: UpdateProductDto,
     @GetUser() user: AuthUser,
   ) {
-    return this.productsService.update(id, updateProductDto, user);
+    return this.productsService.update(id, dto, file, user);
   }
-
   @Delete(':id')
   @Auth('owner')
   removeByOwner(

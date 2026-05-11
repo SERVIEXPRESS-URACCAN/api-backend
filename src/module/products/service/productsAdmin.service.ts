@@ -31,7 +31,7 @@ export class ProductAdminService {
   findOneByAdmin(id: number) {
     return this.productSharedService.findProduct(id);
   }
-  async createByAdmin(dto: CreateProductAdmin) {
+  async createByAdmin(dto: CreateProductAdmin, file: Express.Multer.File) {
     const { businessId, ...rest } = dto;
 
     const business = await this.businessRepository.findOne({
@@ -48,10 +48,15 @@ export class ProductAdminService {
         categoryId: dto.categoryId,
       },
       business,
+      file,
     );
   }
 
-  async updateByAdmin(id: number, dto: UpdateProductAdminDto) {
+  async updateByAdmin(
+    id: number,
+    dto: UpdateProductAdminDto,
+    file?: Express.Multer.File,
+  ) {
     const product = await this.productSharedService.findProduct(id);
 
     let business = product.business;
@@ -68,7 +73,12 @@ export class ProductAdminService {
       business = foundBusiness;
     }
 
-    return this.productSharedService.updateProduct(product, dto, business);
+    return this.productSharedService.updateProduct(
+      product,
+      dto,
+      file,
+      business,
+    );
   }
 
   async removeByAdmin(id: number) {
