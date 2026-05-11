@@ -14,6 +14,7 @@ import { AuthUser } from 'src/module/auth/interfaces/auth-user.interface';
 import { Business } from 'src/module/business/entities/business.entity';
 import { OrderItem } from 'src/module/order-items/entities/order-item.entity';
 import { GetBusinessOrderDto } from '../dto/getBusinessOrder.dto';
+import { GetMandaderoOrdersDto } from '../dto/getMandaderoOrders.dto';
 import { Order } from '../entities/order.entity';
 import { DeliveryStatus, OrderStatus } from '../enum/orderStatus';
 
@@ -296,6 +297,7 @@ export class OrderService {
       {
         id: orderId,
         deliveryStatus: DeliveryStatus.WAITING,
+        status: OrderStatus.READY,
       },
       {
         deliveryStatus: DeliveryStatus.ASSIGNED,
@@ -360,17 +362,35 @@ export class OrderService {
     return this.orderRepository.save(order);
   }
 
-  async getAvailableOrders() {
-    return this.orderRepository.find({
+  async getAvailableOrders(paginationDto: PaginationDto) {
+    const { page = 1, limit = 10 } = paginationDto;
+
+    const [orders, total] = await this.orderRepository.findAndCount({
       where: {
         status: OrderStatus.READY,
         deliveryStatus: DeliveryStatus.WAITING,
       },
+      take: limit,
+      skip: (page - 1) * limit,
       relations: ['items', 'items.product', 'business'],
     });
+
+    return {
+      data: orders,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+        hasNextPage: page * limit < total,
+        hasPreviousPage: page > 1,
+      },
+    };
   }
 
-  async getMandaderoOrders(mandaderoId: number, status?: DeliveryStatus) {
+  async getMandaderoOrders(mandaderoId: number, query: GetMandaderoOrdersDto) {
+    const { page = 1, limit = 10, status } = query;
+
     const where: FindOptionsWhere<Order> = {
       mandaderoId,
     };
@@ -379,12 +399,26 @@ export class OrderService {
       where.deliveryStatus = status;
     }
 
-    return this.orderRepository.find({
+    const [orders, total] = await this.orderRepository.findAndCount({
       where,
+      take: limit,
+      skip: (page - 1) * limit,
       relations: ['items', 'items.product', 'business'],
       order: {
         createdAt: 'DESC',
       },
     });
+
+    return {
+      data: orders,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+        hasNextPage: page * limit < total,
+        hasPreviousPage: page > 1,
+      },
+    };
   }
 }
