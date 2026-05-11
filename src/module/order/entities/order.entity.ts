@@ -61,4 +61,7 @@ export class Order {
 
   @CreateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   createdAt: Date;
+
+  @Column({ type: 'timestamp', nullable: true })
+  acceptedAt?: Date;
 }

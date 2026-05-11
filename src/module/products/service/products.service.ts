@@ -99,14 +99,14 @@ export class ProductService {
       throw new NotFoundException('Business not found');
     }
 
-    const imageUrl = `/uploads/${file.filename}`;
-
-    return this.productSharedService.createProduct(
-      { ...dto, imageUrl },
-      business,
-    );
+    return this.productSharedService.createProduct({ ...dto }, business, file);
   }
-  async update(id: number, dto: UpdateProductDto, user: AuthUser) {
+  async update(
+    id: number,
+    dto: UpdateProductDto,
+    file: Express.Multer.File,
+    user: AuthUser,
+  ) {
     const business = await this.businessService.findOne(user.id);
 
     if (!business) {
@@ -119,7 +119,7 @@ export class ProductService {
       throw new ForbiddenException('This product is not yours');
     }
 
-    return this.productSharedService.updateProduct(product, dto);
+    return this.productSharedService.updateProduct(product, dto, file);
   }
 
   async removeByOwner(id: number, user: AuthUser) {
