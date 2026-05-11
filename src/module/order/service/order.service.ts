@@ -9,11 +9,12 @@ import { DataSource, FindOptionsWhere, Repository } from 'typeorm';
 import { Cart } from 'src/module/cart/entities/cart.entity';
 import { CartStatus } from 'src/module/cart/enum/cart-status.enum';
 
+import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { AuthUser } from 'src/module/auth/interfaces/auth-user.interface';
+import { Business } from 'src/module/business/entities/business.entity';
 import { OrderItem } from 'src/module/order-items/entities/order-item.entity';
 import { Order } from '../entities/order.entity';
 import { DeliveryStatus, OrderStatus } from '../enum/orderStatus';
-import { Business } from 'src/module/business/entities/business.entity';
 
 @Injectable()
 export class OrderService {
@@ -108,14 +109,32 @@ export class OrderService {
     }
   }
 
-  async getMyOrders(userId: number) {
-    return this.orderRepository.find({
+  async getMyOrders(userId: number, paginationDto: PaginationDto) {
+    const { page = 1, limit = 10 } = paginationDto;
+
+    const safeLimit = Math.min(limit, 50);
+
+    const [orders, total] = await this.orderRepository.findAndCount({
       where: { userId },
+      take: safeLimit,
+      skip: (page - 1) * safeLimit,
       relations: ['items', 'items.product'],
       order: {
         createdAt: 'DESC',
       },
     });
+
+    return {
+      data: orders,
+      meta: {
+        total,
+        page,
+        limit: safeLimit,
+        totalPages: Math.ceil(total / safeLimit),
+        hasNextPage: page * safeLimit < total,
+        hasPreviousPage: page > 1,
+      },
+    };
   }
 
   async getOrderById(orderId: number, userId: number) {
@@ -218,7 +237,9 @@ export class OrderService {
       }
       if (order.status === OrderStatus.ACCEPTED) {
         if (!order.acceptedAt) {
-          throw new BadRequestException('Accepted date not found');
+          throw new BadRequestException(
+            'Order acceptance timestamp is missing',
+          );
         }
 
         const now = new Date();
@@ -227,9 +248,7 @@ export class OrderService {
         const diffInMinutes = diffInMs / (1000 * 60);
 
         if (diffInMinutes > 5) {
-          throw new BadRequestException(
-            'You can only cancel within 5 minutes  after the order was accepted',
-          );
+          throw new BadRequestException('The cancellation window has expired');
         }
 
         order.status = OrderStatus.CANCELLED;
