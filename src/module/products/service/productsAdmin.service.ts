@@ -20,13 +20,28 @@ export class ProductAdminService {
     @InjectRepository(CategoriesProduct)
     private readonly categoryRepository: Repository<CategoriesProduct>,
   ) {}
-  async findAllByAdmin() {
-    return this.productRepository.find({
+  async findAllByAdmin(page = 1, limit = 10) {
+    const safeLimit = Math.min(limit, 30);
+    const skip = (page - 1) * safeLimit;
+
+    const [products, total] = await this.productRepository.findAndCount({
       relations: {
         business: true,
         category: true,
       },
+      take: safeLimit,
+      skip,
     });
+
+    return {
+      data: products,
+      meta: {
+        total,
+        page,
+        limit: safeLimit,
+        lastPage: Math.ceil(total / safeLimit),
+      },
+    };
   }
   findOneByAdmin(id: number) {
     return this.productSharedService.findProduct(id);
