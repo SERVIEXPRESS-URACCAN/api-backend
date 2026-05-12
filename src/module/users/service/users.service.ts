@@ -32,11 +32,18 @@ export class UsersService {
   ) {}
 
   async findByEmail(email: string, withDeleted = false) {
-    return this.userRepository.findOne({
-      where: { email },
-      withDeleted,
-      relations: ['userRoles', 'userRoles.role'],
-    });
+    const query = this.userRepository
+      .createQueryBuilder('user')
+      .addSelect('user.password')
+      .leftJoinAndSelect('user.userRoles', 'userRoles')
+      .leftJoinAndSelect('userRoles.role', 'role')
+      .where('user.email = :email', { email });
+
+    if (withDeleted) {
+      query.withDeleted();
+    }
+
+    return query.getOne();
   }
   async findOneWithRoles(id: number) {
     return this.userRepository.findOne({
