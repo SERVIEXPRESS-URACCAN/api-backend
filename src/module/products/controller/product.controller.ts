@@ -22,6 +22,7 @@ import { UpdateProductAdminDto } from '../dto/updateProductAdmin.dto';
 import { ProductAdminService } from '../service/productsAdmin.service';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
+import { PaginationDto } from 'src/common/dto/pagination.dto';
 
 @Controller('products')
 export class ProductsController {
@@ -32,8 +33,8 @@ export class ProductsController {
 
   @Get('admin')
   @Auth('admin')
-  findAllByAdmin() {
-    return this.productsAdminService.findAllByAdmin();
+  findAllByAdmin(@Query() paginationDto: PaginationDto) {
+    return this.productsAdminService.findAllByAdmin(paginationDto);
   }
 
   @Get('admin/:id')
@@ -124,16 +125,8 @@ export class ProductsController {
 
   @Get()
   @Auth('owner')
-  findAll(
-    @GetUser() user: AuthUser,
-    @Query('page') page = 1,
-    @Query('limit') limit = 10,
-  ) {
-    return this.productsService.findAllByOwner(
-      user,
-      Number(page),
-      Number(limit),
-    );
+  findAll(@GetUser() user: AuthUser, @Query() paginationDto: PaginationDto) {
+    return this.productsService.findAllByOwner(user, paginationDto);
   }
 
   @Get(':id')

@@ -6,12 +6,12 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { AuthUser } from 'src/module/auth/interfaces/auth-user.interface';
 import { BusinessService } from 'src/module/business/service/business.service';
-import { CategoriesProduct } from 'src/module/categories-products/entities/categories-product.entity';
 import { Repository } from 'typeorm';
 import { CreateProductDto } from '../dto/porducts.dto';
 import { UpdateProductDto } from '../dto/updateProduct.dto';
 import { Product } from '../entities/products.entity';
 import { ProductSharedService } from './productsShared.service';
+import { PaginationDto } from 'src/common/dto/pagination.dto';
 
 @Injectable()
 export class ProductService {
@@ -19,22 +19,20 @@ export class ProductService {
     @InjectRepository(Product)
     private readonly productRepository: Repository<Product>,
     private readonly productSharedService: ProductSharedService,
-
-    @InjectRepository(CategoriesProduct)
-    private readonly categoryRepository: Repository<CategoriesProduct>,
-
     private readonly businessService: BusinessService,
   ) {}
 
-  async findAllByOwner(user: AuthUser, page = 1, limit = 10) {
+  async findAllByOwner(user: AuthUser, paginationDto: PaginationDto) {
     const business = await this.businessService.findOne(user.id);
 
     if (!business) {
       throw new NotFoundException('Business not found');
     }
 
-    const safeLimit = Math.min(limit, 30);
-    const skip = (page - 1) * safeLimit;
+    const { page = 1, limit = 10 } = paginationDto;
+
+    const safePage = Math.max(page, 1);
+    const safeLimit = Math.min(Math.max(limit, 1), 30);
 
     const [data, total] = await this.productRepository.findAndCount({
       where: {
@@ -59,20 +57,22 @@ export class ProductService {
         },
       },
       take: safeLimit,
-
-      skip,
+      skip: (safePage - 1) * safeLimit,
     });
+
+    const lastPage = Math.ceil(total / safeLimit);
+
     return {
       data,
       meta: {
         total,
-        page,
+        page: safePage,
         limit: safeLimit,
-        lastPage: Math.ceil(total / safeLimit),
+        lastPage,
+        hasNextPage: safePage < lastPage,
       },
     };
   }
-
   async findOne(id: number, user: AuthUser) {
     const business = await this.businessService.findOne(user.id);
 

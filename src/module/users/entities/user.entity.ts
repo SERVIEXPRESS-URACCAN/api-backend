@@ -23,7 +23,7 @@ export class User {
   @Column({ unique: true, nullable: false, type: 'varchar' })
   email: string;
 
-  @Column({ type: 'varchar', nullable: false })
+  @Column({ type: 'varchar', nullable: false, select: false })
   password: string;
 
   @OneToOne(() => Owner, (owner) => owner.user)
