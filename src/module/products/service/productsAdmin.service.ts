@@ -3,10 +3,10 @@ import { Product } from '../entities/products.entity';
 import { Business } from 'src/module/business/entities/business.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { CategoriesProduct } from 'src/module/categories-products/entities/categories-product.entity';
 import { CreateProductAdmin } from '../dto/createProductAdmin.dto';
 import { UpdateProductAdminDto } from '../dto/updateProductAdmin.dto';
 import { ProductSharedService } from './productsShared.service';
+import { PaginationDto } from 'src/common/dto/pagination.dto';
 
 @Injectable()
 export class ProductAdminService {
@@ -17,12 +17,12 @@ export class ProductAdminService {
 
     @InjectRepository(Business)
     private readonly businessRepository: Repository<Business>,
-    @InjectRepository(CategoriesProduct)
-    private readonly categoryRepository: Repository<CategoriesProduct>,
   ) {}
-  async findAllByAdmin(page = 1, limit = 10) {
-    const safeLimit = Math.min(limit, 30);
-    const skip = (page - 1) * safeLimit;
+  async findAllByAdmin(paginationDto: PaginationDto) {
+    const { page = 1, limit = 10 } = paginationDto;
+
+    const safePage = Math.max(page, 1);
+    const safeLimit = Math.min(Math.max(limit, 1), 30);
 
     const [products, total] = await this.productRepository.findAndCount({
       relations: {
@@ -30,16 +30,19 @@ export class ProductAdminService {
         category: true,
       },
       take: safeLimit,
-      skip,
+      skip: (safePage - 1) * safeLimit,
     });
+
+    const lastPage = Math.ceil(total / safeLimit);
 
     return {
       data: products,
       meta: {
         total,
-        page,
+        page: safePage,
         limit: safeLimit,
-        lastPage: Math.ceil(total / safeLimit),
+        lastPage,
+        hasNextPage: safePage < lastPage,
       },
     };
   }
