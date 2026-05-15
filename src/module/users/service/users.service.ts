@@ -68,9 +68,11 @@ export class UsersService {
   }
 
   async create(createUserDto: CreateUserDto) {
-    const { email, password } = createUserDto;
+    const normalizeEmail = createUserDto.email.toLowerCase().trim();
 
-    const existingUser = await this.findByEmail(email);
+    const { password } = createUserDto;
+
+    const existingUser = await this.findByEmail(normalizeEmail);
 
     if (existingUser) {
       throw new ConflictException('Email already exists');
@@ -93,7 +95,7 @@ export class UsersService {
 
     try {
       const user = queryRunner.manager.create(User, {
-        email,
+        email: normalizeEmail,
         password: hashedPassword,
       });
 

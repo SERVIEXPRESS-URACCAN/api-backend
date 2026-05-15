@@ -1,7 +1,10 @@
-import { IsEmail, IsString, MinLength } from 'class-validator';
+import { IsEmail, IsString, MinLength, Matches } from 'class-validator';
 
 export class CreateUserDto {
   @IsEmail()
+  @Matches(/^[a-zA-Z0-9._%+-]+@gmail\.com$/, {
+    message: 'Only Gmail addresses are allowed',
+  })
   email: string;
 
   @IsString()
