@@ -15,7 +15,10 @@ import { AuthUser } from 'src/module/auth/interfaces/auth-user.interface';
 import { DeliveryStatus, OrderStatus } from '../enum/orderStatus';
 import { OrderService } from '../service/order.service';
 
+import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { Auth } from 'src/module/auth/decorator/auth.decorator';
+import { GetBusinessOrderDto } from '../dto/getBusinessOrder.dto';
+import { GetMandaderoOrdersDto } from '../dto/getMandaderoOrders.dto';
 
 @Controller('orders')
 export class OrderController {
@@ -23,31 +26,34 @@ export class OrderController {
 
   @Get()
   @Auth('client')
-  getMyOrders(@GetUser() user: AuthUser) {
-    return this.orderService.getMyOrders(user.id);
+  getMyOrders(
+    @GetUser() user: AuthUser,
+    @Query() paginationDto: PaginationDto,
+  ) {
+    return this.orderService.getMyOrders(user.id, paginationDto);
   }
 
   @Get('business')
   @Auth('owner')
   getBusinessOrders(
     @GetUser() user: AuthUser,
-    @Query('status') status?: OrderStatus,
+    @Query() query: GetBusinessOrderDto,
   ) {
-    return this.orderService.getBusinessOrders(user.id, status);
+    return this.orderService.getBusinessOrders(user.id, query);
   }
   @Get('available')
   @Auth('mandadero')
-  getAvailableOrders() {
-    return this.orderService.getAvailableOrders();
+  getAvailableOrders(@Query() paginationDto: PaginationDto) {
+    return this.orderService.getAvailableOrders(paginationDto);
   }
 
   @Get('my-orders')
   @Auth('mandadero')
   getMandaderoOrders(
     @GetUser() user: AuthUser,
-    @Query('status') status?: DeliveryStatus,
+    @Query() query: GetMandaderoOrdersDto,
   ) {
-    return this.orderService.getMandaderoOrders(user.id, status);
+    return this.orderService.getMandaderoOrders(user.id, query);
   }
 
   @Get(':id')
