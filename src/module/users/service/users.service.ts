@@ -18,6 +18,7 @@ import { UserRole } from 'src/module/user-roles/entities/user-roles.entity';
 import { Business } from 'src/module/business/entities/business.entity';
 import { RegisterDto } from 'src/module/auth/dto/register.dto';
 import { Gender } from 'src/module/gender/entities/gender.entity';
+import { PaginationDto } from 'src/common/dto/pagination.dto';
 
 @Injectable()
 export class UsersService {
@@ -51,10 +52,34 @@ export class UsersService {
       relations: ['userRoles', 'userRoles.role'],
     });
   }
-  async findAll(): Promise<User[]> {
-    return this.userRepository.find();
-  }
+  async findAll(
+    paginationDto: PaginationDto,
+  ): Promise<{ data: User[]; pagination: object }> {
+    const { page = 1, limit = 10 } = paginationDto;
+    const safePage = Math.max(page, 1);
+    const safeLimit = Math.min(Math.max(limit, 1), 50);
 
+    const [data, total] = await this.userRepository.findAndCount({
+      skip: (safePage - 1) * safeLimit,
+      take: safeLimit,
+      order: {
+        createdAt: 'DESC',
+      },
+    });
+
+    const lastPage = Math.ceil(total / safeLimit);
+
+    return {
+      data,
+      pagination: {
+        total,
+        page: safePage,
+        limit: safeLimit,
+        lastPage,
+        hasNextPage: safePage < lastPage,
+      },
+    };
+  }
   async findOne(id: number): Promise<User> {
     const user = await this.userRepository.findOne({
       where: { id },
