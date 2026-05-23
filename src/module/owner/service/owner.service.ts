@@ -13,14 +13,14 @@ import { User } from 'src/module/users/entities/user.entity';
 import { DataSource, QueryFailedError, Repository } from 'typeorm';
 import { CreateOwnerDto } from '../dto/create-owner.dto';
 // import { UpdateOwnerDto } from '../dto/update-owner.dto';
+import { Business } from 'src/module/business/entities/business.entity';
+import { City } from 'src/module/city/entities/city.entity';
+import { Roles } from 'src/module/roles/entities/roles.entity';
+import { UserRole } from 'src/module/user-roles/entities/user-roles.entity';
 import { UpdateOwnerDto } from '../dto/update-owner.dto';
 import { Owner } from '../entities/owner.entity';
 import { validateImage } from '../helper/file.helper';
 import { processImage } from '../helper/owner-file.helper';
-import { City } from 'src/module/city/entities/city.entity';
-import { Business } from 'src/module/business/entities/business.entity';
-import { UserRole } from 'src/module/user-roles/entities/user-roles.entity';
-import { Roles } from 'src/module/roles/entities/roles.entity';
 // import { processImage } from '../helper/owner-file.helper';
 
 @Injectable()
@@ -38,7 +38,11 @@ export class OwnerService {
     const safeLimit = Math.min(Math.max(limit, 1), 50);
 
     const [data, total] = await this.ownerRepository.findAndCount({
-      relations: ['user'],
+      relations: {
+        user: {
+          profile: true,
+        },
+      },
       skip: (safePage - 1) * safeLimit,
       take: safeLimit,
       order: {
