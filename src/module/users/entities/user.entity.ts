@@ -2,7 +2,7 @@ import { Cart } from 'src/module/cart/entities/cart.entity';
 import { Mandadero } from 'src/module/mandadero/entities/mandadero.entity';
 import { Order } from 'src/module/order/entities/order.entity';
 import { Owner } from 'src/module/owner/entities/owner.entity';
-import { Profile } from 'src/module/profie/entities/profile.entity';
+import { Profile } from 'src/module/profile/entities/profile.entity';
 import { UserRole } from 'src/module/user-roles/entities/user-roles.entity';
 import {
   Column,

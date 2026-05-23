@@ -4,7 +4,7 @@ import { CategoriesProduct } from 'src/module/categories-products/entities/categ
 import { Repository } from 'typeorm';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { Business } from 'src/module/business/entities/business.entity';
-import { CreateProductDto } from '../dto/porducts.dto';
+import { CreateProductDto } from '../dto/products.dto';
 import { UpdateProductDto } from '../dto/updateProduct.dto';
 import { validateImage } from 'src/module/business/helper/file.helper';
 import * as path from 'path';

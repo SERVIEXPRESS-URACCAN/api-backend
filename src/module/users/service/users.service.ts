@@ -10,7 +10,7 @@ import { CreateUserDto } from '../dto/create-user.dto';
 import { UpdateUserDto } from '../dto/update-user.dto';
 import * as bcrypt from 'bcrypt';
 import { Roles } from 'src/module/roles/entities/roles.entity';
-import { Profile } from 'src/module/profie/entities/profile.entity';
+import { Profile } from 'src/module/profile/entities/profile.entity';
 import { Owner } from 'src/module/owner/entities/owner.entity';
 import { Mandadero } from 'src/module/mandadero/entities/mandadero.entity';
 import { Motorcycle } from 'src/module/motorcycles/entities/motorcycle.entity';

@@ -11,7 +11,7 @@ import {
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
-import { CreateProductDto } from '../dto/porducts.dto';
+import { CreateProductDto } from '../dto/products.dto';
 import { AuthUser } from 'src/module/auth/interfaces/auth-user.interface';
 import { Auth } from 'src/module/auth/decorator/auth.decorator';
 import { GetUser } from 'src/module/auth/decorator/getUser.decorator';
