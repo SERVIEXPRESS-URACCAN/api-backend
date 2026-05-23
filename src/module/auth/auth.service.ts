@@ -9,7 +9,7 @@ import { UsersService } from '../users/service/users.service';
 import { LoginDto } from './dto/login.dto';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
-import { Profile } from '../profie/entities/profile.entity';
+import { Profile } from '../profile/entities/profile.entity';
 import { User } from '../users/entities/user.entity';
 import { RegisterDto } from './dto/register.dto';
 import { DataSource, ILike } from 'typeorm';

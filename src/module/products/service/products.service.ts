@@ -7,7 +7,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { AuthUser } from 'src/module/auth/interfaces/auth-user.interface';
 import { BusinessService } from 'src/module/business/service/business.service';
 import { Repository } from 'typeorm';
-import { CreateProductDto } from '../dto/porducts.dto';
+import { CreateProductDto } from '../dto/products.dto';
 import { UpdateProductDto } from '../dto/updateProduct.dto';
 import { Product } from '../entities/products.entity';
 import { ProductSharedService } from './productsShared.service';

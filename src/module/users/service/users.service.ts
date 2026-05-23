@@ -10,7 +10,7 @@ import { CreateUserDto } from '../dto/create-user.dto';
 import { UpdateUserDto } from '../dto/update-user.dto';
 import * as bcrypt from 'bcrypt';
 import { Roles } from 'src/module/roles/entities/roles.entity';
-import { Profile } from 'src/module/profie/entities/profile.entity';
+import { Profile } from 'src/module/profile/entities/profile.entity';
 import { Owner } from 'src/module/owner/entities/owner.entity';
 import { Mandadero } from 'src/module/mandadero/entities/mandadero.entity';
 import { Motorcycle } from 'src/module/motorcycles/entities/motorcycle.entity';
@@ -18,6 +18,7 @@ import { UserRole } from 'src/module/user-roles/entities/user-roles.entity';
 import { Business } from 'src/module/business/entities/business.entity';
 import { RegisterDto } from 'src/module/auth/dto/register.dto';
 import { Gender } from 'src/module/gender/entities/gender.entity';
+import { PaginationDto } from 'src/common/dto/pagination.dto';
 
 @Injectable()
 export class UsersService {
@@ -51,10 +52,34 @@ export class UsersService {
       relations: ['userRoles', 'userRoles.role'],
     });
   }
-  async findAll(): Promise<User[]> {
-    return this.userRepository.find();
-  }
+  async findAll(
+    paginationDto: PaginationDto,
+  ): Promise<{ data: User[]; pagination: object }> {
+    const { page = 1, limit = 10 } = paginationDto;
+    const safePage = Math.max(page, 1);
+    const safeLimit = Math.min(Math.max(limit, 1), 50);
 
+    const [data, total] = await this.userRepository.findAndCount({
+      skip: (safePage - 1) * safeLimit,
+      take: safeLimit,
+      order: {
+        createdAt: 'DESC',
+      },
+    });
+
+    const lastPage = Math.ceil(total / safeLimit);
+
+    return {
+      data,
+      pagination: {
+        total,
+        page: safePage,
+        limit: safeLimit,
+        lastPage,
+        hasNextPage: safePage < lastPage,
+      },
+    };
+  }
   async findOne(id: number): Promise<User> {
     const user = await this.userRepository.findOne({
       where: { id },
