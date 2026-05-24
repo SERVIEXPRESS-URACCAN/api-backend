@@ -103,7 +103,7 @@ export class ProfileService {
 
     const [data, total] = await this.profileRepository.findAndCount({
       where,
-      relations: ['user'],
+      relations: ['user', 'gender'],
       skip: (safePage - 1) * safeLimit,
       take: safeLimit,
       order: {
