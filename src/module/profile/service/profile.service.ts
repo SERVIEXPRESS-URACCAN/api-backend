@@ -87,7 +87,7 @@ export class ProfileService {
   async findOneByAdmin(id: number) {
     const profile = await this.dataSource.getRepository(Profile).findOne({
       where: { id },
-      relations: ['user'],
+      relations: ['user', 'gender'],
     });
 
     if (!profile) throw new NotFoundException('Profile no encontrado');
@@ -103,7 +103,7 @@ export class ProfileService {
       skip: (safePage - 1) * safeLimit,
       take: safeLimit,
       order: { createdAt: 'DESC' as const },
-      relations: { user: { userRoles: { role: true } } },
+      relations: { user: { userRoles: { role: true } }, gender: true },
     };
 
     if (role) {
@@ -112,6 +112,7 @@ export class ProfileService {
         .leftJoinAndSelect('profile.user', 'user')
         .leftJoinAndSelect('user.userRoles', 'userRole')
         .leftJoinAndSelect('userRole.role', 'role')
+        .leftJoinAndSelect('profile.gender', 'gender')
         .where('role.name = :role', { role })
         .andWhere((qb) => {
           const sub = qb
