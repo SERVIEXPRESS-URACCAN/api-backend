@@ -7,15 +7,14 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { Profile } from '../entities/profile.entity';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, FindOptionsWhere, Repository } from 'typeorm';
 import { UpdateProfileDto } from '../dto/update-profile.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as path from 'path';
 import * as fs from 'fs';
 import { validateImage } from 'src/module/business/helper/file.helper';
 import { processProfileImage } from '../helper/profile-file.helper';
-import { UserRole } from 'src/module/user-roles/entities/user-roles.entity';
-import { FindProfilesDto } from 'src/common/dto/findProfilesDto';
+import { PaginationDto } from 'src/common/dto/pagination.dto';
 
 @Injectable()
 export class ProfileService {
@@ -87,64 +86,33 @@ export class ProfileService {
   async findOneByAdmin(id: number) {
     const profile = await this.dataSource.getRepository(Profile).findOne({
       where: { id },
-      relations: ['user', 'gender'],
+      relations: ['user'],
     });
 
     if (!profile) throw new NotFoundException('Profile no encontrado');
 
     return profile;
   }
-  async findAll(findProfilesDto: FindProfilesDto) {
-    const { page = 1, limit = 10, role } = findProfilesDto;
+  async findAll(paginationDto: PaginationDto) {
+    const { page = 1, limit = 10 } = paginationDto;
+
     const safePage = Math.max(page, 1);
     const safeLimit = Math.min(Math.max(limit, 1), 50);
 
-    const baseOptions = {
+    const where: FindOptionsWhere<Profile> = {};
+
+    const [data, total] = await this.profileRepository.findAndCount({
+      where,
+      relations: ['user'],
       skip: (safePage - 1) * safeLimit,
       take: safeLimit,
-      order: { createdAt: 'DESC' as const },
-      relations: { user: { userRoles: { role: true } }, gender: true },
-    };
+      order: {
+        createdAt: 'DESC',
+      },
+    });
 
-    if (role) {
-      const queryBuilder = this.profileRepository
-        .createQueryBuilder('profile')
-        .leftJoinAndSelect('profile.user', 'user')
-        .leftJoinAndSelect('user.userRoles', 'userRole')
-        .leftJoinAndSelect('userRole.role', 'role')
-        .leftJoinAndSelect('profile.gender', 'gender')
-        .where('role.name = :role', { role })
-        .andWhere((qb) => {
-          const sub = qb
-            .subQuery()
-            .select('ur.userId')
-            .from(UserRole, 'ur')
-            .innerJoin('ur.role', 'r')
-            .where('r.name != :role', { role })
-            .getQuery();
-          return 'user.id NOT IN ' + sub;
-        })
-        .orderBy('profile.createdAt', 'DESC')
-        .skip((safePage - 1) * safeLimit)
-        .take(safeLimit);
-
-      const [data, total] = await queryBuilder.getManyAndCount();
-      const lastPage = Math.ceil(total / safeLimit);
-      return {
-        data,
-        pagination: {
-          total,
-          page: safePage,
-          limit: safeLimit,
-          lastPage,
-          hasNextPage: safePage < lastPage,
-        },
-      };
-    }
-
-    const [data, total] =
-      await this.profileRepository.findAndCount(baseOptions);
     const lastPage = Math.ceil(total / safeLimit);
+
     return {
       data,
       pagination: {

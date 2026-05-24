@@ -18,7 +18,7 @@ import { GetUser } from 'src/module/auth/decorator/getUser.decorator';
 import { AuthUser } from 'src/module/auth/interfaces/auth-user.interface';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
-import { FindProfilesDto } from 'src/common/dto/findProfilesDto';
+import { PaginationDto } from 'src/common/dto/pagination.dto';
 
 @Controller('profiles')
 export class ProfileController {
@@ -58,8 +58,8 @@ export class ProfileController {
 
   @Get()
   @Auth('admin')
-  findAll(@Query() findProfilesDto: FindProfilesDto) {
-    return this.profileService.findAll(findProfilesDto);
+  findAll(@Query() paginationDto: PaginationDto) {
+    return this.profileService.findAll(paginationDto);
   }
 
   @Get(':id')
