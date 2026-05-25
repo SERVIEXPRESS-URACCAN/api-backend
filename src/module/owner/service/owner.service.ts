@@ -72,7 +72,12 @@ export class OwnerService {
           id: userId,
         },
       },
-      relations: ['user'],
+      relations: {
+        user: {
+          profile: true,
+        },
+        business: true,
+      },
     });
 
     if (!owner) {
@@ -86,7 +91,12 @@ export class OwnerService {
       where: {
         id,
       },
-      relations: ['user'],
+      relations: {
+        user: {
+          profile: true,
+        },
+        business: true,
+      },
     });
 
     if (!owner) {
