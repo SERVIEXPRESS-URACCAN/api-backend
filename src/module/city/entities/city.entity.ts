@@ -11,7 +11,7 @@ export class City {
   @PrimaryGeneratedColumn('increment')
   id: number;
 
-  @Column({ type: 'varchar', length: 20, nullable: false })
+  @Column({ type: 'varchar', length: 20, nullable: false, unique: true })
   name: string;
 
   @CreateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })

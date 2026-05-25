@@ -7,11 +7,13 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  Query,
 } from '@nestjs/common';
 import { CreateCategoriesProductDto } from '../dto/create-categories-product.dto';
 import { UpdateCategoriesProductDto } from '../dto/update-categories-product.dto';
 import { CategoriesProductsService } from '../service/categories-products.service';
 import { Auth } from 'src/module/auth/decorator/auth.decorator';
+import { PaginationDto } from 'src/common/dto/pagination.dto';
 
 @Controller('categories-products')
 export class CategoriesProductsController {
@@ -32,8 +34,8 @@ export class CategoriesProductsController {
   }
 
   @Get()
-  findAll() {
-    return this.categoriesProductsService.findAll();
+  async findAll(@Query() paginationDto: PaginationDto) {
+    return this.categoriesProductsService.findAll(paginationDto);
   }
 
   @Get(':id')
@@ -51,6 +53,12 @@ export class CategoriesProductsController {
       +id,
       updateCategoriesProductsDto,
     );
+  }
+
+  @Patch(':id/restore')
+  @Auth('admin')
+  restore(@Param('id', ParseIntPipe) id: number) {
+    return this.categoriesProductsService.restore(id);
   }
 
   @Delete(':id')

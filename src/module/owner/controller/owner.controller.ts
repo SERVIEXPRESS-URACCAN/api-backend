@@ -88,6 +88,7 @@ export class OwnerController {
         filename: (req, file, cb) => {
           const uniqueName =
             Date.now() + '-' + Math.random().toString(36).substring(2);
+
           cb(null, uniqueName + extname(file.originalname));
         },
       }),
@@ -96,10 +97,12 @@ export class OwnerController {
   updateOwner(
     @UploadedFiles()
     files: { identificationCardImage?: Express.Multer.File[] },
+
     @Body() updateOwnerDto: UpdateOwnerDto,
+
     @GetUser() user: AuthUser,
   ) {
-    return this.ownerService.update(user.id, updateOwnerDto, files);
+    return this.ownerService.updateMe(user.id, updateOwnerDto, files);
   }
 
   @Patch(':id')
@@ -119,10 +122,12 @@ export class OwnerController {
   )
   update(
     @Param('id', ParseIntPipe) id: number,
+
     @UploadedFiles()
     files: { identificationCardImage?: Express.Multer.File[] },
+
     @Body() updateOwnerDto: UpdateOwnerDto,
   ) {
-    return this.ownerService.update(id, updateOwnerDto, files);
+    return this.ownerService.updateByAdmin(id, updateOwnerDto, files);
   }
 }

@@ -9,12 +9,12 @@ import {
 import { Profile } from '../entities/profile.entity';
 import { DataSource, FindOptionsWhere, Repository } from 'typeorm';
 import { UpdateProfileDto } from '../dto/update-profile.dto';
-import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as path from 'path';
 import * as fs from 'fs';
 import { validateImage } from 'src/module/business/helper/file.helper';
 import { processProfileImage } from '../helper/profile-file.helper';
+import { PaginationDto } from 'src/common/dto/pagination.dto';
 
 @Injectable()
 export class ProfileService {
@@ -103,7 +103,7 @@ export class ProfileService {
 
     const [data, total] = await this.profileRepository.findAndCount({
       where,
-      relations: ['user'],
+      relations: ['user', 'gender'],
       skip: (safePage - 1) * safeLimit,
       take: safeLimit,
       order: {

@@ -7,6 +7,7 @@ import {
   Get,
   Delete,
   ParseIntPipe,
+  Query,
 } from '@nestjs/common';
 import { UsersService } from '../service/users.service';
 import { CreateUserDto } from '../dto/create-user.dto';
@@ -14,6 +15,7 @@ import { UpdateUserDto } from '../dto/update-user.dto';
 import { Auth } from 'src/module/auth/decorator/auth.decorator';
 import { GetUser } from 'src/module/auth/decorator/getUser.decorator';
 import { AuthUser } from 'src/module/auth/interfaces/auth-user.interface';
+import { PaginationDto } from 'src/common/dto/pagination.dto';
 
 @Controller('users')
 export class UsersController {
@@ -45,8 +47,8 @@ export class UsersController {
 
   @Get()
   @Auth('admin')
-  findAll() {
-    return this.usersService.findAll();
+  findAll(@Query() paginationDto: PaginationDto) {
+    return this.usersService.findAll(paginationDto);
   }
 
   @Get(':id')

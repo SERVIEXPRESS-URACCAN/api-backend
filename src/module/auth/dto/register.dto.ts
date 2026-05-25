@@ -6,7 +6,7 @@ import {
   ValidateNested,
   Matches,
 } from 'class-validator';
-import { CreateProfileDto } from 'src/module/profie/dto/profile.dto';
+import { CreateProfileDto } from 'src/module/profile/dto/profile.dto';
 
 export class RegisterDto {
   @IsString()

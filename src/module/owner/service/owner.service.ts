@@ -13,14 +13,14 @@ import { User } from 'src/module/users/entities/user.entity';
 import { DataSource, QueryFailedError, Repository } from 'typeorm';
 import { CreateOwnerDto } from '../dto/create-owner.dto';
 // import { UpdateOwnerDto } from '../dto/update-owner.dto';
+import { Business } from 'src/module/business/entities/business.entity';
+import { City } from 'src/module/city/entities/city.entity';
+import { Roles } from 'src/module/roles/entities/roles.entity';
+import { UserRole } from 'src/module/user-roles/entities/user-roles.entity';
 import { UpdateOwnerDto } from '../dto/update-owner.dto';
 import { Owner } from '../entities/owner.entity';
 import { validateImage } from '../helper/file.helper';
 import { processImage } from '../helper/owner-file.helper';
-import { City } from 'src/module/city/entities/city.entity';
-import { Business } from 'src/module/business/entities/business.entity';
-import { UserRole } from 'src/module/user-roles/entities/user-roles.entity';
-import { Roles } from 'src/module/roles/entities/roles.entity';
 // import { processImage } from '../helper/owner-file.helper';
 
 @Injectable()
@@ -38,7 +38,12 @@ export class OwnerService {
     const safeLimit = Math.min(Math.max(limit, 1), 50);
 
     const [data, total] = await this.ownerRepository.findAndCount({
-      relations: ['user'],
+      relations: {
+        user: {
+          profile: true,
+        },
+        business: true,
+      },
       skip: (safePage - 1) * safeLimit,
       take: safeLimit,
       order: {
@@ -209,16 +214,54 @@ export class OwnerService {
     }
   }
 
-  async update(
-    id: number,
+  async updateMe(
+    userId: number,
     updateOwnerDto: UpdateOwnerDto,
     files?: {
       identificationCardImage?: Express.Multer.File[];
     },
   ) {
-    const owner = await this.findOne(id);
+    const owner = await this.ownerRepository.findOne({
+      where: {
+        user: {
+          id: userId,
+        },
+      },
+      relations: {
+        user: {
+          profile: true,
+        },
+        business: true,
+      },
+    });
 
-    this.ownerRepository.merge(owner, updateOwnerDto);
+    if (!owner) {
+      throw new NotFoundException('Propietario no encontrado');
+    }
+
+    if (updateOwnerDto.razonSocial) {
+      owner.razonSocial = updateOwnerDto.razonSocial;
+    }
+
+    if (updateOwnerDto.email) {
+      owner.user.email = updateOwnerDto.email;
+    }
+
+    if (updateOwnerDto.name) {
+      owner.user.profile.name = updateOwnerDto.name;
+    }
+
+    if (updateOwnerDto.lastName) {
+      owner.user.profile.lastName = updateOwnerDto.lastName;
+    }
+
+    if (updateOwnerDto.cellphone) {
+      owner.user.profile.cellphone = updateOwnerDto.cellphone;
+    }
+
+    if (updateOwnerDto.businessName && owner.business) {
+      owner.business.name = updateOwnerDto.businessName;
+    }
 
     const identificationCardImage = files?.identificationCardImage?.[0];
 
@@ -234,10 +277,102 @@ export class OwnerService {
     );
 
     try {
-      return await this.ownerRepository.save(owner);
+      return await this.dataSource.transaction(async (manager) => {
+        await manager.save(owner.user.profile);
+
+        await manager.save(owner.user);
+
+        if (owner.business) {
+          await manager.save(owner.business);
+        }
+
+        return await manager.save(owner);
+      });
     } catch (error) {
-      if (identificationCardImage)
+      if (identificationCardImage) {
         this.removeFile(identificationCardImage.filename);
+      }
+
+      this.handleDBException(error);
+    }
+  }
+
+  async updateByAdmin(
+    ownerId: number,
+    updateOwnerDto: UpdateOwnerDto,
+    files?: {
+      identificationCardImage?: Express.Multer.File[];
+    },
+  ) {
+    const owner = await this.ownerRepository.findOne({
+      where: {
+        id: ownerId,
+      },
+      relations: {
+        user: {
+          profile: true,
+        },
+        business: true,
+      },
+    });
+
+    if (!owner) {
+      throw new NotFoundException('Propietario no encontrado');
+    }
+
+    if (updateOwnerDto.razonSocial) {
+      owner.razonSocial = updateOwnerDto.razonSocial;
+    }
+
+    if (updateOwnerDto.email) {
+      owner.user.email = updateOwnerDto.email;
+    }
+
+    if (updateOwnerDto.name) {
+      owner.user.profile.name = updateOwnerDto.name;
+    }
+
+    if (updateOwnerDto.lastName) {
+      owner.user.profile.lastName = updateOwnerDto.lastName;
+    }
+
+    if (updateOwnerDto.cellphone) {
+      owner.user.profile.cellphone = updateOwnerDto.cellphone;
+    }
+
+    if (updateOwnerDto.businessName && owner.business) {
+      owner.business.name = updateOwnerDto.businessName;
+    }
+
+    const identificationCardImage = files?.identificationCardImage?.[0];
+
+    if (identificationCardImage) {
+      validateImage(identificationCardImage, 'identificationCardImage');
+    }
+
+    processImage(
+      owner,
+      identificationCardImage,
+      'identificationCardImage',
+      this.removeFile.bind(this),
+    );
+
+    try {
+      return await this.dataSource.transaction(async (manager) => {
+        await manager.save(owner.user.profile);
+        await manager.save(owner.user);
+
+        if (owner.business) {
+          await manager.save(owner.business);
+        }
+
+        return await manager.save(owner);
+      });
+    } catch (error) {
+      if (identificationCardImage) {
+        this.removeFile(identificationCardImage.filename);
+      }
+
       this.handleDBException(error);
     }
   }
