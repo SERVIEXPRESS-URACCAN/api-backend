@@ -1,3 +1,4 @@
+import { Business } from 'src/module/business/entities/business.entity';
 import { User } from 'src/module/users/entities/user.entity';
 import {
   Column,
@@ -18,6 +19,9 @@ export class Owner {
   @OneToOne(() => User, (user) => user.owner)
   @JoinColumn({ name: 'user_id', referencedColumnName: 'id' })
   user: User;
+
+  @OneToOne(() => Business, (business) => business.owner)
+  business: Business;
 
   @Column({ type: 'varchar', nullable: false })
   razonSocial: string;

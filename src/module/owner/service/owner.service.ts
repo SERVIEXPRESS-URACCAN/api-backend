@@ -42,6 +42,7 @@ export class OwnerService {
         user: {
           profile: true,
         },
+        business: true,
       },
       skip: (safePage - 1) * safeLimit,
       take: safeLimit,
@@ -213,16 +214,54 @@ export class OwnerService {
     }
   }
 
-  async update(
-    id: number,
+  async updateMe(
+    userId: number,
     updateOwnerDto: UpdateOwnerDto,
     files?: {
       identificationCardImage?: Express.Multer.File[];
     },
   ) {
-    const owner = await this.findOne(id);
+    const owner = await this.ownerRepository.findOne({
+      where: {
+        user: {
+          id: userId,
+        },
+      },
+      relations: {
+        user: {
+          profile: true,
+        },
+        business: true,
+      },
+    });
 
-    this.ownerRepository.merge(owner, updateOwnerDto);
+    if (!owner) {
+      throw new NotFoundException('Propietario no encontrado');
+    }
+
+    if (updateOwnerDto.razonSocial) {
+      owner.razonSocial = updateOwnerDto.razonSocial;
+    }
+
+    if (updateOwnerDto.email) {
+      owner.user.email = updateOwnerDto.email;
+    }
+
+    if (updateOwnerDto.name) {
+      owner.user.profile.name = updateOwnerDto.name;
+    }
+
+    if (updateOwnerDto.lastName) {
+      owner.user.profile.lastName = updateOwnerDto.lastName;
+    }
+
+    if (updateOwnerDto.cellphone) {
+      owner.user.profile.cellphone = updateOwnerDto.cellphone;
+    }
+
+    if (updateOwnerDto.businessName && owner.business) {
+      owner.business.name = updateOwnerDto.businessName;
+    }
 
     const identificationCardImage = files?.identificationCardImage?.[0];
 
@@ -238,10 +277,102 @@ export class OwnerService {
     );
 
     try {
-      return await this.ownerRepository.save(owner);
+      return await this.dataSource.transaction(async (manager) => {
+        await manager.save(owner.user.profile);
+
+        await manager.save(owner.user);
+
+        if (owner.business) {
+          await manager.save(owner.business);
+        }
+
+        return await manager.save(owner);
+      });
     } catch (error) {
-      if (identificationCardImage)
+      if (identificationCardImage) {
         this.removeFile(identificationCardImage.filename);
+      }
+
+      this.handleDBException(error);
+    }
+  }
+
+  async updateByAdmin(
+    ownerId: number,
+    updateOwnerDto: UpdateOwnerDto,
+    files?: {
+      identificationCardImage?: Express.Multer.File[];
+    },
+  ) {
+    const owner = await this.ownerRepository.findOne({
+      where: {
+        id: ownerId,
+      },
+      relations: {
+        user: {
+          profile: true,
+        },
+        business: true,
+      },
+    });
+
+    if (!owner) {
+      throw new NotFoundException('Propietario no encontrado');
+    }
+
+    if (updateOwnerDto.razonSocial) {
+      owner.razonSocial = updateOwnerDto.razonSocial;
+    }
+
+    if (updateOwnerDto.email) {
+      owner.user.email = updateOwnerDto.email;
+    }
+
+    if (updateOwnerDto.name) {
+      owner.user.profile.name = updateOwnerDto.name;
+    }
+
+    if (updateOwnerDto.lastName) {
+      owner.user.profile.lastName = updateOwnerDto.lastName;
+    }
+
+    if (updateOwnerDto.cellphone) {
+      owner.user.profile.cellphone = updateOwnerDto.cellphone;
+    }
+
+    if (updateOwnerDto.businessName && owner.business) {
+      owner.business.name = updateOwnerDto.businessName;
+    }
+
+    const identificationCardImage = files?.identificationCardImage?.[0];
+
+    if (identificationCardImage) {
+      validateImage(identificationCardImage, 'identificationCardImage');
+    }
+
+    processImage(
+      owner,
+      identificationCardImage,
+      'identificationCardImage',
+      this.removeFile.bind(this),
+    );
+
+    try {
+      return await this.dataSource.transaction(async (manager) => {
+        await manager.save(owner.user.profile);
+        await manager.save(owner.user);
+
+        if (owner.business) {
+          await manager.save(owner.business);
+        }
+
+        return await manager.save(owner);
+      });
+    } catch (error) {
+      if (identificationCardImage) {
+        this.removeFile(identificationCardImage.filename);
+      }
+
       this.handleDBException(error);
     }
   }
