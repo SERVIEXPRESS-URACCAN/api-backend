@@ -11,11 +11,11 @@ import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import { Profile } from '../profile/entities/profile.entity';
 import { User } from '../users/entities/user.entity';
-import { RegisterDto } from './dto/register.dto';
 import { DataSource, ILike } from 'typeorm';
 import { Gender } from '../gender/entities/gender.entity';
 import { UserRole } from '../user-roles/entities/user-roles.entity';
 import { Roles } from '../roles/entities/roles.entity';
+import { CreateUserDto } from '../users/dto/create-user.dto';
 
 @Injectable()
 export class AuthService {
@@ -64,7 +64,7 @@ export class AuthService {
       access_token: token,
     };
   }
-  async register(dto: RegisterDto) {
+  async register(dto: CreateUserDto) {
     const qr = this.dataSource.createQueryRunner();
 
     await qr.connect();

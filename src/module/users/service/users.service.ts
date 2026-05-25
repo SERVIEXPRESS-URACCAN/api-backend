@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   NotFoundException,
@@ -16,7 +17,6 @@ import { Mandadero } from 'src/module/mandadero/entities/mandadero.entity';
 import { Motorcycle } from 'src/module/motorcycles/entities/motorcycle.entity';
 import { UserRole } from 'src/module/user-roles/entities/user-roles.entity';
 import { Business } from 'src/module/business/entities/business.entity';
-import { RegisterDto } from 'src/module/auth/dto/register.dto';
 import { Gender } from 'src/module/gender/entities/gender.entity';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
 
@@ -28,6 +28,8 @@ export class UsersService {
 
     @InjectRepository(Roles)
     private readonly rolesRepository: Repository<Roles>,
+    @InjectRepository(Gender)
+    private readonly genderRepository: Repository<Gender>,
 
     private readonly dataSource: DataSource,
   ) {}
@@ -102,22 +104,50 @@ export class UsersService {
   async create(createUserDto: CreateUserDto) {
     const normalizeEmail = createUserDto.email.toLowerCase().trim();
 
-    const { password } = createUserDto;
+    const { password, profile } = createUserDto;
 
-    const existingUser = await this.findByEmail(normalizeEmail);
+    const existingUser = await this.userRepository.findOne({
+      where: {
+        email: normalizeEmail,
+      },
+      withDeleted: true,
+    });
 
     if (existingUser) {
-      throw new ConflictException('Email already exists');
+      if (!existingUser.deletedAt) {
+        throw new ConflictException({
+          message: 'Email already exists',
+          canRestore: false,
+        });
+      }
+
+      throw new ConflictException({
+        message: 'This user was deleted',
+        canRestore: true,
+        userId: existingUser.id,
+      });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const role = await this.rolesRepository.findOne({
-      where: { id: 1 },
+      where: {
+        name: 'client',
+      },
     });
 
     if (!role) {
       throw new NotFoundException('Role not found');
+    }
+
+    const gender = await this.genderRepository.findOne({
+      where: {
+        id: profile.gender_id,
+      },
+    });
+
+    if (!gender) {
+      throw new NotFoundException('Gender not found');
     }
 
     const queryRunner = this.dataSource.createQueryRunner();
@@ -140,11 +170,22 @@ export class UsersService {
 
       await queryRunner.manager.save(userRole);
 
+      const newProfile = queryRunner.manager.create(Profile, {
+        name: profile.name.trim(),
+        lastName: profile.lastName.trim(),
+        cellphone: profile.cellphone.trim(),
+        gender,
+        user: savedUser,
+      });
+
+      const savedProfile = await queryRunner.manager.save(newProfile);
+
       await queryRunner.commitTransaction();
 
       return {
         id: savedUser.id,
         email: savedUser.email,
+        profile: savedProfile,
       };
     } catch (error) {
       await queryRunner.rollbackTransaction();
@@ -153,7 +194,7 @@ export class UsersService {
       await queryRunner.release();
     }
   }
-  async restoreUserGraph(userId: number, dto: RegisterDto) {
+  async restoreUserGraph(userId: number, dto: CreateUserDto) {
     const queryRunner = this.dataSource.createQueryRunner();
 
     await queryRunner.connect();
@@ -161,9 +202,25 @@ export class UsersService {
     const { profile, password } = dto;
 
     try {
+      const existingUser = await queryRunner.manager.findOne(User, {
+        where: { id: userId },
+        withDeleted: true,
+      });
+
+      if (!existingUser) {
+        throw new NotFoundException('User not found');
+      }
+
+      if (!existingUser.deletedAt) {
+        throw new BadRequestException('User is already active');
+      }
       const hashedPassword = await bcrypt.hash(password, 10);
 
       await queryRunner.manager.restore(User, userId);
+
+      await queryRunner.manager.restore(UserRole, {
+        user: { id: userId },
+      });
 
       const existingProfile = await queryRunner.manager.findOne(Profile, {
         where: { user: { id: userId } },
@@ -199,11 +256,11 @@ export class UsersService {
         select: ['id'],
       });
 
-      const ownersId = owners.map((m) => m.id);
+      const ownerIds = owners.map((o) => o.id);
 
-      if (ownersId.length > 0) {
-        await queryRunner.manager.restore(Owner, {
-          id: In(ownersId),
+      if (ownerIds.length > 0) {
+        await queryRunner.manager.restore(Business, {
+          owner: In(ownerIds),
         });
       }
 

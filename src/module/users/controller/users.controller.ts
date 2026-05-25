@@ -57,6 +57,11 @@ export class UsersController {
     return this.usersService.findOne(id);
   }
 
+  @Patch(':id/restore')
+  restore(@Param('id', ParseIntPipe) id: number, @Body() dto: CreateUserDto) {
+    return this.usersService.restoreUserGraph(id, dto);
+  }
+
   @Patch(':id')
   @Auth('admin')
   update(
