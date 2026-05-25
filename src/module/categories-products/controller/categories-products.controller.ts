@@ -55,6 +55,12 @@ export class CategoriesProductsController {
     );
   }
 
+  @Patch(':id/restore')
+  @Auth('admin')
+  restore(@Param('id', ParseIntPipe) id: number) {
+    return this.categoriesProductsService.restore(id);
+  }
+
   @Delete(':id')
   @Auth('admin')
   remove(@Param('id', ParseIntPipe) id: number) {

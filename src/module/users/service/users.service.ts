@@ -142,7 +142,10 @@ export class UsersService {
 
       await queryRunner.commitTransaction();
 
-      return savedUser;
+      return {
+        id: savedUser.id,
+        email: savedUser.email,
+      };
     } catch (error) {
       await queryRunner.rollbackTransaction();
       throw error;

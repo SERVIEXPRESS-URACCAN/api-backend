@@ -16,9 +16,9 @@ import { UpdateProfileDto } from '../dto/update-profile.dto';
 import { Auth } from 'src/module/auth/decorator/auth.decorator';
 import { GetUser } from 'src/module/auth/decorator/getUser.decorator';
 import { AuthUser } from 'src/module/auth/interfaces/auth-user.interface';
-import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
+import { PaginationDto } from 'src/common/dto/pagination.dto';
 
 @Controller('profiles')
 export class ProfileController {
