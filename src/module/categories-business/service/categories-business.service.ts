@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { Repository } from 'typeorm';
@@ -14,16 +18,29 @@ export class CategoriesBusinessService {
   ) {}
 
   async create(categoriesBusinessDto: CreateCategoriesBusinessDto) {
-    try {
-      const categoriesBusiness = this.categoriesBusinessRepository.create(
-        categoriesBusinessDto,
-      );
-      return await this.categoriesBusinessRepository.save(categoriesBusiness);
-    } catch (error) {
-      console.log('Error creating categoriesBusiness:', error);
-      throw error;
+    const existing = await this.categoriesBusinessRepository.findOne({
+      where: { name: categoriesBusinessDto.name },
+      withDeleted: true,
+    });
+
+    if (existing) {
+      if (!existing.deletedAt) {
+        throw new ConflictException(
+          `La categoría "${categoriesBusinessDto.name}" ya existe.`,
+        );
+      }
+      throw new ConflictException({
+        message: `La categoría "${categoriesBusinessDto.name}" fue eliminada anteriormente deseas restaurarla?`,
+        canRestore: true,
+        id: existing.id,
+      });
     }
+    const categoriesBusiness = this.categoriesBusinessRepository.create(
+      categoriesBusinessDto,
+    );
+    return await this.categoriesBusinessRepository.save(categoriesBusiness);
   }
+
   async findAll(paginationDto: PaginationDto) {
     const { page = 1, limit = 10 } = paginationDto;
 
@@ -63,19 +80,59 @@ export class CategoriesBusinessService {
     return categoriesBusiness;
   }
 
-  async update(id: number, updateCategoriesDto: UpdateCategoriesBusinessDto) {
+  async update(
+    id: number,
+    updateCategoriesBusinessDto: UpdateCategoriesBusinessDto,
+  ) {
+    if (updateCategoriesBusinessDto.name) {
+      const duplicate = await this.categoriesBusinessRepository.findOne({
+        where: { name: updateCategoriesBusinessDto.name },
+        withDeleted: true,
+      });
+
+      if (duplicate && duplicate.id !== id) {
+        if (!duplicate.deletedAt) {
+          throw new ConflictException(
+            `La categoría "${updateCategoriesBusinessDto.name}" ya existe.`,
+          );
+        }
+        throw new ConflictException({
+          message: `La categoría "${updateCategoriesBusinessDto.name}" fue eliminada anteriormente deseas restaurarla?`,
+          canRestore: true,
+          id: duplicate.id,
+        });
+      }
+    }
+
     const categoriesBusiness = await this.categoriesBusinessRepository.preload({
       id,
-      ...updateCategoriesDto,
+      ...updateCategoriesBusinessDto,
     });
 
     if (!categoriesBusiness) {
-      throw new NotFoundException(`categoriesBusiness #${id} not found`);
+      throw new NotFoundException(`CategoriesBusiness #${id} no encontrada.`);
     }
 
     return await this.categoriesBusinessRepository.save(categoriesBusiness);
   }
 
+  async restore(id: number) {
+    const existing = await this.categoriesBusinessRepository.findOne({
+      where: { id },
+      withDeleted: true,
+    });
+
+    if (!existing) {
+      throw new NotFoundException(`CategoriesBusiness #${id} no encontrada.`);
+    }
+
+    if (!existing.deletedAt) {
+      throw new ConflictException(`La categoría #${id} no está eliminada.`);
+    }
+
+    await this.categoriesBusinessRepository.restore(id);
+    return { message: `Categoría restaurada exitosamente.`, id };
+  }
   async remove(id: number) {
     try {
       const categoriesBusiness =

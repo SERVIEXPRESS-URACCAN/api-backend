@@ -56,6 +56,11 @@ export class CategoriesBusinessController {
       updateCategoriesBusinessDto,
     );
   }
+  @Patch(':id/restore')
+  @Auth('admin')
+  restore(@Param('id', ParseIntPipe) id: number) {
+    return this.categoriesBusinessService.restore(id);
+  }
 
   @Delete(':id')
   @Auth('admin')
