@@ -11,7 +11,7 @@ import { CreateProfileDto } from 'src/module/profile/dto/profile.dto';
 export class CreateUserDto {
   @IsEmail()
   @Matches(/^[a-zA-Z0-9._%+-]+@gmail\.com$/, {
-    message: 'Only Gmail addresses are allowed',
+    message: 'Solo se permiten direcciones de Gmail.',
   })
   email: string;
 
