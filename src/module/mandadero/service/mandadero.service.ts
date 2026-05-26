@@ -45,6 +45,7 @@ export class MandaderoService {
     const qb = this.mandaderoRepository
       .createQueryBuilder('mandadero')
       .leftJoinAndSelect('mandadero.user', 'user')
+      .leftJoinAndSelect('user.profile', 'profile')
       .leftJoinAndSelect('user.userRoles', 'userRoles')
       .leftJoinAndSelect('userRoles.role', 'role')
       .leftJoinAndSelect('mandadero.motorcycle', 'motorcycle');
@@ -88,6 +89,7 @@ export class MandaderoService {
         'user',
         'user.userRoles',
         'user.userRoles.role',
+        'user.profile',
         'motorcycle',
       ],
     });

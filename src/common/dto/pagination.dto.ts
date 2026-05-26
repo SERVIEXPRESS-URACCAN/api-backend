@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer';
-import { IsInt, IsNumber, IsOptional, Min } from 'class-validator';
+import { IsInt, IsNumber, IsOptional, IsString, Min } from 'class-validator';
 
 export class PaginationDto {
   @IsOptional()
@@ -19,4 +19,8 @@ export class PaginationDto {
   @IsNumber()
   @IsInt()
   city?: number;
+
+  @IsOptional()
+  @IsString()
+  search?: string;
 }
