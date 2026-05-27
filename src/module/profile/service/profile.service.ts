@@ -132,7 +132,7 @@ export class ProfileService {
     }
   };
   async update(id: number, dto: UpdateProfileDto, file?: Express.Multer.File) {
-    const profile = await this.findOne(id);
+    const profile = await this.findOneByAdmin(id);
 
     this.profileRepository.merge(profile, dto);
 
