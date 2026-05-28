@@ -1,4 +1,7 @@
-import { IsEmail, IsOptional, IsString } from 'class-validator';
+import { IsEmail, IsOptional, IsString, ValidateNested } from 'class-validator';
+
+import { Type } from 'class-transformer';
+import { UpdateProfileDto } from 'src/module/profile/dto/update-profile.dto';
 
 export class UpdateOwnerDto {
   @IsOptional()
@@ -6,16 +9,9 @@ export class UpdateOwnerDto {
   razonSocial?: string;
 
   @IsOptional()
-  @IsString()
-  name?: string;
-
-  @IsOptional()
-  @IsString()
-  lastName?: string;
-
-  @IsOptional()
-  @IsString()
-  cellphone?: string;
+  @ValidateNested()
+  @Type(() => UpdateProfileDto)
+  profile?: UpdateProfileDto;
 
   @IsOptional()
   @IsEmail()
