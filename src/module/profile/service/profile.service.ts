@@ -1,20 +1,20 @@
-import { Gender } from 'src/module/gender/entities/gender.entity';
-import { CreateProfileAdminDto } from '../dto/profile.dto';
-import { User } from 'src/module/users/entities/user.entity';
 import {
   BadRequestException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Profile } from '../entities/profile.entity';
-import { DataSource, FindOptionsWhere, Repository } from 'typeorm';
-import { UpdateProfileDto } from '../dto/update-profile.dto';
 import { InjectRepository } from '@nestjs/typeorm';
-import * as path from 'path';
 import * as fs from 'fs';
-import { validateImage } from 'src/module/business/helper/file.helper';
-import { processProfileImage } from '../helper/profile-file.helper';
+import * as path from 'path';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
+import { validateImage } from 'src/module/business/helper/file.helper';
+import { Gender } from 'src/module/gender/entities/gender.entity';
+import { User } from 'src/module/users/entities/user.entity';
+import { DataSource, FindOptionsWhere, Repository } from 'typeorm';
+import { CreateProfileAdminDto } from '../dto/profile.dto';
+import { UpdateProfileDto } from '../dto/update-profile.dto';
+import { Profile } from '../entities/profile.entity';
+import { processProfileImage } from '../helper/profile-file.helper';
 
 @Injectable()
 export class ProfileService {
@@ -136,9 +136,9 @@ export class ProfileService {
 
     this.profileRepository.merge(profile, dto);
 
-    if (dto.gender_id) {
+    if (dto.genderId) {
       const gender = await this.dataSource.getRepository(Gender).findOne({
-        where: { id: dto.gender_id },
+        where: { id: dto.genderId },
       });
 
       if (!gender) throw new NotFoundException('Gender no encontrado');
