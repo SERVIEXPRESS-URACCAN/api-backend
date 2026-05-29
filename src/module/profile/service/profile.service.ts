@@ -147,7 +147,7 @@ export class ProfileService {
     }
 
     if (file) {
-      validateImage(file, 'image');
+      validateImage(file, 'profileImage');
 
       processProfileImage(profile, file, this.removeFile);
     }
