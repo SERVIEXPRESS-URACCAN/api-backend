@@ -1,4 +1,4 @@
-import { IsString, IsInt } from 'class-validator';
+import { IsString, IsInt, IsPhoneNumber, IsNotEmpty } from 'class-validator';
 
 export class CreateProfileDto {
   @IsString()
@@ -8,6 +8,8 @@ export class CreateProfileDto {
   lastName: string;
 
   @IsString()
+  @IsPhoneNumber('NI')
+  @IsNotEmpty()
   cellphone: string;
 
   @IsInt()
@@ -21,6 +23,7 @@ export class CreateProfileAdminDto {
   lastName: string;
 
   @IsString()
+  @IsNotEmpty()
   cellphone: string;
 
   @IsInt()
