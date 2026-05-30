@@ -116,12 +116,14 @@ export class UsersService {
     if (existingUser) {
       if (!existingUser.deletedAt) {
         throw new ConflictException({
-          message: 'Email already exists',
+          field: 'email',
+          message: 'Email ya esta en uso',
           canRestore: false,
         });
       }
 
       throw new ConflictException({
+        field: 'email',
         message: 'This user was deleted',
         canRestore: true,
         userId: existingUser.id,
@@ -137,7 +139,7 @@ export class UsersService {
     });
 
     if (!role) {
-      throw new NotFoundException('Role not found');
+      throw new NotFoundException({ field: 'role', message: 'Role not found' });
     }
 
     const gender = await this.genderRepository.findOne({

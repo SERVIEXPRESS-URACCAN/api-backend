@@ -8,13 +8,13 @@ export function processProfileImage(
 ) {
   if (!file) return;
 
-  validateImage(file, 'image');
+  validateImage(file, 'profileImage');
 
-  const oldImage = profile.image;
+  const oldImage = profile.profileImage;
 
   if (oldImage) {
     removeFile(oldImage);
   }
 
-  profile.image = file.filename;
+  profile.profileImage = file.filename;
 }
