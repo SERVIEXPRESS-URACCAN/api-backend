@@ -134,7 +134,7 @@ export class UsersService {
 
       throw new ConflictException({
         field: 'email',
-        message: 'This user was deleted',
+        message: 'Este usuario fue eliminado',
         canRestore: true,
         userId: existingUser.id,
       });

@@ -20,6 +20,7 @@ export class CreateProfileAdminDto {
   name: string;
 
   @IsString()
+  @IsPhoneNumber('NI')
   lastName: string;
 
   @IsString()
