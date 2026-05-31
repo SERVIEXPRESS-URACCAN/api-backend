@@ -5,20 +5,20 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, In, Repository } from 'typeorm';
-import { User } from '../entities/user.entity';
-import { CreateUserDto } from '../dto/create-user.dto';
-import { UpdateUserDto } from '../dto/update-user.dto';
 import * as bcrypt from 'bcrypt';
-import { Roles } from 'src/module/roles/entities/roles.entity';
-import { Profile } from 'src/module/profile/entities/profile.entity';
-import { Owner } from 'src/module/owner/entities/owner.entity';
-import { Mandadero } from 'src/module/mandadero/entities/mandadero.entity';
-import { Motorcycle } from 'src/module/motorcycles/entities/motorcycle.entity';
-import { UserRole } from 'src/module/user-roles/entities/user-roles.entity';
+import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { Business } from 'src/module/business/entities/business.entity';
 import { Gender } from 'src/module/gender/entities/gender.entity';
-import { PaginationDto } from 'src/common/dto/pagination.dto';
+import { Mandadero } from 'src/module/mandadero/entities/mandadero.entity';
+import { Motorcycle } from 'src/module/motorcycles/entities/motorcycle.entity';
+import { Owner } from 'src/module/owner/entities/owner.entity';
+import { Profile } from 'src/module/profile/entities/profile.entity';
+import { Roles } from 'src/module/roles/entities/roles.entity';
+import { UserRole } from 'src/module/user-roles/entities/user-roles.entity';
+import { DataSource, In, Repository } from 'typeorm';
+import { CreateUserDto } from '../dto/create-user.dto';
+import { UpdateUserDto } from '../dto/update-user.dto';
+import { User } from '../entities/user.entity';
 
 @Injectable()
 export class UsersService {
@@ -82,6 +82,16 @@ export class UsersService {
       },
     };
   }
+
+  async findAvailableForOwner() {
+    return this.userRepository
+      .createQueryBuilder('user')
+      .leftJoin('user.owner', 'owner')
+      .where('owner.id IS NULL')
+      .orderBy('user.createdAt', 'DESC')
+      .getMany();
+  }
+
   async findOne(id: number): Promise<User> {
     const user = await this.userRepository.findOne({
       where: { id },

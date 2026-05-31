@@ -1,21 +1,21 @@
 import {
-  Controller,
-  Post,
   Body,
-  Patch,
-  Param,
-  Get,
+  Controller,
   Delete,
+  Get,
+  Param,
   ParseIntPipe,
+  Patch,
+  Post,
   Query,
 } from '@nestjs/common';
-import { UsersService } from '../service/users.service';
-import { CreateUserDto } from '../dto/create-user.dto';
-import { UpdateUserDto } from '../dto/update-user.dto';
+import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { Auth } from 'src/module/auth/decorator/auth.decorator';
 import { GetUser } from 'src/module/auth/decorator/getUser.decorator';
 import { AuthUser } from 'src/module/auth/interfaces/auth-user.interface';
-import { PaginationDto } from 'src/common/dto/pagination.dto';
+import { CreateUserDto } from '../dto/create-user.dto';
+import { UpdateUserDto } from '../dto/update-user.dto';
+import { UsersService } from '../service/users.service';
 
 @Controller('users')
 export class UsersController {
@@ -31,6 +31,11 @@ export class UsersController {
   @Auth()
   findMe(@GetUser() user: AuthUser) {
     return this.usersService.findOne(user.id);
+  }
+
+  @Get('available-for-owner')
+  findAvailableForOwner() {
+    return this.usersService.findAvailableForOwner();
   }
 
   @Patch('me')
