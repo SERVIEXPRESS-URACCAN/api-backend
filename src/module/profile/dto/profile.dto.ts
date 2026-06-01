@@ -20,11 +20,11 @@ export class CreateProfileAdminDto {
   name: string;
 
   @IsString()
-  @IsPhoneNumber('NI')
   lastName: string;
 
   @IsString()
   @IsNotEmpty()
+  @IsPhoneNumber('NI')
   cellphone: string;
 
   @IsInt()

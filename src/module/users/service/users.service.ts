@@ -30,6 +30,8 @@ export class UsersService {
     private readonly rolesRepository: Repository<Roles>,
     @InjectRepository(Gender)
     private readonly genderRepository: Repository<Gender>,
+    @InjectRepository(Profile)
+    private readonly profileRepository: Repository<Profile>,
 
     private readonly dataSource: DataSource,
   ) {}
@@ -139,7 +141,17 @@ export class UsersService {
         userId: existingUser.id,
       });
     }
+    const existingProfile = await this.profileRepository.findOne({
+      where: { cellphone: profile.cellphone.trim() },
+      withDeleted: true,
+    });
 
+    if (existingProfile) {
+      throw new ConflictException({
+        field: 'cellphone',
+        message: 'El teléfono ya está en uso',
+      });
+    }
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const role = await this.rolesRepository.findOne({
@@ -382,11 +394,6 @@ export class UsersService {
     if (!user) {
       throw new NotFoundException('User not found');
     }
-
-    if (updateUserDto.password) {
-      updateUserDto.password = await bcrypt.hash(updateUserDto.password, 10);
-    }
-
     Object.assign(user, updateUserDto);
 
     return { message: 'user actualizado correctamente' };

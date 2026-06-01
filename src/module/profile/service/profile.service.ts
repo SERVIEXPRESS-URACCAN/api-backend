@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -135,6 +136,19 @@ export class ProfileService {
     const profile = await this.findOneByAdmin(id);
 
     this.profileRepository.merge(profile, dto);
+
+    if (dto.cellphone) {
+      const existingProfile = await this.profileRepository.findOne({
+        where: { cellphone: dto.cellphone.trim() },
+        withDeleted: true,
+      });
+      if (existingProfile && existingProfile.id !== id) {
+        throw new ConflictException({
+          field: 'cellphone',
+          message: 'El teléfono ya está en uso',
+        });
+      }
+    }
 
     if (dto.genderId) {
       const gender = await this.dataSource.getRepository(Gender).findOne({
