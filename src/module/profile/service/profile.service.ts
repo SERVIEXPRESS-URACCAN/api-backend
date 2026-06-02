@@ -87,7 +87,7 @@ export class ProfileService {
   async findOneByAdmin(id: number) {
     const profile = await this.dataSource.getRepository(Profile).findOne({
       where: { id },
-      relations: ['user'],
+      relations: ['user', 'gender'],
     });
 
     if (!profile) throw new NotFoundException('Profile no encontrado');
