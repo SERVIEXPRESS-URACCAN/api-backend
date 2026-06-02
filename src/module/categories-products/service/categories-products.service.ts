@@ -43,16 +43,24 @@ export class CategoriesProductsService {
   }
   async findAll(paginationDto: PaginationDto) {
     const { page = 1, limit = 10 } = paginationDto;
+
     const safePage = Math.max(page, 1);
     const safeLimit = Math.min(Math.max(limit, 1), 50);
 
-    const [data, total] = await this.categoriesProductRepository.findAndCount({
-      skip: (safePage - 1) * safeLimit,
-      take: safeLimit,
-      order: {
-        createdAt: 'DESC',
-      },
-    });
+    const query = this.categoriesProductRepository
+      .createQueryBuilder('categoriesProduct')
+      .leftJoinAndSelect('categoriesProduct.products', 'products')
+      .orderBy('categoriesProduct.createdAt', 'DESC')
+      .skip((safePage - 1) * safeLimit)
+      .take(safeLimit);
+
+    if (paginationDto.search?.trim()) {
+      query.andWhere('LOWER(categoriesProduct.name) LIKE :search', {
+        search: `%${paginationDto.search.toLowerCase()}%`,
+      });
+    }
+
+    const [data, total] = await query.getManyAndCount();
 
     const lastPage = Math.ceil(total / safeLimit);
 

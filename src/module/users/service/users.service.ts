@@ -1,24 +1,24 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, In, Repository } from 'typeorm';
-import { User } from '../entities/user.entity';
-import { CreateUserDto } from '../dto/create-user.dto';
-import { UpdateUserDto } from '../dto/update-user.dto';
 import * as bcrypt from 'bcrypt';
-import { Roles } from 'src/module/roles/entities/roles.entity';
-import { Profile } from 'src/module/profile/entities/profile.entity';
-import { Owner } from 'src/module/owner/entities/owner.entity';
+import { PaginationDto } from 'src/common/dto/pagination.dto';
+import { Business } from 'src/module/business/entities/business.entity';
+import { Gender } from 'src/module/gender/entities/gender.entity';
 import { Mandadero } from 'src/module/mandadero/entities/mandadero.entity';
 import { Motorcycle } from 'src/module/motorcycles/entities/motorcycle.entity';
+import { Owner } from 'src/module/owner/entities/owner.entity';
+import { Profile } from 'src/module/profile/entities/profile.entity';
+import { Roles } from 'src/module/roles/entities/roles.entity';
 import { UserRole } from 'src/module/user-roles/entities/user-roles.entity';
-import { Business } from 'src/module/business/entities/business.entity';
-import { RegisterDto } from 'src/module/auth/dto/register.dto';
-import { Gender } from 'src/module/gender/entities/gender.entity';
-import { PaginationDto } from 'src/common/dto/pagination.dto';
+import { DataSource, In, Repository } from 'typeorm';
+import { CreateUserDto } from '../dto/create-user.dto';
+import { UpdateUserDto } from '../dto/update-user.dto';
+import { User } from '../entities/user.entity';
 
 @Injectable()
 export class UsersService {
@@ -28,6 +28,8 @@ export class UsersService {
 
     @InjectRepository(Roles)
     private readonly rolesRepository: Repository<Roles>,
+    @InjectRepository(Gender)
+    private readonly genderRepository: Repository<Gender>,
 
     private readonly dataSource: DataSource,
   ) {}
@@ -80,6 +82,16 @@ export class UsersService {
       },
     };
   }
+
+  async findAvailableForOwner() {
+    return this.userRepository
+      .createQueryBuilder('user')
+      .leftJoin('user.owner', 'owner')
+      .where('owner.id IS NULL')
+      .orderBy('user.createdAt', 'DESC')
+      .getMany();
+  }
+
   async findOne(id: number): Promise<User> {
     const user = await this.userRepository.findOne({
       where: { id },
@@ -102,22 +114,52 @@ export class UsersService {
   async create(createUserDto: CreateUserDto) {
     const normalizeEmail = createUserDto.email.toLowerCase().trim();
 
-    const { password } = createUserDto;
+    const { password, profile } = createUserDto;
 
-    const existingUser = await this.findByEmail(normalizeEmail);
+    const existingUser = await this.userRepository.findOne({
+      where: {
+        email: normalizeEmail,
+      },
+      withDeleted: true,
+    });
 
     if (existingUser) {
-      throw new ConflictException('Email already exists');
+      if (!existingUser.deletedAt) {
+        throw new ConflictException({
+          field: 'email',
+          message: 'Email ya esta en uso',
+          canRestore: false,
+        });
+      }
+
+      throw new ConflictException({
+        field: 'email',
+        message: 'This user was deleted',
+        canRestore: true,
+        userId: existingUser.id,
+      });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const role = await this.rolesRepository.findOne({
-      where: { id: 1 },
+      where: {
+        name: 'client',
+      },
     });
 
     if (!role) {
-      throw new NotFoundException('Role not found');
+      throw new NotFoundException({ field: 'role', message: 'Role not found' });
+    }
+
+    const gender = await this.genderRepository.findOne({
+      where: {
+        id: profile.gender_id,
+      },
+    });
+
+    if (!gender) {
+      throw new NotFoundException('Gender not found');
     }
 
     const queryRunner = this.dataSource.createQueryRunner();
@@ -140,11 +182,22 @@ export class UsersService {
 
       await queryRunner.manager.save(userRole);
 
+      const newProfile = queryRunner.manager.create(Profile, {
+        name: profile.name.trim(),
+        lastName: profile.lastName.trim(),
+        cellphone: profile.cellphone.trim(),
+        gender,
+        user: savedUser,
+      });
+
+      const savedProfile = await queryRunner.manager.save(newProfile);
+
       await queryRunner.commitTransaction();
 
       return {
         id: savedUser.id,
         email: savedUser.email,
+        profile: savedProfile,
       };
     } catch (error) {
       await queryRunner.rollbackTransaction();
@@ -153,7 +206,7 @@ export class UsersService {
       await queryRunner.release();
     }
   }
-  async restoreUserGraph(userId: number, dto: RegisterDto) {
+  async restoreUserGraph(userId: number, dto: CreateUserDto) {
     const queryRunner = this.dataSource.createQueryRunner();
 
     await queryRunner.connect();
@@ -161,9 +214,25 @@ export class UsersService {
     const { profile, password } = dto;
 
     try {
+      const existingUser = await queryRunner.manager.findOne(User, {
+        where: { id: userId },
+        withDeleted: true,
+      });
+
+      if (!existingUser) {
+        throw new NotFoundException('User not found');
+      }
+
+      if (!existingUser.deletedAt) {
+        throw new BadRequestException('User is already active');
+      }
       const hashedPassword = await bcrypt.hash(password, 10);
 
       await queryRunner.manager.restore(User, userId);
+
+      await queryRunner.manager.restore(UserRole, {
+        user: { id: userId },
+      });
 
       const existingProfile = await queryRunner.manager.findOne(Profile, {
         where: { user: { id: userId } },
@@ -199,11 +268,11 @@ export class UsersService {
         select: ['id'],
       });
 
-      const ownersId = owners.map((m) => m.id);
+      const ownerIds = owners.map((o) => o.id);
 
-      if (ownersId.length > 0) {
-        await queryRunner.manager.restore(Owner, {
-          id: In(ownersId),
+      if (ownerIds.length > 0) {
+        await queryRunner.manager.restore(Business, {
+          owner: In(ownerIds),
         });
       }
 

@@ -5,28 +5,43 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+
 import * as fs from 'fs';
 import * as path from 'path';
-import { PaginationDto } from 'src/common/dto/pagination.dto';
-import { AuthUser } from 'src/module/auth/interfaces/auth-user.interface';
-import { User } from 'src/module/users/entities/user.entity';
+
 import { DataSource, QueryFailedError, Repository } from 'typeorm';
-import { CreateOwnerDto } from '../dto/create-owner.dto';
-// import { UpdateOwnerDto } from '../dto/update-owner.dto';
+
+import { PaginationDto } from 'src/common/dto/pagination.dto';
+
+import { AuthUser } from 'src/module/auth/interfaces/auth-user.interface';
+
+import { User } from 'src/module/users/entities/user.entity';
+
 import { Business } from 'src/module/business/entities/business.entity';
+
 import { City } from 'src/module/city/entities/city.entity';
+
+import { Gender } from 'src/module/gender/entities/gender.entity';
+
 import { Roles } from 'src/module/roles/entities/roles.entity';
+
 import { UserRole } from 'src/module/user-roles/entities/user-roles.entity';
+
+import { CreateOwnerDto } from '../dto/create-owner.dto';
+
 import { UpdateOwnerDto } from '../dto/update-owner.dto';
+
 import { Owner } from '../entities/owner.entity';
+
 import { validateImage } from '../helper/file.helper';
+
 import { processImage } from '../helper/owner-file.helper';
-// import { processImage } from '../helper/owner-file.helper';
 
 @Injectable()
 export class OwnerService {
   constructor(
     private readonly dataSource: DataSource,
+
     @InjectRepository(Owner)
     private readonly ownerRepository: Repository<Owner>,
   ) {}
@@ -35,17 +50,24 @@ export class OwnerService {
     const { page = 1, limit = 10 } = paginationDto;
 
     const safePage = Math.max(page, 1);
+
     const safeLimit = Math.min(Math.max(limit, 1), 50);
 
     const [data, total] = await this.ownerRepository.findAndCount({
       relations: {
         user: {
-          profile: true,
+          profile: {
+            gender: true,
+          },
         },
+
         business: true,
       },
+
       skip: (safePage - 1) * safeLimit,
+
       take: safeLimit,
+
       order: {
         createdAt: 'DESC',
       },
@@ -55,11 +77,16 @@ export class OwnerService {
 
     return {
       data,
+
       pagination: {
         total,
+
         page: safePage,
+
         limit: safeLimit,
+
         lastPage,
+
         hasNextPage: safePage < lastPage,
       },
     };
@@ -72,7 +99,16 @@ export class OwnerService {
           id: userId,
         },
       },
-      relations: ['user'],
+
+      relations: {
+        user: {
+          profile: {
+            gender: true,
+          },
+        },
+
+        business: true,
+      },
     });
 
     if (!owner) {
@@ -81,12 +117,22 @@ export class OwnerService {
 
     return owner;
   }
+
   async findOneByAdmin(id: number) {
     const owner = await this.dataSource.getRepository(Owner).findOne({
       where: {
         id,
       },
-      relations: ['user'],
+
+      relations: {
+        user: {
+          profile: {
+            gender: true,
+          },
+        },
+
+        business: true,
+      },
     });
 
     if (!owner) {
@@ -99,12 +145,15 @@ export class OwnerService {
   async create(
     createOwnerDto: CreateOwnerDto,
     authUser: AuthUser,
+
     files?: {
       identificationCardImage?: Express.Multer.File[];
     },
   ) {
     const queryRunner = this.dataSource.createQueryRunner();
+
     await queryRunner.connect();
+
     await queryRunner.startTransaction();
 
     const identificationCardImage = files?.identificationCardImage?.[0];
@@ -124,7 +173,10 @@ export class OwnerService {
         isAdmin && createOwnerDto.user ? createOwnerDto.user : authUser.id;
 
       const user = await queryRunner.manager.findOne(User, {
-        where: { id: userId },
+        where: {
+          id: userId,
+        },
+
         relations: ['userRoles', 'userRoles.role'],
       });
 
@@ -133,7 +185,11 @@ export class OwnerService {
       }
 
       const existingOwner = await queryRunner.manager.findOne(Owner, {
-        where: { user: { id: userId } },
+        where: {
+          user: {
+            id: userId,
+          },
+        },
       });
 
       if (existingOwner) {
@@ -141,7 +197,9 @@ export class OwnerService {
       }
 
       const city = await queryRunner.manager.findOne(City, {
-        where: { id: createOwnerDto.business.city },
+        where: {
+          id: createOwnerDto.business.city,
+        },
       });
 
       if (!city) {
@@ -150,14 +208,21 @@ export class OwnerService {
 
       const owner = queryRunner.manager.create(Owner, {
         razonSocial: createOwnerDto.razonSocial,
-        user: { id: userId },
+
+        user: {
+          id: userId,
+        },
+
         identificationCardImage: identificationCardImage.filename,
       });
 
       await queryRunner.manager.save(owner);
 
       const userWithRoles = await queryRunner.manager.findOne(User, {
-        where: { id: userId },
+        where: {
+          id: userId,
+        },
+
         relations: ['userRoles', 'userRoles.role'],
       });
 
@@ -171,7 +236,9 @@ export class OwnerService {
 
       if (!hasOwnerRole) {
         const ownerRole = await queryRunner.manager.findOne(Roles, {
-          where: { name: 'owner' },
+          where: {
+            name: 'owner',
+          },
         });
 
         if (!ownerRole) {
@@ -179,8 +246,13 @@ export class OwnerService {
         }
 
         const userRole = queryRunner.manager.create(UserRole, {
-          user: { id: userWithRoles.id },
-          role: { id: ownerRole.id },
+          user: {
+            id: userWithRoles.id,
+          },
+
+          role: {
+            id: ownerRole.id,
+          },
         });
 
         await queryRunner.manager.save(UserRole, userRole);
@@ -188,7 +260,9 @@ export class OwnerService {
 
       const business = queryRunner.manager.create(Business, {
         ...createOwnerDto.business,
+
         owner,
+
         city,
       });
 
@@ -198,7 +272,9 @@ export class OwnerService {
 
       return {
         message: 'Owner y negocio creados correctamente',
+
         owner,
+
         business,
       };
     } catch (error) {
@@ -217,6 +293,7 @@ export class OwnerService {
   async updateMe(
     userId: number,
     updateOwnerDto: UpdateOwnerDto,
+
     files?: {
       identificationCardImage?: Express.Multer.File[];
     },
@@ -227,10 +304,14 @@ export class OwnerService {
           id: userId,
         },
       },
+
       relations: {
         user: {
-          profile: true,
+          profile: {
+            gender: true,
+          },
         },
+
         business: true,
       },
     });
@@ -247,16 +328,30 @@ export class OwnerService {
       owner.user.email = updateOwnerDto.email;
     }
 
-    if (updateOwnerDto.name) {
-      owner.user.profile.name = updateOwnerDto.name;
+    if (updateOwnerDto.profile?.name) {
+      owner.user.profile.name = updateOwnerDto.profile.name;
     }
 
-    if (updateOwnerDto.lastName) {
-      owner.user.profile.lastName = updateOwnerDto.lastName;
+    if (updateOwnerDto.profile?.lastName) {
+      owner.user.profile.lastName = updateOwnerDto.profile.lastName;
     }
 
-    if (updateOwnerDto.cellphone) {
-      owner.user.profile.cellphone = updateOwnerDto.cellphone;
+    if (updateOwnerDto.profile?.cellphone) {
+      owner.user.profile.cellphone = updateOwnerDto.profile.cellphone;
+    }
+
+    if (updateOwnerDto.profile?.genderId) {
+      const gender = await this.dataSource.getRepository(Gender).findOne({
+        where: {
+          id: updateOwnerDto.profile.genderId,
+        },
+      });
+
+      if (!gender) {
+        throw new NotFoundException('Gender no encontrado');
+      }
+
+      owner.user.profile.gender = gender;
     }
 
     if (updateOwnerDto.businessName && owner.business) {
@@ -300,6 +395,7 @@ export class OwnerService {
   async updateByAdmin(
     ownerId: number,
     updateOwnerDto: UpdateOwnerDto,
+
     files?: {
       identificationCardImage?: Express.Multer.File[];
     },
@@ -308,10 +404,14 @@ export class OwnerService {
       where: {
         id: ownerId,
       },
+
       relations: {
         user: {
-          profile: true,
+          profile: {
+            gender: true,
+          },
         },
+
         business: true,
       },
     });
@@ -328,16 +428,30 @@ export class OwnerService {
       owner.user.email = updateOwnerDto.email;
     }
 
-    if (updateOwnerDto.name) {
-      owner.user.profile.name = updateOwnerDto.name;
+    if (updateOwnerDto.profile?.name) {
+      owner.user.profile.name = updateOwnerDto.profile.name;
     }
 
-    if (updateOwnerDto.lastName) {
-      owner.user.profile.lastName = updateOwnerDto.lastName;
+    if (updateOwnerDto.profile?.lastName) {
+      owner.user.profile.lastName = updateOwnerDto.profile.lastName;
     }
 
-    if (updateOwnerDto.cellphone) {
-      owner.user.profile.cellphone = updateOwnerDto.cellphone;
+    if (updateOwnerDto.profile?.cellphone) {
+      owner.user.profile.cellphone = updateOwnerDto.profile.cellphone;
+    }
+
+    if (updateOwnerDto.profile?.genderId) {
+      const gender = await this.dataSource.getRepository(Gender).findOne({
+        where: {
+          id: updateOwnerDto.profile.genderId,
+        },
+      });
+
+      if (!gender) {
+        throw new NotFoundException('Gender no encontrado');
+      }
+
+      owner.user.profile.gender = gender;
     }
 
     if (updateOwnerDto.businessName && owner.business) {
@@ -360,6 +474,7 @@ export class OwnerService {
     try {
       return await this.dataSource.transaction(async (manager) => {
         await manager.save(owner.user.profile);
+
         await manager.save(owner.user);
 
         if (owner.business) {
@@ -387,15 +502,21 @@ export class OwnerService {
 
   private handleDBException(error: unknown) {
     console.log(error);
+
     if (error instanceof QueryFailedError) {
       const err = error as QueryFailedError & {
-        driverError: { code?: string; detail?: string };
+        driverError: {
+          code?: string;
+
+          detail?: string;
+        };
       };
 
       if (err.driverError?.code === '23505') {
         throw new BadRequestException('Dato duplicado');
       }
     }
+
     throw new InternalServerErrorException('Error en la base de datos');
   }
 }

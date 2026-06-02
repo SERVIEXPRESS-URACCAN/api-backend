@@ -37,7 +37,7 @@ export class MandaderoService {
   }
 
   async findAll(query: FilterMandaderoDto) {
-    const { page = 1, limit = 10, status, available, userId } = query;
+    const { page = 1, limit = 10, status, available, userId, search } = query;
 
     const safeLimit = Math.max(1, Math.min(limit, 50));
     const safePage = Math.max(1, page);
@@ -45,6 +45,7 @@ export class MandaderoService {
     const qb = this.mandaderoRepository
       .createQueryBuilder('mandadero')
       .leftJoinAndSelect('mandadero.user', 'user')
+      .leftJoinAndSelect('user.profile', 'profile')
       .leftJoinAndSelect('user.userRoles', 'userRoles')
       .leftJoinAndSelect('userRoles.role', 'role')
       .leftJoinAndSelect('mandadero.motorcycle', 'motorcycle');
@@ -59,6 +60,16 @@ export class MandaderoService {
 
     if (userId) {
       qb.andWhere('user.id = :userId', { userId });
+    }
+    if (search) {
+      qb.andWhere(
+        `(LOWER(profile.name) LIKE LOWER(:search)
+      OR LOWER(profile.lastName) LIKE LOWER(:search)
+      OR LOWER(user.email) LIKE LOWER(:search))`,
+        {
+          search: `%${search}%`,
+        },
+      );
     }
 
     qb.orderBy('mandadero.id', 'DESC');
@@ -88,6 +99,7 @@ export class MandaderoService {
         'user',
         'user.userRoles',
         'user.userRoles.role',
+        'user.profile',
         'motorcycle',
       ],
     });

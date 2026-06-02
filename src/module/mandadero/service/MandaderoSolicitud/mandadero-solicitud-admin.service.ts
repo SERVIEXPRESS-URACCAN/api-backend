@@ -3,33 +3,29 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { ApprovalStatus } from 'src/common/enum/approval-status.enum';
 import { DataSource } from 'typeorm';
 import { Mandadero } from '../../entities/mandadero.entity';
-import { Motorcycle } from 'src/module/motorcycles/entities/motorcycle.entity';
-import { CreateMandaderoSolicitudDto } from '../../dto/dto-solicitud/create-solicitud.dto';
-import { AuthUser } from 'src/module/auth/interfaces/auth-user.interface';
 import { User } from 'src/module/users/entities/user.entity';
-
-import { ApprovalStatus } from 'src/common/enum/approval-status.enum';
+import { Motorcycle } from 'src/module/motorcycles/entities/motorcycle.entity';
+import { CreateMandaderoAdminDto } from '../../dto/dto-solicitud/create-mandadero-admin.dto';
 import { deleteFile } from 'src/common/helper/removeOldImage.helper';
-import { MandaderoPolicyService } from '../mandadero-policy.service';
+import { MandaderoStatusService } from '../mandadero-status.service';
 
 @Injectable()
-export class MandaderoSolicitudService {
+export class MandaderoAdminService {
   constructor(
     private readonly dataSource: DataSource,
-
-    private readonly mandaderoPolicyService: MandaderoPolicyService,
+    private readonly mandaderoStatusService: MandaderoStatusService,
   ) {}
 
   async create(
-    dto: CreateMandaderoSolicitudDto,
+    dto: CreateMandaderoAdminDto,
     files: {
       imageIdentification?: Express.Multer.File[];
       circulationImage?: Express.Multer.File[];
       insuranceImage?: Express.Multer.File[];
     },
-    authUser: AuthUser,
   ) {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
@@ -41,51 +37,54 @@ export class MandaderoSolicitudService {
 
     try {
       const user = await queryRunner.manager.findOne(User, {
-        where: { id: authUser.id },
-        relations: ['mandadero'],
+        where: { id: dto.userId },
+        relations: ['userRoles', 'userRoles.role'],
       });
-
       if (!user) {
         throw new NotFoundException('User not found');
       }
-
-      this.mandaderoPolicyService.validateCreate(user);
-
-      const mandadero = queryRunner.manager.create(
-        Mandadero,
-        this.mandaderoPolicyService.buildNewMandadero(
-          user,
-          imageIdentification!.filename,
-        ),
-      );
-
+      const alreadyMandadero = await queryRunner.manager.findOne(Mandadero, {
+        where: { user: { id: dto.userId } },
+      });
+      if (alreadyMandadero) {
+        throw new ConflictException('Este usuario ya es mandadero');
+      }
+      const mandadero = queryRunner.manager.create(Mandadero, {
+        user,
+        available: false,
+        isActive: true,
+        status: ApprovalStatus.APPROVED,
+        imageIdentification: imageIdentification?.filename,
+      });
       const savedMandadero = await queryRunner.manager.save(mandadero);
-
+      await this.mandaderoStatusService.assignMandaderoRole(
+        savedMandadero,
+        queryRunner.manager,
+      );
       const plate = dto.licensePlate.trim().replace(/\s+/g, '').toUpperCase();
+
       const exists = await queryRunner.manager.findOne(Motorcycle, {
         where: { licensePlate: plate },
       });
       if (exists) {
-        throw new ConflictException('License plate already registered');
+        throw new ConflictException('Esta placa ya esta registrada');
       }
 
       const motorcycle = queryRunner.manager.create(Motorcycle, {
+        brand: dto.brand,
+        model: dto.model,
+        color: dto.color,
         licensePlate: plate,
-        circulationImage: circulation!.filename,
-        insuranceImage: insurance!.filename,
-        status: ApprovalStatus.PENDING,
+        circulationImage: circulation?.filename,
+        insuranceImage: insurance?.filename,
+        status: ApprovalStatus.APPROVED,
         mandadero: savedMandadero,
       });
-
-      const savedMotorcycle = await queryRunner.manager.save(motorcycle);
-
+      await queryRunner.manager.save(motorcycle);
       await queryRunner.commitTransaction();
-
       return {
-        message: 'Solicitud creada correctamente',
-        mandaderoId: savedMandadero.id,
-        motorcycleId: savedMotorcycle.id,
-        status: ApprovalStatus.PENDING,
+        message: 'Mandadero created by admin successfully',
+        mandadero: savedMandadero.id,
       };
     } catch (error) {
       await queryRunner.rollbackTransaction();

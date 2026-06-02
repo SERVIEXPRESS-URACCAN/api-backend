@@ -26,7 +26,7 @@ export class Profile {
   @Column()
   cellphone: string;
   @Column({ nullable: true })
-  image: string;
+  profileImage: string;
 
   @ManyToOne(() => Gender)
   @JoinColumn({ name: 'gender_id', referencedColumnName: 'id' })

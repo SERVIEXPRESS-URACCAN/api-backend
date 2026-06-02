@@ -71,7 +71,7 @@ export class ProfileController {
   @Patch(':id')
   @Auth('admin')
   @UseInterceptors(
-    FileInterceptor('image', {
+    FileInterceptor('profileImage', {
       storage: diskStorage({
         destination: './uploads/profile',
         filename: (req, file, cb) => {
