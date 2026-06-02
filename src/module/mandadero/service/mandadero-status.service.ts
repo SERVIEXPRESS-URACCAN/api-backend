@@ -158,7 +158,7 @@ export class MandaderoStatusService {
     return mandadero;
   }
 
-  private async assignMandaderoRole(
+  public async assignMandaderoRole(
     mandadero: Mandadero,
     manager: EntityManager,
   ) {
