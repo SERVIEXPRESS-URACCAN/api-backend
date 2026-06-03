@@ -14,16 +14,14 @@ export class CartCleanService {
     private readonly cartRepository: Repository<Cart>,
   ) {}
 
-  @Cron(CronExpression.EVERY_MINUTE)
+  @Cron(CronExpression.EVERY_30_MINUTES)
   async deleteExpiredCarts() {
     const expirationDate = new Date();
-    expirationDate.setMinutes(expirationDate.getMinutes() - 25);
+    expirationDate.setHours(expirationDate.getHours() - 1);
 
-    const result = await this.cartRepository.delete({
+    await this.cartRepository.delete({
       status: CartStatus.ACTIVE,
       updatedAt: LessThan(expirationDate),
     });
-
-    this.logger.log(`Carritos eliminados: ${result.affected}`);
   }
 }
