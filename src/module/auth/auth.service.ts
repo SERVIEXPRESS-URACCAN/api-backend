@@ -16,6 +16,11 @@ import { Gender } from '../gender/entities/gender.entity';
 import { UserRole } from '../user-roles/entities/user-roles.entity';
 import { Roles } from '../roles/entities/roles.entity';
 import { CreateUserDto } from '../users/dto/create-user.dto';
+import { JwtPayload } from './interfaces/jwt-payload.interface';
+
+type DecodedJwt = JwtPayload & {
+  exp: number;
+};
 
 @Injectable()
 export class AuthService {
@@ -46,12 +51,14 @@ export class AuthService {
 
     const roleNames = user.userRoles?.map((ur) => ur.role.name) || [];
 
-    const payload = {
+    const payload: JwtPayload = {
       sub: user.id,
       email: user.email,
       roles: roleNames,
     };
     const token = await this.jwtService.signAsync(payload);
+    const { exp } = this.jwtService.decode<DecodedJwt>(token);
+
     return {
       message: 'Login successful',
 
@@ -62,6 +69,7 @@ export class AuthService {
       },
 
       access_token: token,
+      expires_at: exp,
     };
   }
   async register(dto: CreateUserDto) {
