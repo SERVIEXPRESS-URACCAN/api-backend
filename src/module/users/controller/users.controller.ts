@@ -38,12 +38,6 @@ export class UsersController {
     return this.usersService.findAvailableForOwner();
   }
 
-  @Patch('me')
-  @Auth()
-  updateMe(@GetUser() user: AuthUser, @Body() updateUserDto: UpdateUserDto) {
-    return this.usersService.update(user.id, updateUserDto);
-  }
-
   @Delete('me')
   @Auth()
   removeMe(@GetUser() user: AuthUser) {

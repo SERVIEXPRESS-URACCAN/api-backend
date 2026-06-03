@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer';
-import { IsNumber, IsOptional, IsString } from 'class-validator';
+import { IsNumber, IsOptional, IsPhoneNumber, IsString } from 'class-validator';
 
 export class UpdateProfileDto {
   @IsOptional()
@@ -11,6 +11,7 @@ export class UpdateProfileDto {
   lastName?: string;
 
   @IsOptional()
+  @IsPhoneNumber('NI')
   @IsString()
   cellphone?: string;
 

@@ -23,8 +23,9 @@ export class Profile {
   @Column()
   lastName: string;
 
-  @Column()
+  @Column({ type: 'varchar', unique: true })
   cellphone: string;
+
   @Column({ nullable: true })
   profileImage: string;
 
