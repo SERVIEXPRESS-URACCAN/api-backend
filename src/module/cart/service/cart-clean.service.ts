@@ -17,7 +17,7 @@ export class CartCleanService {
   @Cron(CronExpression.EVERY_MINUTE)
   async deleteExpiredCarts() {
     const expirationDate = new Date();
-    expirationDate.setMinutes(expirationDate.getMinutes() - 2);
+    expirationDate.setMinutes(expirationDate.getMinutes() - 25);
 
     const result = await this.cartRepository.delete({
       status: CartStatus.ACTIVE,

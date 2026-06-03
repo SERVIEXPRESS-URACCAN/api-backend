@@ -23,14 +23,6 @@ import { GetMandaderoOrdersDto } from '../dto/getMandaderoOrders.dto';
 @Controller('orders')
 export class OrderController {
   constructor(private readonly orderService: OrderService) {}
-  @Get('user/:userId')
-  @Auth('admin')
-  getOrdersByUser(
-    @Param('userId', ParseIntPipe) userId: number,
-    @Query() paginationDto: PaginationDto,
-  ) {
-    return this.orderService.getMyOrders(userId, paginationDto);
-  }
   @Get()
   @Auth('client')
   getMyOrders(

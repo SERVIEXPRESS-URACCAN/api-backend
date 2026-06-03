@@ -395,6 +395,7 @@ export class UsersService {
       throw new NotFoundException('User not found');
     }
     Object.assign(user, updateUserDto);
+    await this.userRepository.save(user);
 
     return { message: 'user actualizado correctamente' };
   }
