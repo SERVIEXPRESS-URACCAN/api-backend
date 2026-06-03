@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, LessThan } from 'typeorm';
@@ -7,8 +7,6 @@ import { CartStatus } from '../enum/cart-status.enum';
 
 @Injectable()
 export class CartCleanService {
-  private readonly logger = new Logger(CartCleanService.name);
-
   constructor(
     @InjectRepository(Cart)
     private readonly cartRepository: Repository<Cart>,
