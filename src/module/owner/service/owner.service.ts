@@ -47,31 +47,30 @@ export class OwnerService {
   ) {}
 
   async findAll(paginationDto: PaginationDto) {
-    const { page = 1, limit = 10 } = paginationDto;
+    const { page = 1, limit = 10, search } = paginationDto;
 
     const safePage = Math.max(page, 1);
 
     const safeLimit = Math.min(Math.max(limit, 1), 50);
 
-    const [data, total] = await this.ownerRepository.findAndCount({
-      relations: {
-        user: {
-          profile: {
-            gender: true,
-          },
-        },
+    const qb = this.ownerRepository.createQueryBuilder('owner');
+    qb.leftJoinAndSelect('owner.user', 'user')
+      .leftJoinAndSelect('user.profile', 'profile')
+      .leftJoinAndSelect('profile.gender', 'gender')
+      .leftJoinAndSelect('owner.business', 'business');
 
-        business: true,
-      },
+    if (search) {
+      qb.andWhere(
+        '(profile.name ILIKE :search OR profile.lastName ILIKE :search OR owner.razonSocial ILIKE :search OR business.name ILIKE :search)',
+        { search: `%${search}%` },
+      );
+    }
 
-      skip: (safePage - 1) * safeLimit,
-
-      take: safeLimit,
-
-      order: {
-        createdAt: 'DESC',
-      },
-    });
+    const [data, total] = await qb
+      .orderBy('owner.createdAt', 'DESC')
+      .skip((safePage - 1) * safeLimit)
+      .take(safeLimit)
+      .getManyAndCount();
 
     const lastPage = Math.ceil(total / safeLimit);
 
@@ -131,7 +130,9 @@ export class OwnerService {
           },
         },
 
-        business: true,
+        business: {
+          products: true,
+        },
       },
     });
 
