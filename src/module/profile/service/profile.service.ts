@@ -11,7 +11,7 @@ import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { validateImage } from 'src/module/business/helper/file.helper';
 import { Gender } from 'src/module/gender/entities/gender.entity';
 import { User } from 'src/module/users/entities/user.entity';
-import { DataSource, FindOptionsWhere, Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { CreateProfileAdminDto } from '../dto/profile.dto';
 import { UpdateProfileDto } from '../dto/update-profile.dto';
 import { Profile } from '../entities/profile.entity';
@@ -95,22 +95,28 @@ export class ProfileService {
     return profile;
   }
   async findAll(paginationDto: PaginationDto) {
-    const { page = 1, limit = 10 } = paginationDto;
+    const { page = 1, limit = 10, search } = paginationDto;
 
     const safePage = Math.max(page, 1);
     const safeLimit = Math.min(Math.max(limit, 1), 50);
 
-    const where: FindOptionsWhere<Profile> = {};
+    const qb = this.profileRepository
+      .createQueryBuilder('profile')
+      .leftJoinAndSelect('profile.user', 'user')
+      .leftJoinAndSelect('profile.gender', 'gender');
 
-    const [data, total] = await this.profileRepository.findAndCount({
-      where,
-      relations: ['user', 'gender'],
-      skip: (safePage - 1) * safeLimit,
-      take: safeLimit,
-      order: {
-        createdAt: 'DESC',
-      },
-    });
+    if (search) {
+      qb.andWhere(
+        `(LOWER(profile.name) LIKE LOWER(:search) OR LOWER(profile.lastName) LIKE LOWER(:search) OR LOWER(user.email) LIKE LOWER(:search))`,
+        { search: `%${search}%` },
+      );
+    }
+
+    const [data, total] = await qb
+      .orderBy('profile.createdAt', 'DESC')
+      .skip((safePage - 1) * safeLimit)
+      .take(safeLimit)
+      .getManyAndCount();
 
     const lastPage = Math.ceil(total / safeLimit);
 
