@@ -5,6 +5,7 @@ import {
   MinLength,
   Matches,
   ValidateNested,
+  IsNotEmpty,
 } from 'class-validator';
 import { CreateProfileDto } from 'src/module/profile/dto/profile.dto';
 
@@ -22,5 +23,6 @@ export class CreateUserDto {
 
   @ValidateNested()
   @Type(() => CreateProfileDto)
+  @IsNotEmpty()
   profile: CreateProfileDto;
 }

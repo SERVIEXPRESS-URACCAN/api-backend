@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   ConflictException,
   Injectable,
   NotFoundException,
@@ -10,9 +9,7 @@ import * as path from 'path';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { validateImage } from 'src/module/business/helper/file.helper';
 import { Gender } from 'src/module/gender/entities/gender.entity';
-import { User } from 'src/module/users/entities/user.entity';
 import { DataSource, Repository } from 'typeorm';
-import { CreateProfileAdminDto } from '../dto/profile.dto';
 import { UpdateProfileDto } from '../dto/update-profile.dto';
 import { Profile } from '../entities/profile.entity';
 import { processProfileImage } from '../helper/profile-file.helper';
@@ -25,55 +22,6 @@ export class ProfileService {
     private readonly profileRepository: Repository<Profile>,
   ) {}
 
-  async create(dto: CreateProfileAdminDto) {
-    const queryRunner = this.dataSource.createQueryRunner();
-
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
-
-    try {
-      const user = await queryRunner.manager.findOne(User, {
-        where: { id: dto.user_id },
-      });
-
-      if (!user) throw new NotFoundException('User no encontrado');
-
-      const existingProfile = await queryRunner.manager.findOne(Profile, {
-        where: { user: { id: dto.user_id } },
-      });
-
-      if (existingProfile) {
-        throw new BadRequestException('Este usuario ya tiene un perfil');
-      }
-
-      const gender = await queryRunner.manager.findOne(Gender, {
-        where: { id: dto.gender_id },
-      });
-
-      if (!gender) {
-        throw new NotFoundException('Gender no encontrado');
-      }
-
-      const prifile = queryRunner.manager.create(Profile, {
-        name: dto.name,
-        lastName: dto.lastName,
-        cellphone: dto.cellphone,
-        gender,
-        user,
-      });
-
-      const savedProfile = await queryRunner.manager.save(prifile);
-
-      await queryRunner.commitTransaction();
-
-      return savedProfile;
-    } catch (error) {
-      await queryRunner.rollbackTransaction();
-      throw error;
-    } finally {
-      await queryRunner.release();
-    }
-  }
   async findOne(userId: number) {
     const profile = await this.dataSource.getRepository(Profile).findOne({
       where: { user: { id: userId } },

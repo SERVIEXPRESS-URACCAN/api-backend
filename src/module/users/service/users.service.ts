@@ -6,7 +6,6 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
-import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { Business } from 'src/module/business/entities/business.entity';
 import { Gender } from 'src/module/gender/entities/gender.entity';
 import { Mandadero } from 'src/module/mandadero/entities/mandadero.entity';
@@ -15,7 +14,7 @@ import { Owner } from 'src/module/owner/entities/owner.entity';
 import { Profile } from 'src/module/profile/entities/profile.entity';
 import { Roles } from 'src/module/roles/entities/roles.entity';
 import { UserRole } from 'src/module/user-roles/entities/user-roles.entity';
-import { DataSource, In, Repository } from 'typeorm';
+import { DataSource, ILike, In, Repository } from 'typeorm';
 import { CreateUserDto } from '../dto/create-user.dto';
 import { UpdateUserDto } from '../dto/update-user.dto';
 import { User } from '../entities/user.entity';
@@ -36,187 +35,85 @@ export class UsersService {
     private readonly dataSource: DataSource,
   ) {}
 
-  async findByEmail(email: string, withDeleted = false) {
-    const query = this.userRepository
-      .createQueryBuilder('user')
-      .addSelect('user.password')
-      .leftJoinAndSelect('user.userRoles', 'userRoles')
-      .leftJoinAndSelect('userRoles.role', 'role')
-      .where('user.email = :email', { email });
-
-    if (withDeleted) {
-      query.withDeleted();
-    }
-
-    return query.getOne();
-  }
-  async findOneWithRoles(id: number) {
-    return this.userRepository.findOne({
-      where: { id },
-      relations: ['userRoles', 'userRoles.role'],
-    });
-  }
-  async findAll(
-    paginationDto: PaginationDto,
-  ): Promise<{ data: User[]; pagination: object }> {
-    const { page = 1, limit = 10 } = paginationDto;
-    const safePage = Math.max(page, 1);
-    const safeLimit = Math.min(Math.max(limit, 1), 50);
-
-    const [data, total] = await this.userRepository.findAndCount({
-      skip: (safePage - 1) * safeLimit,
-      take: safeLimit,
-      order: {
-        createdAt: 'DESC',
-      },
-    });
-
-    const lastPage = Math.ceil(total / safeLimit);
-
-    return {
-      data,
-      pagination: {
-        total,
-        page: safePage,
-        limit: safeLimit,
-        lastPage,
-        hasNextPage: safePage < lastPage,
-      },
-    };
-  }
-
-  async findAvailableForOwner() {
-    return this.userRepository
-      .createQueryBuilder('user')
-      .leftJoin('user.owner', 'owner')
-      .where('owner.id IS NULL')
-      .orderBy('user.createdAt', 'DESC')
-      .getMany();
-  }
-
-  async findOne(id: number): Promise<User> {
-    const user = await this.userRepository.findOne({
-      where: { id },
-      relations: [
-        'userRoles',
-        'userRoles.role',
-        'owner',
-        'mandadero',
-        'profile',
-      ],
-    });
-
-    if (!user) {
-      throw new NotFoundException(`User with id ${id} not found`);
-    }
-
-    return user;
-  }
-
-  async create(createUserDto: CreateUserDto) {
-    const normalizeEmail = createUserDto.email.toLowerCase().trim();
-
-    const { password, profile } = createUserDto;
+  async createUserWithProfile(dto: CreateUserDto & { email: string }) {
+    const { password, profile } = dto;
 
     const existingUser = await this.userRepository.findOne({
-      where: {
-        email: normalizeEmail,
-      },
+      where: { email: dto.email },
       withDeleted: true,
     });
-
     if (existingUser) {
-      if (!existingUser.deletedAt) {
-        throw new ConflictException({
-          field: 'email',
-          message: 'Email ya esta en uso',
-          canRestore: false,
-        });
-      }
-
       throw new ConflictException({
         field: 'email',
-        message: 'Este usuario fue eliminado',
-        canRestore: true,
-        userId: existingUser.id,
+        message: 'Email ya está en uso',
+        canRestore: false,
       });
     }
+
     const existingProfile = await this.profileRepository.findOne({
       where: { cellphone: profile.cellphone.trim() },
       withDeleted: true,
     });
-
     if (existingProfile) {
       throw new ConflictException({
         field: 'cellphone',
         message: 'El teléfono ya está en uso',
       });
     }
-    const hashedPassword = await bcrypt.hash(password, 10);
 
-    const role = await this.rolesRepository.findOne({
-      where: {
-        name: 'client',
-      },
-    });
+    const [role, gender] = await Promise.all([
+      this.rolesRepository.findOne({ where: { name: ILike('client') } }),
+      this.genderRepository.findOne({ where: { id: profile.gender_id } }),
+    ]);
 
-    if (!role) {
+    if (!role)
       throw new NotFoundException({ field: 'role', message: 'Role not found' });
-    }
+    if (!gender) throw new NotFoundException('Gender not found');
 
-    const gender = await this.genderRepository.findOne({
-      where: {
-        id: profile.gender_id,
-      },
-    });
-
-    if (!gender) {
-      throw new NotFoundException('Gender not found');
-    }
-
-    const queryRunner = this.dataSource.createQueryRunner();
-
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const qr = this.dataSource.createQueryRunner();
+    await qr.connect();
+    await qr.startTransaction();
 
     try {
-      const user = queryRunner.manager.create(User, {
-        email: normalizeEmail,
+      const user = qr.manager.create(User, {
+        email: dto.email,
         password: hashedPassword,
       });
+      await qr.manager.save(user);
 
-      const savedUser = await queryRunner.manager.save(user);
+      await Promise.all([
+        qr.manager.save(
+          qr.manager.create(Profile, {
+            name: profile.name.trim(),
+            lastName: profile.lastName.trim(),
+            cellphone: profile.cellphone.trim(),
+            gender,
+            user,
+          }),
+        ),
+        qr.manager.save(qr.manager.create(UserRole, { user, role })),
+      ]);
 
-      const userRole = queryRunner.manager.create(UserRole, {
-        user: savedUser,
-        role,
+      await qr.commitTransaction();
+
+      const result = await this.userRepository.findOne({
+        where: { id: user.id },
+        relations: ['profile', 'userRoles', 'userRoles.role'],
       });
 
-      await queryRunner.manager.save(userRole);
-
-      const newProfile = queryRunner.manager.create(Profile, {
-        name: profile.name.trim(),
-        lastName: profile.lastName.trim(),
-        cellphone: profile.cellphone.trim(),
-        gender,
-        user: savedUser,
-      });
-
-      const savedProfile = await queryRunner.manager.save(newProfile);
-
-      await queryRunner.commitTransaction();
-
-      return {
-        id: savedUser.id,
-        email: savedUser.email,
-        profile: savedProfile,
-      };
+      return result;
     } catch (error) {
-      await queryRunner.rollbackTransaction();
+      await qr.rollbackTransaction();
       throw error;
     } finally {
-      await queryRunner.release();
+      await qr.release();
     }
+  }
+
+  async create(dto: CreateUserDto) {
+    const email = dto.email.toLowerCase().trim();
+    return this.createUserWithProfile({ ...dto, email });
   }
   async restoreUserGraph(userId: number, dto: CreateUserDto) {
     const queryRunner = this.dataSource.createQueryRunner();
@@ -387,16 +284,13 @@ export class UsersService {
     }
   }
   async update(id: number, updateUserDto: UpdateUserDto) {
-    const user = await this.userRepository.findOne({
-      where: { id },
-    });
+    const user = await this.userRepository.findOne({ where: { id } });
 
-    if (!user) {
-      throw new NotFoundException('User not found');
-    }
+    if (!user) throw new NotFoundException('User not found');
+
     Object.assign(user, updateUserDto);
-    await this.userRepository.save(user);
+    const updated = await this.userRepository.save(user);
 
-    return { message: 'user actualizado correctamente' };
+    return updated; // 👈 o { message: '...', user: updated } si prefieres
   }
 }

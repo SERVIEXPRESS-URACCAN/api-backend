@@ -16,10 +16,14 @@ import { AuthUser } from 'src/module/auth/interfaces/auth-user.interface';
 import { CreateUserDto } from '../dto/create-user.dto';
 import { UpdateUserDto } from '../dto/update-user.dto';
 import { UsersService } from '../service/users.service';
+import { UsersServiceFind } from '../service/users-find.service';
 
 @Controller('users')
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(
+    private readonly usersService: UsersService,
+    private readonly usersServiceFind: UsersServiceFind,
+  ) {}
 
   @Post()
   @Auth('admin')
@@ -30,12 +34,12 @@ export class UsersController {
   @Get('me')
   @Auth()
   findMe(@GetUser() user: AuthUser) {
-    return this.usersService.findOne(user.id);
+    return this.usersServiceFind.findOne(user.id);
   }
 
   @Get('available-for-owner')
   findAvailableForOwner() {
-    return this.usersService.findAvailableForOwner();
+    return this.usersServiceFind.findAvailableForOwner();
   }
 
   @Delete('me')
@@ -47,13 +51,13 @@ export class UsersController {
   @Get()
   @Auth('admin')
   findAll(@Query() paginationDto: PaginationDto) {
-    return this.usersService.findAll(paginationDto);
+    return this.usersServiceFind.findAll(paginationDto);
   }
 
   @Get(':id')
   @Auth('admin')
   findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.usersService.findOne(id);
+    return this.usersServiceFind.findOne(id);
   }
 
   @Patch(':id/restore')
