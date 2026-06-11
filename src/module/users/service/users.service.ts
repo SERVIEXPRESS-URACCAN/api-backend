@@ -291,6 +291,6 @@ export class UsersService {
     Object.assign(user, updateUserDto);
     const updated = await this.userRepository.save(user);
 
-    return updated; // 👈 o { message: '...', user: updated } si prefieres
+    return updated;
   }
 }
