@@ -100,6 +100,7 @@ export class MandaderoService {
         'user.userRoles',
         'user.userRoles.role',
         'user.profile',
+        'user.profile.gender',
         'motorcycle',
       ],
     });

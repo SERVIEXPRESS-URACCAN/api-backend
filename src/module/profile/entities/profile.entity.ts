@@ -17,14 +17,15 @@ export class Profile {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column()
+  @Column({ type: 'varchar', nullable: false })
   name: string;
 
-  @Column()
+  @Column({ type: 'varchar', nullable: false })
   lastName: string;
 
-  @Column()
+  @Column({ type: 'varchar', unique: true })
   cellphone: string;
+
   @Column({ nullable: true })
   profileImage: string;
 

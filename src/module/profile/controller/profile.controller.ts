@@ -1,7 +1,6 @@
 import {
   Controller,
   Get,
-  Post,
   Body,
   Param,
   ParseIntPipe,
@@ -10,7 +9,6 @@ import {
   UseInterceptors,
   UploadedFile,
 } from '@nestjs/common';
-import { CreateProfileAdminDto } from '../dto/profile.dto';
 import { ProfileService } from '../service/profile.service';
 import { UpdateProfileDto } from '../dto/update-profile.dto';
 import { Auth } from 'src/module/auth/decorator/auth.decorator';
@@ -50,12 +48,6 @@ export class ProfileController {
   ) {
     return this.profileService.update(user.id, dto, file);
   }
-  @Post()
-  @Auth('admin')
-  create(@Body() dto: CreateProfileAdminDto) {
-    return this.profileService.create(dto);
-  }
-
   @Get()
   @Auth('admin')
   findAll(@Query() paginationDto: PaginationDto) {

@@ -23,7 +23,6 @@ import { GetMandaderoOrdersDto } from '../dto/getMandaderoOrders.dto';
 @Controller('orders')
 export class OrderController {
   constructor(private readonly orderService: OrderService) {}
-
   @Get()
   @Auth('client')
   getMyOrders(

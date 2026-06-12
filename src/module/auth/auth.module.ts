@@ -8,6 +8,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { StringValue } from 'ms';
 import { JwtStrategy } from './strategy/jwt.strategy';
 import { UsersModule } from '../users/users.module';
+import { AuthTokenService } from './auth-token.service';
 
 @Module({
   imports: [
@@ -26,7 +27,13 @@ import { UsersModule } from '../users/users.module';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, AuthGuard, RolesGuard, JwtStrategy],
-  exports: [AuthGuard, RolesGuard, JwtModule],
+  providers: [
+    AuthService,
+    AuthGuard,
+    RolesGuard,
+    JwtStrategy,
+    AuthTokenService,
+  ],
+  exports: [AuthGuard, RolesGuard, JwtModule, AuthTokenService],
 })
 export class AuthModule {}
