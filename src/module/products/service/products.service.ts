@@ -64,7 +64,7 @@ export class ProductService {
 
     return {
       data,
-      meta: {
+      pagination: {
         total,
         page: safePage,
         limit: safeLimit,

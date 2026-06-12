@@ -104,7 +104,6 @@ export class ProductSharedService {
 
       product.imageUrl = file.filename;
     }
-
     const updatedProduct = this.productRepository.merge(product, {
       name: dto.name ?? product.name,
       description: dto.description ?? product.description,

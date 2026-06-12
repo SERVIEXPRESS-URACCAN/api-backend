@@ -18,31 +18,38 @@ export class ProductAdminService {
     @InjectRepository(Business)
     private readonly businessRepository: Repository<Business>,
   ) {}
-  async findAllByAdmin(paginationDto: PaginationDto) {
-    const { page = 1, limit = 10 } = paginationDto;
+  async findAllByAdmin(paginationDto: PaginationDto, businessId?: number) {
+    const { page = 1, limit = 10, search } = paginationDto;
 
     const safePage = Math.max(page, 1);
     const safeLimit = Math.min(Math.max(limit, 1), 30);
 
-    const [products, total] = await this.productRepository.findAndCount({
-      relations: {
-        business: true,
-        category: true,
-      },
-      take: safeLimit,
-      skip: (safePage - 1) * safeLimit,
-    });
+    const qb = this.productRepository
+      .createQueryBuilder('product')
+      .leftJoinAndSelect('product.business', 'business')
+      .leftJoinAndSelect('product.category', 'category');
 
+    if (businessId) {
+      qb.andWhere('product.businessId = :businessId', { businessId });
+    }
+    if (search) {
+      qb.andWhere('product.name ILIKE :search', { search: `%${search}%` });
+    }
+
+    qb.orderBy('product.createdAt', 'DESC')
+      .skip((safePage - 1) * safeLimit)
+      .take(safeLimit);
+
+    const [data, total] = await qb.getManyAndCount();
     const lastPage = Math.ceil(total / safeLimit);
 
     return {
-      data: products,
-      meta: {
+      data,
+      pagination: {
         total,
         page: safePage,
-        limit: safeLimit,
-        lastPage,
         hasNextPage: safePage < lastPage,
+        lastPage,
       },
     };
   }

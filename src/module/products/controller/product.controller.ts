@@ -33,8 +33,11 @@ export class ProductsController {
 
   @Get('admin')
   @Auth('admin')
-  findAllByAdmin(@Query() paginationDto: PaginationDto) {
-    return this.productsAdminService.findAllByAdmin(paginationDto);
+  findAllByAdmin(
+    @Query() paginationDto: PaginationDto,
+    @Query('businessId') businessId?: number,
+  ) {
+    return this.productsAdminService.findAllByAdmin(paginationDto, businessId);
   }
 
   @Get('admin/:id')
