@@ -17,10 +17,10 @@ export class Profile {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column()
+  @Column({ type: 'varchar', nullable: false })
   name: string;
 
-  @Column()
+  @Column({ type: 'varchar', nullable: false })
   lastName: string;
 
   @Column({ type: 'varchar', unique: true })
