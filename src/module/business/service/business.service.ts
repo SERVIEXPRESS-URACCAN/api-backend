@@ -7,13 +7,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { Owner } from 'src/module/owner/entities/owner.entity';
-import {
-  DataSource,
-  FindOptionsWhere,
-  QueryFailedError,
-  QueryRunner,
-  Repository,
-} from 'typeorm';
+import { DataSource, QueryFailedError, QueryRunner, Repository } from 'typeorm';
 import { UpdateBusinessDto } from '../dto/update-business.dto';
 import { Business } from '../entities/business.entity';
 import { formatPhone } from '../helper/phone.helper';
@@ -36,27 +30,30 @@ export class BusinessService {
   ) {}
 
   async findAll(paginationDto: PaginationDto, cityId?: number) {
-    const { page = 1, limit = 10 } = paginationDto;
+    const { page = 1, limit = 10, search } = paginationDto;
 
     const safePage = Math.max(page, 1);
     const safeLimit = Math.min(Math.max(limit, 1), 50);
 
-    const where: FindOptionsWhere<Business> = {};
+    const qb = this.businessRepository
+      .createQueryBuilder('business')
+      .leftJoinAndSelect('business.owner', 'owner')
+      .leftJoinAndSelect('business.categories', 'categories')
+      .leftJoinAndSelect('business.city', 'city');
 
-    if (cityId !== undefined) {
-      where.city = { id: cityId };
+    if (cityId) {
+      qb.andWhere('business.city_id = :cityId', { cityId });
     }
 
-    const [data, total] = await this.businessRepository.findAndCount({
-      where,
-      relations: ['owner', 'categories', 'city'],
-      skip: (safePage - 1) * safeLimit,
-      take: safeLimit,
-      order: {
-        createdAt: 'DESC',
-      },
-    });
+    if (search) {
+      qb.andWhere('business.name ILIKE :search', { search: `%${search}%` });
+    }
 
+    qb.orderBy('business.createdAt', 'DESC')
+      .skip((safePage - 1) * safeLimit)
+      .take(safeLimit);
+
+    const [data, total] = await qb.getManyAndCount();
     const lastPage = Math.ceil(total / safeLimit);
 
     return {
@@ -64,8 +61,8 @@ export class BusinessService {
       meta: {
         total,
         page: safePage,
-        lastPage,
         hasNextPage: safePage < lastPage,
+        lastPage,
       },
     };
   }
