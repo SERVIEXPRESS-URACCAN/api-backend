@@ -1,4 +1,4 @@
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
   IsArray,
   IsNotEmpty,
@@ -35,6 +35,12 @@ export class UpdateBusinessDto {
 
   @IsOptional()
   @IsArray()
+  @Transform(({ value }) => {
+    if (!value) return [];
+
+    return Array.isArray(value) ? value.map(Number) : [Number(value)];
+  })
+  @Type(() => Number)
   @IsNumber({}, { each: true })
   businessCategories?: number[];
 }

@@ -128,7 +128,7 @@ export class OrderService {
       where,
       take: limit,
       skip: (page - 1) * limit,
-      relations: ['items', 'items.product'],
+      relations: ['items', 'items.product', 'business', 'user', 'user.profile'],
       order: {
         createdAt: 'DESC',
       },
