@@ -36,7 +36,7 @@ export class OrderService {
     const [orders, total] = await this.orderRepository.findAndCount({
       take: safeLimit,
       skip: (page - 1) * safeLimit,
-      relations: ['items', 'items.product', 'business'],
+      relations: ['user', 'user.profile', 'items', 'items.product', 'business'],
       order: {
         createdAt: 'DESC',
       },
