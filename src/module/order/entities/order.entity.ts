@@ -11,7 +11,6 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { DeliveryStatus, OrderStatus } from '../enum/orderStatus';
-// import { OrderItem } from 'src/module/order-items/entities/order-item.entity';
 
 @Entity()
 export class Order {

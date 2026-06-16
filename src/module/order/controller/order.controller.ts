@@ -23,6 +23,13 @@ import { GetMandaderoOrdersDto } from '../dto/getMandaderoOrders.dto';
 @Controller('orders')
 export class OrderController {
   constructor(private readonly orderService: OrderService) {}
+
+  @Get('admin/all')
+  @Auth('admin')
+  getAllOrders(@Query() paginationDto: PaginationDto) {
+    return this.orderService.getAllOrders(paginationDto);
+  }
+
   @Get()
   @Auth('client')
   getMyOrders(

@@ -10,9 +10,9 @@ import { GetMandaderoOrdersDto } from '../dto/getMandaderoOrders.dto';
 import { Order } from '../entities/order.entity';
 import { DeliveryStatus, OrderStatus } from '../enum/orderStatus';
 
+import { DeliveryService } from './delivery.service';
 import { OrderCreationService } from './orderCreation.service';
 import { StatusUpdateService } from './orderUpdate.service';
-import { DeliveryService } from './delivery.service';
 
 @Injectable()
 export class OrderService {
@@ -27,6 +27,33 @@ export class OrderService {
     @InjectRepository(Business)
     private readonly businessRepository: Repository<Business>,
   ) {}
+
+  async getAllOrders(paginationDto: PaginationDto) {
+    const { page = 1, limit = 10 } = paginationDto;
+
+    const safeLimit = Math.min(limit, 50);
+
+    const [orders, total] = await this.orderRepository.findAndCount({
+      take: safeLimit,
+      skip: (page - 1) * safeLimit,
+      relations: ['items', 'items.product', 'business'],
+      order: {
+        createdAt: 'DESC',
+      },
+    });
+
+    return {
+      data: orders,
+      meta: {
+        total,
+        page,
+        limit: safeLimit,
+        totalPages: Math.ceil(total / safeLimit),
+        hasNextPage: page * safeLimit < total,
+        hasPreviousPage: page > 1,
+      },
+    };
+  }
 
   async createOrderFromCart(userId: number, cartId: number) {
     return this.orderCreationService.createOrderFromCart(userId, cartId);
