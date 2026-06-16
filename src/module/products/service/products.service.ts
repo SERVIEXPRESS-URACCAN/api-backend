@@ -41,7 +41,7 @@ export class ProductService {
         },
       },
       relations: {
-        category: true,
+        categories: true,
       },
       select: {
         id: true,
@@ -51,7 +51,7 @@ export class ProductService {
         imageUrl: true,
         status: true,
 
-        category: {
+        categories: {
           id: true,
           name: true,
         },

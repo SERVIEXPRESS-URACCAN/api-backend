@@ -19,7 +19,7 @@ export class ProductAdminService {
     private readonly businessRepository: Repository<Business>,
   ) {}
   async findAllByAdmin(paginationDto: PaginationDto, businessId?: number) {
-    const { page = 1, limit = 10, search } = paginationDto;
+    const { page = 1, limit = 12, search } = paginationDto;
 
     const safePage = Math.max(page, 1);
     const safeLimit = Math.min(Math.max(limit, 1), 30);
@@ -27,7 +27,7 @@ export class ProductAdminService {
     const qb = this.productRepository
       .createQueryBuilder('product')
       .leftJoinAndSelect('product.business', 'business')
-      .leftJoinAndSelect('product.category', 'category');
+      .leftJoinAndSelect('product.categories', 'category');
 
     if (businessId) {
       qb.andWhere('product.businessId = :businessId', { businessId });
@@ -70,7 +70,7 @@ export class ProductAdminService {
     return this.productSharedService.createProduct(
       {
         ...rest,
-        categoryId: dto.categoryId,
+        categoryIds: dto.categoryIds,
       },
       business,
       file,

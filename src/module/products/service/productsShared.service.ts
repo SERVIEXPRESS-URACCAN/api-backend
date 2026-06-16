@@ -36,7 +36,7 @@ export class ProductSharedService {
       where: { id },
       relations: {
         business: true,
-        category: true,
+        categories: true,
       },
     });
 
@@ -59,9 +59,11 @@ export class ProductSharedService {
     business: Business,
     file?: Express.Multer.File,
   ) {
-    const { categoryId, ...data } = dto;
+    const { categoryIds, ...data } = dto;
 
-    const category = await this.findCategory(categoryId);
+    const categories = await Promise.all(
+      categoryIds.map((id) => this.findCategory(id)),
+    );
 
     if (file) {
       validateImage(file, 'image');
@@ -71,7 +73,7 @@ export class ProductSharedService {
       ...data,
       price: dto.price.toString(),
       business,
-      category,
+      categories,
       imageUrl: file?.filename,
     });
 
@@ -89,10 +91,12 @@ export class ProductSharedService {
     file?: Express.Multer.File,
     business?: Business,
   ) {
-    let category = product.category;
+    let categories = product.categories;
 
-    if (dto.categoryId !== undefined) {
-      category = await this.findCategory(dto.categoryId);
+    if (dto.categoryIds !== undefined) {
+      categories = await Promise.all(
+        dto.categoryIds.map((id) => this.findCategory(id)),
+      );
     }
 
     if (file) {
@@ -108,8 +112,8 @@ export class ProductSharedService {
       name: dto.name ?? product.name,
       description: dto.description ?? product.description,
       price: dto.price !== undefined ? dto.price.toString() : product.price,
-      status: dto.status ?? product.status,
-      category,
+      status: dto.status !== undefined ? dto.status : product.status,
+      categories,
       business: business ?? product.business,
     });
 
