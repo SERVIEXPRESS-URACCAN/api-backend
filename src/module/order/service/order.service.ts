@@ -147,6 +147,27 @@ export class OrderService {
     };
   }
 
+  async getOrderByIdAdmin(id: number) {
+    const order = await this.orderRepository.findOne({
+      where: { id },
+      relations: [
+        'user',
+        'user.profile',
+        'business',
+        'items',
+        'items.product',
+        'mandadero',
+        'mandadero.profile',
+      ],
+    });
+
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+
+    return order;
+  }
+
   async updateStatus(orderId: number, status: OrderStatus, user: AuthUser) {
     return this.orderUpdateService.updateStatus(orderId, status, user);
   }
