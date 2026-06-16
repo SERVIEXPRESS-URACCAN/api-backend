@@ -30,6 +30,12 @@ export class OrderController {
     return this.orderService.getAllOrders(paginationDto);
   }
 
+  @Get('admin/:id')
+  @Auth('admin')
+  getOrderByIdAdmin(@Param('id', ParseIntPipe) id: number) {
+    return this.orderService.getOrderByIdAdmin(id);
+  }
+
   @Get()
   @Auth('client')
   getMyOrders(
