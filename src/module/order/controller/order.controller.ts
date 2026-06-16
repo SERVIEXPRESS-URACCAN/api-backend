@@ -70,7 +70,6 @@ export class OrderController {
     @Param('cartId', ParseIntPipe) cartId: number,
     @GetUser() user: AuthUser,
   ) {
-    console.log('USER DEBUG:', user);
     return this.orderService.createOrderFromCart(user.id, cartId);
   }
 
