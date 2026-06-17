@@ -108,16 +108,18 @@ export class ProductSharedService {
 
       product.imageUrl = file.filename;
     }
-    const updatedProduct = this.productRepository.merge(product, {
-      name: dto.name ?? product.name,
-      description: dto.description ?? product.description,
-      price: dto.price !== undefined ? dto.price.toString() : product.price,
-      status: dto.status !== undefined ? dto.status : product.status,
-      categories,
-      business: business ?? product.business,
-    });
+    product.name = dto.name ?? product.name;
+    product.description = dto.description ?? product.description;
+    product.price =
+      dto.price !== undefined ? dto.price.toString() : product.price;
+    if (dto.status !== undefined) {
+      product.status = dto.status;
+    }
+    product.business = business ?? product.business;
 
-    return this.productRepository.save(updatedProduct);
+    product.categories = categories;
+
+    return this.productRepository.save(product);
   }
 
   async removeProduct(product: Product) {
