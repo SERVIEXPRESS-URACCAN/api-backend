@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CreateCityDto } from '../dto/create-city.dto';
@@ -25,19 +29,31 @@ export class CityService {
       const city = this.cityRepository.create(cityDto);
       return await this.cityRepository.save(city);
     } catch (error) {
-      console.error('Error creating city:', error);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      if (error.code === '23505') {
+        throw new ConflictException('La ciudad ya existe');
+      }
+
+      throw error;
     }
   }
 
   async update(id: number, cityDto: UpdateCityDto) {
     try {
       const city = await this.cityRepository.update(id, cityDto);
+
       if (city.affected === 0) {
         throw new NotFoundException(`City #${id} not found`);
       }
+
       return this.cityRepository.findOneBy({ id });
     } catch (error) {
-      console.error('Error updating city:', error);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      if (error.code === '23505') {
+        throw new ConflictException('La ciudad ya existe');
+      }
+
+      throw error;
     }
   }
 }
