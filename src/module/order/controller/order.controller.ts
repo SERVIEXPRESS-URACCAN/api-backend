@@ -53,6 +53,16 @@ export class OrderController {
   ) {
     return this.orderService.getBusinessOrders(user.id, query);
   }
+
+  @Get(':id/business')
+  @Auth('owner')
+  getBusinessOrderById(
+    @Param('id', ParseIntPipe) id: number,
+    @GetUser() user: AuthUser,
+  ) {
+    return this.orderService.getBusinessOrderById(id, user.id);
+  }
+
   @Get('available')
   @Auth('mandadero')
   getAvailableOrders(@Query() paginationDto: PaginationDto) {

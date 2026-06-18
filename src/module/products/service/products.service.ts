@@ -29,36 +29,28 @@ export class ProductService {
       throw new NotFoundException('Business not found');
     }
 
-    const { page = 1, limit = 10 } = paginationDto;
+    const { page = 1, limit = 10, search } = paginationDto;
 
     const safePage = Math.max(page, 1);
     const safeLimit = Math.min(Math.max(limit, 1), 30);
 
-    const [data, total] = await this.productRepository.findAndCount({
-      where: {
-        business: {
-          id: business.id,
-        },
-      },
-      relations: {
-        categories: true,
-      },
-      select: {
-        id: true,
-        name: true,
-        description: true,
-        price: true,
-        imageUrl: true,
-        status: true,
+    const qb = this.productRepository
+      .createQueryBuilder('product')
+      .leftJoinAndSelect('product.categories', 'category')
+      .where('product.businessId = :businessId', { businessId: business.id });
 
-        categories: {
-          id: true,
-          name: true,
-        },
-      },
-      take: safeLimit,
-      skip: (safePage - 1) * safeLimit,
-    });
+    if (search) {
+      qb.andWhere(
+        'product.name ILIKE :search or product.description ILIKE :search',
+        { search: `%${search}%` },
+      );
+    }
+
+    qb.orderBy('product.createdAt', 'DESC')
+      .take(safeLimit)
+      .skip((safePage - 1) * safeLimit);
+
+    const [data, total] = await qb.getManyAndCount();
 
     const lastPage = Math.ceil(total / safeLimit);
 
@@ -118,7 +110,6 @@ export class ProductService {
     if (product.business.id !== business.id) {
       throw new ForbiddenException('This product is not yours');
     }
-
     return this.productSharedService.updateProduct(product, dto, file);
   }
 

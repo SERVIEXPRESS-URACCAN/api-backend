@@ -21,14 +21,15 @@ export class CreateProductDto {
   @Type(() => Number)
   price: number;
 
-  @IsBoolean()
   @IsOptional()
-  @Transform(({ value }: { value: unknown }) => {
-    if (value === 'true') return true;
-    if (value === 'false') return false;
-    return value;
+  @Transform(({ value }) => {
+    if (value === 'true' || value === true) return true;
+    if (value === 'false' || value === false) return false;
+    return undefined;
   })
+  @IsBoolean()
   status?: boolean;
+
   @IsArray()
   @Transform(({ value }: { value: unknown }) => {
     if (!value) return [];
