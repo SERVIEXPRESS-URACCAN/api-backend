@@ -175,8 +175,7 @@ export class OrderService {
     qb.orderBy('order.createdAt', 'DESC')
       .take(limit)
       .skip((page - 1) * limit);
-    console.log('QUERY RECEIVED:', query);
-    console.log('STATUS:', status);
+
     const [orders, total] = await qb.getManyAndCount();
 
     return {
