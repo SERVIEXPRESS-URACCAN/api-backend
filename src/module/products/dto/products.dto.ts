@@ -1,10 +1,11 @@
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
   IsString,
   MinLength,
   IsOptional,
   IsNumber,
   IsBoolean,
+  IsArray,
 } from 'class-validator';
 
 export class CreateProductDto {
@@ -20,11 +21,23 @@ export class CreateProductDto {
   @Type(() => Number)
   price: number;
 
-  @IsBoolean()
   @IsOptional()
+  @Transform(({ value }) => {
+    if (value === 'true' || value === true) return true;
+    if (value === 'false' || value === false) return false;
+    return undefined;
+  })
+  @IsBoolean()
   status?: boolean;
 
-  @IsNumber()
-  @Type(() => Number)
-  categoryId: number;
+  @IsArray()
+  @Transform(({ value }: { value: unknown }) => {
+    if (!value) return [];
+
+    const arr = Array.isArray(value) ? value : [value];
+
+    return arr.map(Number);
+  })
+  @IsNumber({}, { each: true })
+  categoryIds: number[];
 }

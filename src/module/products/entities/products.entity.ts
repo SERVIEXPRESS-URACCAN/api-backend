@@ -7,6 +7,8 @@ import {
   ManyToOne,
   CreateDateColumn,
   UpdateDateColumn,
+  JoinTable,
+  ManyToMany,
 } from 'typeorm';
 @Entity()
 export class Product {
@@ -31,8 +33,9 @@ export class Product {
   @ManyToOne(() => Business, (business) => business.products)
   business: Business;
 
-  @ManyToOne(() => CategoriesProduct, (category) => category.products)
-  category: CategoriesProduct;
+  @ManyToMany(() => CategoriesProduct, (category) => category.products)
+  @JoinTable()
+  categories: CategoriesProduct[];
 
   @CreateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   createdAt: Date;

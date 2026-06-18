@@ -10,9 +10,9 @@ import { GetMandaderoOrdersDto } from '../dto/getMandaderoOrders.dto';
 import { Order } from '../entities/order.entity';
 import { DeliveryStatus, OrderStatus } from '../enum/orderStatus';
 
+import { DeliveryService } from './delivery.service';
 import { OrderCreationService } from './orderCreation.service';
 import { StatusUpdateService } from './orderUpdate.service';
-import { DeliveryService } from './delivery.service';
 
 @Injectable()
 export class OrderService {
@@ -27,6 +27,33 @@ export class OrderService {
     @InjectRepository(Business)
     private readonly businessRepository: Repository<Business>,
   ) {}
+
+  async getAllOrders(paginationDto: PaginationDto) {
+    const { page = 1, limit = 10 } = paginationDto;
+
+    const safeLimit = Math.min(limit, 50);
+
+    const [orders, total] = await this.orderRepository.findAndCount({
+      take: safeLimit,
+      skip: (page - 1) * safeLimit,
+      relations: ['user', 'user.profile', 'items', 'items.product', 'business'],
+      order: {
+        createdAt: 'DESC',
+      },
+    });
+
+    return {
+      data: orders,
+      meta: {
+        total,
+        page,
+        limit: safeLimit,
+        totalPages: Math.ceil(total / safeLimit),
+        hasNextPage: page * safeLimit < total,
+        hasPreviousPage: page > 1,
+      },
+    };
+  }
 
   async createOrderFromCart(userId: number, cartId: number) {
     return this.orderCreationService.createOrderFromCart(userId, cartId);
@@ -73,8 +100,41 @@ export class OrderService {
     return order;
   }
 
+  async getBusinessOrderById(orderId: number, userId: number) {
+    const business = await this.businessRepository.findOne({
+      where: {
+        owner: {
+          user: { id: userId },
+        },
+      },
+      relations: ['owner', 'owner.user'],
+    });
+
+    if (!business) {
+      throw new NotFoundException('Business not found');
+    }
+
+    const order = await this.orderRepository.findOne({
+      where: { id: orderId, businessId: business.id },
+      relations: [
+        'user',
+        'user.profile',
+        'business',
+        'items',
+        'items.product',
+        'mandadero',
+        'mandadero.profile',
+      ],
+    });
+
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+    return order;
+  }
+
   async getBusinessOrders(userId: number, query: GetBusinessOrderDto) {
-    const { page = 1, limit = 10, status } = query;
+    const { page = 1, limit = 10, status, search } = query;
 
     const business = await this.businessRepository.findOne({
       where: {
@@ -89,23 +149,34 @@ export class OrderService {
       throw new NotFoundException('Business not found');
     }
 
-    const where: FindOptionsWhere<Order> = {
-      businessId: business.id,
-    };
+    const qb = this.orderRepository
+      .createQueryBuilder('order')
+      .leftJoinAndSelect('order.items', 'items')
+      .leftJoinAndSelect('items.product', 'product')
+      .leftJoinAndSelect('order.business', 'business')
+      .leftJoinAndSelect('order.user', 'user')
+      .leftJoinAndSelect('user.profile', 'profile')
+      .where('order.businessId = :businessId', { businessId: business.id });
 
     if (status) {
-      where.status = status;
+      qb.andWhere('order.status = :status', { status });
     }
 
-    const [orders, total] = await this.orderRepository.findAndCount({
-      where,
-      take: limit,
-      skip: (page - 1) * limit,
-      relations: ['items', 'items.product'],
-      order: {
-        createdAt: 'DESC',
-      },
-    });
+    if (search) {
+      qb.andWhere(
+        `
+      CAST(order.id AS TEXT) ILIKE :search
+      OR profile.name ILIKE :search
+      OR user.email ILIKE :search
+      `,
+        { search: `%${search}%` },
+      );
+    }
+    qb.orderBy('order.createdAt', 'DESC')
+      .take(limit)
+      .skip((page - 1) * limit);
+
+    const [orders, total] = await qb.getManyAndCount();
 
     return {
       data: orders,
@@ -118,6 +189,27 @@ export class OrderService {
         hasPreviousPage: page > 1,
       },
     };
+  }
+
+  async getOrderByIdAdmin(id: number) {
+    const order = await this.orderRepository.findOne({
+      where: { id },
+      relations: [
+        'user',
+        'user.profile',
+        'business',
+        'items',
+        'items.product',
+        'mandadero',
+        'mandadero.profile',
+      ],
+    });
+
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+
+    return order;
   }
 
   async updateStatus(orderId: number, status: OrderStatus, user: AuthUser) {

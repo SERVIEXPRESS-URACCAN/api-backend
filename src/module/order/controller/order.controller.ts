@@ -23,6 +23,19 @@ import { GetMandaderoOrdersDto } from '../dto/getMandaderoOrders.dto';
 @Controller('orders')
 export class OrderController {
   constructor(private readonly orderService: OrderService) {}
+
+  @Get('admin/all')
+  @Auth('admin')
+  getAllOrders(@Query() paginationDto: PaginationDto) {
+    return this.orderService.getAllOrders(paginationDto);
+  }
+
+  @Get('admin/:id')
+  @Auth('admin')
+  getOrderByIdAdmin(@Param('id', ParseIntPipe) id: number) {
+    return this.orderService.getOrderByIdAdmin(id);
+  }
+
   @Get()
   @Auth('client')
   getMyOrders(
@@ -40,6 +53,16 @@ export class OrderController {
   ) {
     return this.orderService.getBusinessOrders(user.id, query);
   }
+
+  @Get(':id/business')
+  @Auth('owner')
+  getBusinessOrderById(
+    @Param('id', ParseIntPipe) id: number,
+    @GetUser() user: AuthUser,
+  ) {
+    return this.orderService.getBusinessOrderById(id, user.id);
+  }
+
   @Get('available')
   @Auth('mandadero')
   getAvailableOrders(@Query() paginationDto: PaginationDto) {
@@ -70,7 +93,6 @@ export class OrderController {
     @Param('cartId', ParseIntPipe) cartId: number,
     @GetUser() user: AuthUser,
   ) {
-    console.log('USER DEBUG:', user);
     return this.orderService.createOrderFromCart(user.id, cartId);
   }
 
