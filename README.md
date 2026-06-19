@@ -1,37 +1,55 @@
 <p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
+  <img src="public/logo.png" alt="SERVIEXPRESS Logo" width="300">
 </p>
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+<h1 align="center">SERVIEXPRESS Backend</h1>
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
+Backend construido con NestJS, TypeORM y PostgreSQL para la gestión de usuarios, negocios, productos y sistema de pedidos con asignación de mandaderos.
+
+
+<p align="center">
+  <img src="https://img.shields.io/badge/NestJS-E0234E?logo=nestjs&logoColor=white" />
+  <img src="https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white" />
+  <img src="https://img.shields.io/badge/PostgreSQL-336791?logo=postgresql&logoColor=white" />
+  <img src="https://img.shields.io/badge/TypeORM-FE6D73" />
+  <img src="https://img.shields.io/badge/JWT-Authentication-blue" />
+  <img src="https://img.shields.io/badge/Multer-Uploads-green" />
 </p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
 
-## Description
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## Tecnologías utilizadas
+- NestJS
+- TypeORM
+- PostgreSQL
+- JWT Authentication
+- Bcrypt
+- Class Validator
+- Multer
+- REST API
 
-## Project setup
+
+
+## Instalación
 
 ```bash
+# Clonar Repositorio mediante HTTPS
+
+$ git clone https://github.com/SERVIEXPRESS-URACCAN/api-backend.git
+
+# Mediante SSH  
+$ git clone https://github.com/SERVIEXPRESS-URACCAN/api-backend.git
+```
+
+```bash
+#Ingresar al directorio del proyecto:
+ cd api-backend
+```
+```bash
+#Instalar Dependencias
 $ npm install
 ```
 
-## Compile and run the project
+## Ejecución
 
 ```bash
 # development
@@ -44,55 +62,205 @@ $ npm run start:dev
 $ npm run start:prod
 ```
 
-## Run tests
+## Configuración de Variables de Entorno
 
-```bash
-# unit tests
-$ npm run test
+Crear un archivo .env.local en la raíz del proyecto:
 
-# e2e tests
-$ npm run test:e2e
+```text
+- DB_HOST=localhost
+- DB_PORT=5432
+- DB_USER=
+- DB_PASSWORD=
+- DB_NAME=serviexpress
 
-# test coverage
-$ npm run test:cov
+- JWT_SECRET=secret_key
+- JWT_EXPIRES=1d
+
+- PORT=3000
 ```
 
-## Deployment
+## Estructura del proyecto
+```text
+src/
+├── common
+├── module/
+│   ├── auth/
+│   ├── business/
+│   ├── cart/
+│   ├── cart-item/
+│   ├── categories-business/
+│   ├── categories-products/
+│   ├── city/
+│   ├── gender/
+│   ├── mandadero/
+│   ├── motorcycles/
+│   ├── order/
+│   ├── order-items/
+│   ├── owner/
+│   └── profile/
+│   └── roles/
+│   └── user-roles/
+│   └── users/
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
-```bash
-$ npm install -g mau
-$ mau deploy
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
 
-## Resources
+### Descripción de carpetas
 
-Check out a few resources that may come in handy when working with NestJS:
+| Carpeta | Descripción |
+|----------|-------------|
+| common   | Código reutilizable global (dto, enum, helper) |
+| module   | Módulos principales del sistema (auth, users, business, orders, etc.) |
+| auth     | Autenticación y JWT (login, register, guards) |
+| users    | Gestión de usuarios |
+| roles    | Control de roles y permisos |
+| profile  | Información de perfil del usuario |
+| gender   | Gestión de géneros |
+| mandadero | Gestión de repartidores |
+| motorcycle  | Gestión de la moto del mandadero |
+| business | Gestión de negocios |
+| categories | Categorías de negocios y productos |
+| products | Gestión de productos |
+| cart     | Lógica del carrito de compras |
+| orders   | Sistema de pedidos |
+| admin    | Funcionalidades administrativas |
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
 
-## Support
+## Roles del sistema
+- Administrador
+- Gestiona usuarios
+- Gestiona negocios
+- Gestiona pedidos
+- Gestiona mandaderos
+- Gestiona propietarios
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
 
-## Stay in touch
+## Propietario
+- Administra su negocio
+- Gestiona productos
+- Gestiona pedidos
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
 
-## License
+## Mandadero
+- Visualiza pedidos disponibles
+- Acepta pedidos
+- Actualiza estados de entrega
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+## Cliente
+- Explora negocios
+- Realiza pedidos
+- Da seguimiento a órdenes
+
+
+## Sistema de pedidos
+- Flujo del pedido
+
+- Cliente crea pedido
+        
+- Negocio acepta pedido
+        
+- Pedido pasa a disponibles
+        
+- Mandadero lo toma
+        
+- Pedido entregado
+
+## Estados del pedido
+- PENDING
+- ACCEPTED
+- PREPARING
+- READY
+- CANCELLED
+
+
+## DELIVERY STATUS
+- WAITING
+- ASSIGNED
+- PICKED_UP
+- ON_THE_WAY
+- DELIVERED
+
+
+## Endpoints principales
+
+```text
+POST   /api/v1/auth/login
+POST   /api/v1/auth/register
+
+GET    /api/v1/users
+GET    /api/v1/business
+POST   /api/v1/business
+
+GET    /api/v1/products
+POST   /api/v1/products
+
+GET    /api/v1/orders
+POST   /api/v1/orders
+PATCH  /api/v1/orders/status
+```
+
+## Funcionalidades técnicas
+- Validaciones con DTOs (class-validator)
+- Relaciones con TypeORM
+- Manejo de transacciones en pedidos
+- Soft delete (deletedAt)
+- Upload de archivos con Multer
+
+## Optimización
+- Queries optimizadas con QueryBuilder
+- Relaciones 
+- Paginación 
+- Validación de datos
+
+
+
+##  Pruebas de la API
+A continuación se muestran algunas pruebas realizadas mediante Postman para validar el funcionamiento de los pedidos
+
+
+### Agregando productos al carrito para hacer la orden
+
+<p align="center">
+  <img src="public/c1.png" width="900">
+</p>
+
+---
+
+### Confirmando el Pedido
+
+<p align="center">
+  <img src="public/c2.png" width="900">
+</p>
+
+---
+
+### Aceptar pedido por negocio
+
+<p align="center">
+  <img src="public/c4.png" width="900">
+</p>
+
+### Aceptar pedido por mandadero
+
+<p align="center">
+  <img src="public/c8.png" width="900">
+</p>
+
+### Recoger Pedido
+
+<p align="center">
+  <img src="public/c5.png" width="900">
+</p>
+
+### En Camino
+<p align="center">
+  <img src="public/c6.png" width="900">
+</p>
+
+### Entregado
+<p align="center">
+  <img src="public/c7.png" width="900">
+</p>
+
+
+Este backend forma parte del sistema SERVIEXPRESS, una plataforma de delivery que conecta clientes, negocios y mandaderos.
