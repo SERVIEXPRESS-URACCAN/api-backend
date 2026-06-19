@@ -28,20 +28,33 @@ export class OrderService {
     private readonly businessRepository: Repository<Business>,
   ) {}
 
-  async getAllOrders(paginationDto: PaginationDto) {
-    const { page = 1, limit = 10 } = paginationDto;
+  async getAllOrders(paginationDto: PaginationDto & {}) {
+    const { page = 1, limit = 10, search } = paginationDto;
 
     const safeLimit = Math.min(limit, 50);
+    const qb = this.orderRepository.createQueryBuilder('order');
 
-    const [orders, total] = await this.orderRepository.findAndCount({
-      take: safeLimit,
-      skip: (page - 1) * safeLimit,
-      relations: ['user', 'user.profile', 'items', 'items.product', 'business'],
-      order: {
-        createdAt: 'DESC',
-      },
-    });
+    qb.leftJoinAndSelect('order.user', 'user');
+    qb.leftJoinAndSelect('user.profile', 'profile');
+    qb.leftJoinAndSelect('order.business', 'business');
 
+    if (search) {
+      qb.andWhere(
+        `
+      CAST(order.id AS TEXT) ILIKE :search
+      OR profile.name ILIKE :search
+      OR user.email ILIKE :search
+      OR business.name ILIKE :search
+      `,
+        { search: `%${search}%` },
+      );
+    }
+
+    qb.orderBy('order.createdAt', 'DESC')
+      .take(limit)
+      .skip((page - 1) * limit);
+
+    const [orders, total] = await qb.getManyAndCount();
     return {
       data: orders,
       meta: {
