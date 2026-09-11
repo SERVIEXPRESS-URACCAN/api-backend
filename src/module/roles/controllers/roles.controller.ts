@@ -9,11 +9,11 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
-import { RolesService } from '../services/roles.service';
-import { CreateRolesDto } from '../dto/create-roles.dto';
-import { UpdateRolesDto } from '../dto/update-roles.dto';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { Auth } from 'src/module/auth/decorator/auth.decorator';
+import { CreateRolesDto } from '../dto/create-roles.dto';
+import { UpdateRolesDto } from '../dto/update-roles.dto';
+import { RolesService } from '../services/roles.service';
 
 @Controller('roles')
 export class RolesController {
