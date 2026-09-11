@@ -1,13 +1,10 @@
-import { IsOptional, IsString } from 'class-validator';
+import { IsInt, IsOptional, IsString, Min } from 'class-validator';
 
 export class UpdateMotorcycleDto {
   @IsOptional()
-  @IsString()
-  brand?: string;
-
-  @IsOptional()
-  @IsString()
-  model?: string;
+  @IsInt()
+  @Min(1)
+  model_id?: number;
 
   @IsOptional()
   @IsString()
