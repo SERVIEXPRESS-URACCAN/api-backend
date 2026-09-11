@@ -22,8 +22,8 @@ import { UserRolesModule } from './module/user-roles/user-roles.module';
 import { UsersModule } from './module/users/users.module';
 import { OrderItemsModule } from './module/order-items/order-items.module';
 import { ScheduleModule } from '@nestjs/schedule';
-import { MotorcycleBrand } from './module/motorcycle-brand/entities/motorcycle-brand.entity';
 import { MotorcycleModelModule } from './module/motorcycle-model/motorcycle-model.module';
+import { MotorcycleBrandModule } from './module/motorcycle-brand/motorcycle-brand.module';
 
 @Module({
   imports: [
@@ -37,7 +37,7 @@ import { MotorcycleModelModule } from './module/motorcycle-model/motorcycle-mode
     ProfileModule,
     UserRolesModule,
     ProductsModule,
-    MotorcycleBrand,
+    MotorcycleBrandModule,
     MotorcycleModelModule,
     ScheduleModule.forRoot(),
 

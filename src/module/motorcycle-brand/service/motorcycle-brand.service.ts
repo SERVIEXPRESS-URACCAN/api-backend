@@ -7,7 +7,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { MotorcycleBrand } from '../entities/motorcycle-brand.entity';
 import { Repository } from 'typeorm';
 import { CreateMotorcycleBrandDto } from '../dto/create-motorcycle-brand.dto';
-import { UpdateMotorcycleBrandDto } from '../dto/update-motoecycle-brand.dto';
+import { UpdateMotorcycleBrandDto } from '../dto/update-motorcycle-brand.dto';
 
 @Injectable()
 export class MotorcycleBrandService {

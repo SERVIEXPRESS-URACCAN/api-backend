@@ -10,7 +10,7 @@ import {
 
 import { CreateMotorcycleBrandDto } from '../dto/create-motorcycle-brand.dto';
 import { MotorcycleBrandService } from '../service/motorcycle-brand.service';
-import { UpdateMotorcycleBrandDto } from '../dto/update-motoecycle-brand.dto';
+import { UpdateMotorcycleBrandDto } from '../dto/update-motorcycle-brand.dto';
 
 @Controller('motorcycle-brand')
 export class MotorcycleBrandController {
