@@ -22,6 +22,8 @@ import { UserRolesModule } from './module/user-roles/user-roles.module';
 import { UsersModule } from './module/users/users.module';
 import { OrderItemsModule } from './module/order-items/order-items.module';
 import { ScheduleModule } from '@nestjs/schedule';
+import { MotorcycleBrand } from './module/motorcycle-brand/entities/motorcycle-brand.entity';
+import { MotorcycleModelModule } from './module/motorcycle-model/motorcycle-model.module';
 
 @Module({
   imports: [
@@ -35,6 +37,8 @@ import { ScheduleModule } from '@nestjs/schedule';
     ProfileModule,
     UserRolesModule,
     ProductsModule,
+    MotorcycleBrand,
+    MotorcycleModelModule,
     ScheduleModule.forRoot(),
 
     ConfigModule.forRoot({ isGlobal: true }),
