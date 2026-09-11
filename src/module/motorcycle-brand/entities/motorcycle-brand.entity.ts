@@ -1,8 +1,10 @@
+import { MotorcycleModel } from 'src/module/motorcycle-model/entities/motorcycle-model.entity';
 import {
   Column,
   CreateDateColumn,
   DeleteDateColumn,
   Entity,
+  OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
@@ -14,6 +16,9 @@ export class MotorcycleBrand {
 
   @Column({ type: 'varchar', length: 50, nullable: false, unique: true })
   name: string;
+
+  @OneToMany(() => MotorcycleModel, (model) => model.brand)
+  models: MotorcycleModel[];
 
   @CreateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   createdAt: Date;
