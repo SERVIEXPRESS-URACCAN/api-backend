@@ -11,6 +11,7 @@ import { Motorcycle } from 'src/module/motorcycles/entities/motorcycle.entity';
 import { CreateMandaderoAdminDto } from '../../dto/dto-solicitud/create-mandadero-admin.dto';
 import { deleteFile } from 'src/common/helper/removeOldImage.helper';
 import { MandaderoStatusService } from '../mandadero-status.service';
+import { MotorcycleModel } from 'src/module/motorcycle-model/entities/motorcycle-model.entity';
 
 @Injectable()
 export class MandaderoAdminService {
@@ -70,9 +71,21 @@ export class MandaderoAdminService {
         throw new ConflictException('Esta placa ya esta registrada');
       }
 
+      const motorcycleModel = await queryRunner.manager.findOne(
+        MotorcycleModel,
+        {
+          where: {
+            id: dto.model_id,
+          },
+        },
+      );
+
+      if (!motorcycleModel) {
+        throw new NotFoundException('Modelo de motocicleta no encontrado');
+      }
+
       const motorcycle = queryRunner.manager.create(Motorcycle, {
-        brand: dto.brand,
-        model: dto.model,
+        model: motorcycleModel,
         color: dto.color,
         licensePlate: plate,
         circulationImage: circulation?.filename,

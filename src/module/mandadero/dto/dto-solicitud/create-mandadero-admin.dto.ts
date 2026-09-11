@@ -1,4 +1,4 @@
-import { IsInt, IsString } from 'class-validator';
+import { IsInt, IsNotEmpty, IsString } from 'class-validator';
 
 export class CreateMandaderoAdminDto {
   @IsInt()
@@ -16,11 +16,9 @@ export class CreateMandaderoAdminDto {
   @IsString()
   licensePlate: string;
 
-  @IsString()
-  brand: string;
-
-  @IsString()
-  model: string;
+  @IsInt()
+  @IsNotEmpty()
+  model_id: number;
 
   @IsString()
   color: string;

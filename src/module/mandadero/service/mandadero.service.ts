@@ -48,7 +48,9 @@ export class MandaderoService {
       .leftJoinAndSelect('user.profile', 'profile')
       .leftJoinAndSelect('user.userRoles', 'userRoles')
       .leftJoinAndSelect('userRoles.role', 'role')
-      .leftJoinAndSelect('mandadero.motorcycle', 'motorcycle');
+      .leftJoinAndSelect('mandadero.motorcycle', 'motorcycle')
+      .leftJoinAndSelect('motorcycle.model', 'model')
+      .leftJoinAndSelect('model.brand', 'brand');
 
     if (status) {
       qb.andWhere('mandadero.status = :status', { status });
@@ -102,6 +104,8 @@ export class MandaderoService {
         'user.profile',
         'user.profile.gender',
         'motorcycle',
+        'modorcycle.model',
+        'motorcycle.model.brand',
       ],
     });
 
@@ -120,6 +124,8 @@ export class MandaderoService {
         'user.userRoles',
         'user.userRoles.role',
         'motorcycle',
+        'motorcycle.model',
+        'motorcycle.model.brand',
       ],
     });
 

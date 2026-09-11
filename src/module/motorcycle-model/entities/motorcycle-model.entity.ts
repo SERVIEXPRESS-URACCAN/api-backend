@@ -2,7 +2,6 @@ import { MotorcycleBrand } from 'src/module/motorcycle-brand/entities/motorcycle
 import {
   Column,
   CreateDateColumn,
-  DeleteDateColumn,
   Entity,
   JoinColumn,
   ManyToOne,
@@ -27,7 +26,4 @@ export class MotorcycleModel {
 
   @UpdateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   updatedAt: Date;
-
-  @DeleteDateColumn({ type: 'timestamp', nullable: true })
-  deletedAt: Date;
 }

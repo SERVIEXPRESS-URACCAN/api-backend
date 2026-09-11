@@ -11,6 +11,7 @@ import {
 import { CreateMotorcycleModelDto } from '../dto/create-motorcycle-model.dto';
 import { MotorcycleModelService } from '../service/motorcycle-model.service';
 import { UpdateMotorcycleModelDto } from '../dto/update-motorcycle-model.dto';
+import { Auth } from 'src/module/auth/decorator/auth.decorator';
 
 @Controller('motorcycle-model')
 export class MotorcycleModelController {
@@ -34,11 +35,13 @@ export class MotorcycleModelController {
   }
 
   @Post()
+  @Auth('admin')
   create(@Body() motorcycleModelDto: CreateMotorcycleModelDto) {
     return this.motorcycleModelService.create(motorcycleModelDto);
   }
 
   @Patch(':id')
+  @Auth('admin')
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() motorcycleModelDto: UpdateMotorcycleModelDto,

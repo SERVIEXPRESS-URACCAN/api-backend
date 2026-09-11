@@ -13,6 +13,7 @@ import { User } from 'src/module/users/entities/user.entity';
 import { ApprovalStatus } from 'src/common/enum/approval-status.enum';
 import { deleteFile } from 'src/common/helper/removeOldImage.helper';
 import { MandaderoPolicyService } from '../mandadero-policy.service';
+import { MotorcycleModel } from 'src/module/motorcycle-model/entities/motorcycle-model.entity';
 
 @Injectable()
 export class MandaderoSolicitudService {
@@ -68,8 +69,16 @@ export class MandaderoSolicitudService {
       if (exists) {
         throw new ConflictException('License plate already registered');
       }
+      const motorcycleModel = await queryRunner.manager.findOne(
+        MotorcycleModel,
+        { where: { id: dto.model_id } },
+      );
+      if (!motorcycleModel) {
+        throw new NotFoundException('Modelo de motocicleta no encontrado');
+      }
 
       const motorcycle = queryRunner.manager.create(Motorcycle, {
+        model: motorcycleModel,
         licensePlate: plate,
         circulationImage: circulation!.filename,
         insuranceImage: insurance!.filename,
