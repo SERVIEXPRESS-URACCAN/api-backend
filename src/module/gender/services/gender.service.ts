@@ -1,9 +1,9 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Gender } from '../entities/gender.entity';
 import { CreateGenderDto } from '../dto/create-gender.dto';
 import { UpdateGenderDto } from '../dto/update-gender.dto';
+import { Gender } from '../entities/gender.entity';
 
 @Injectable()
 export class GenderService {
@@ -28,6 +28,7 @@ export class GenderService {
       console.error('Error creating gender:', error);
     }
   }
+
   async update(id: number, genderDto: UpdateGenderDto) {
     try {
       const gender = await this.genderRepo.update(id, genderDto);

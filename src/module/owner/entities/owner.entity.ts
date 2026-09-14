@@ -23,8 +23,8 @@ export class Owner {
   @OneToOne(() => Business, (business) => business.owner)
   business: Business;
 
-  @Column({ type: 'varchar', nullable: false })
-  razonSocial: string;
+  @Column({ type: 'varchar', nullable: true })
+  razonSocial?: string | null;
 
   @Column({ nullable: false })
   identificationCardImage: string;
