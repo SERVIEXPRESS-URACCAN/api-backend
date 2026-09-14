@@ -22,7 +22,7 @@ import { UserRolesModule } from './module/user-roles/user-roles.module';
 import { UsersModule } from './module/users/users.module';
 import { OrderItemsModule } from './module/order-items/order-items.module';
 import { ScheduleModule } from '@nestjs/schedule';
-import { DashboardModule } from './dashboard/dashboard.module';
+import { DashboardModule } from './module/dashboard/dashboard.module';
 
 @Module({
   imports: [
