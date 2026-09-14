@@ -321,7 +321,7 @@ export class OwnerService {
       throw new NotFoundException('Propietario no encontrado');
     }
 
-    if (updateOwnerDto.razonSocial) {
+    if (updateOwnerDto.razonSocial !== undefined) {
       owner.razonSocial = updateOwnerDto.razonSocial;
     }
 

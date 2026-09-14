@@ -15,8 +15,8 @@ import { GetUser } from 'src/module/auth/decorator/getUser.decorator';
 import { AuthUser } from 'src/module/auth/interfaces/auth-user.interface';
 import { CreateUserDto } from '../dto/create-user.dto';
 import { UpdateUserDto } from '../dto/update-user.dto';
-import { UsersService } from '../service/users.service';
 import { UsersServiceFind } from '../service/users-find.service';
+import { UsersService } from '../service/users.service';
 
 @Controller('users')
 export class UsersController {

@@ -1,11 +1,5 @@
 import { Transform, Type } from 'class-transformer';
-import {
-  IsInt,
-  IsNotEmpty,
-  IsOptional,
-  IsString,
-  ValidateNested,
-} from 'class-validator';
+import { IsInt, IsOptional, IsString, ValidateNested } from 'class-validator';
 import { CreateBusinessDto } from 'src/module/business/dto/create-business.dto';
 
 export class CreateOwnerDto {
@@ -13,9 +7,9 @@ export class CreateOwnerDto {
   @IsOptional()
   user?: number;
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
-  razonSocial: string;
+  razonSocial?: string | null;
 
   @Transform(({ value }: { value: string }) => {
     const parsed = JSON.parse(value) as CreateBusinessDto;
