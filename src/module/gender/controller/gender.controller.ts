@@ -7,10 +7,10 @@ import {
   Patch,
   Post,
 } from '@nestjs/common';
-import { GenderService } from '../services/gender.service';
+import { Auth } from 'src/module/auth/decorator/auth.decorator';
 import { CreateGenderDto } from '../dto/create-gender.dto';
 import { UpdateGenderDto } from '../dto/update-gender.dto';
-import { Auth } from 'src/module/auth/decorator/auth.decorator';
+import { GenderService } from '../services/gender.service';
 
 @Controller('gender')
 export class GenderController {
