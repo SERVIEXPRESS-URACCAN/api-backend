@@ -1,5 +1,12 @@
-import { Type } from 'class-transformer';
-import { IsInt, IsNumber, IsOptional, IsString, Min } from 'class-validator';
+import { Transform, Type } from 'class-transformer';
+import {
+  IsInt,
+  IsNumber,
+  IsOptional,
+  IsString,
+  MaxLength,
+  Min,
+} from 'class-validator';
 
 export class PaginationDto {
   @IsOptional()
@@ -22,6 +29,12 @@ export class PaginationDto {
 
   @IsOptional()
   @IsString()
+  @MaxLength(80)
+  @Transform(({ value }): unknown => {
+    const input: unknown = value;
+
+    return typeof input === 'string' ? input.trim() : input;
+  })
   search?: string;
 
   @IsOptional()
