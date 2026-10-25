@@ -14,7 +14,7 @@ import { GetUser } from 'src/module/auth/decorator/getUser.decorator';
 import { AuthUser } from 'src/module/auth/interfaces/auth-user.interface';
 
 import { CreateMandaderoSolicitudDto } from '../../dto/dto-solicitud/create-solicitud.dto';
-import { MandaderoSolicitudService } from '../../service/MandaderoSolicitud/Mandadero-solicitud.service';
+import { MandaderoSolicitudService } from '../../service/MandaderoSolicitud/mandadero-solicitud.service';
 import { validateFile } from 'src/common/helper/validationFiles.helper';
 @Controller('mandadero')
 export class MandaderoSolicitudController {
