@@ -10,19 +10,21 @@ import {
   Query,
   UploadedFile,
   UseInterceptors,
+  ValidationPipe,
 } from '@nestjs/common';
-import { CreateProductDto } from '../dto/products.dto';
-import { AuthUser } from 'src/module/auth/interfaces/auth-user.interface';
-import { Auth } from 'src/module/auth/decorator/auth.decorator';
-import { GetUser } from 'src/module/auth/decorator/getUser.decorator';
-import { ProductService } from '../service/products.service';
-import { CreateProductAdmin } from '../dto/createProductAdmin.dto';
-import { UpdateProductDto } from '../dto/updateProduct.dto';
-import { UpdateProductAdminDto } from '../dto/updateProductAdmin.dto';
-import { ProductAdminService } from '../service/productsAdmin.service';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
+import { Auth } from 'src/module/auth/decorator/auth.decorator';
+import { GetUser } from 'src/module/auth/decorator/getUser.decorator';
+import { AuthUser } from 'src/module/auth/interfaces/auth-user.interface';
+import { CatalogProductsDto } from '../dto/catalog-products';
+import { CreateProductAdmin } from '../dto/createProductAdmin.dto';
+import { CreateProductDto } from '../dto/products.dto';
+import { UpdateProductDto } from '../dto/updateProduct.dto';
+import { UpdateProductAdminDto } from '../dto/updateProductAdmin.dto';
+import { ProductService } from '../service/products.service';
+import { ProductAdminService } from '../service/productsAdmin.service';
 
 @Controller('products')
 export class ProductsController {
@@ -44,6 +46,20 @@ export class ProductsController {
   @Auth('admin')
   findOneByAdmin(@Param('id', ParseIntPipe) id: number) {
     return this.productsAdminService.findOneByAdmin(id);
+  }
+
+  @Auth('client')
+  @Get('catalog')
+  findAllForCatalog(
+    @Query(
+      new ValidationPipe({
+        transform: true,
+        whitelist: true,
+      }),
+    )
+    query: CatalogProductsDto,
+  ) {
+    return this.productsService.findAllForCatalog(query);
   }
 
   @Post('admin')
@@ -161,6 +177,7 @@ export class ProductsController {
   ) {
     return this.productsService.update(id, dto, file, user);
   }
+
   @Delete(':id')
   @Auth('owner')
   removeByOwner(
