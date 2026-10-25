@@ -6,9 +6,33 @@ import { User } from 'src/module/users/entities/user.entity';
 @Injectable()
 export class MandaderoPolicyService {
   validateCreate(user: User): void {
-    if (user.mandadero) {
-      throw new BadRequestException('User already has a mandadero profile');
+    const mandadero = user.mandadero;
+
+    if (!mandadero) {
+      return;
     }
+
+    if (mandadero.status === ApprovalStatus.PENDING) {
+      throw new BadRequestException(
+        'Tu solicitud de mandadero está pendiente de revisión.',
+      );
+    }
+
+    if (mandadero.status === ApprovalStatus.APPROVED) {
+      throw new BadRequestException(
+        'Tu solicitud ya fue aprobada. Ya tienes un perfil de mandadero.',
+      );
+    }
+
+    if (mandadero.status !== ApprovalStatus.REJECTED) {
+      throw new BadRequestException(
+        'No se puede crear una solicitud con el estado actual del perfil.',
+      );
+    }
+  }
+
+  canRetryApplication(user: User): boolean {
+    return user.mandadero?.status === ApprovalStatus.REJECTED;
   }
 
   validateAvailabilityChange(mandadero: Mandadero): void {
