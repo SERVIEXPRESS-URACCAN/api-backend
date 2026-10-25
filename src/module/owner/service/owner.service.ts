@@ -1,47 +1,47 @@
 import {
   BadRequestException,
+  ConflictException,
+  HttpException,
   Injectable,
   InternalServerErrorException,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-
-import * as fs from 'fs';
-import * as path from 'path';
-
-import { DataSource, QueryFailedError, Repository } from 'typeorm';
+import { unlink } from 'node:fs/promises';
+import * as path from 'node:path';
+import {
+  Brackets,
+  DataSource,
+  FindOptionsWhere,
+  QueryFailedError,
+  Repository,
+} from 'typeorm';
 
 import { PaginationDto } from 'src/common/dto/pagination.dto';
-
 import { AuthUser } from 'src/module/auth/interfaces/auth-user.interface';
-
+import { Business } from 'src/module/business/entities/business.entity';
+import { City } from 'src/module/city/entities/city.entity';
+import { Gender } from 'src/module/gender/entities/gender.entity';
+import { Roles } from 'src/module/roles/entities/roles.entity';
+import { UserRole } from 'src/module/user-roles/entities/user-roles.entity';
 import { User } from 'src/module/users/entities/user.entity';
 
-import { Business } from 'src/module/business/entities/business.entity';
-
-import { City } from 'src/module/city/entities/city.entity';
-
-import { Gender } from 'src/module/gender/entities/gender.entity';
-
-import { Roles } from 'src/module/roles/entities/roles.entity';
-
-import { UserRole } from 'src/module/user-roles/entities/user-roles.entity';
-
 import { CreateOwnerDto } from '../dto/create-owner.dto';
-
 import { UpdateOwnerDto } from '../dto/update-owner.dto';
-
 import { Owner } from '../entities/owner.entity';
-
 import { validateImage } from '../helper/file.helper';
 
-import { processImage } from '../helper/owner-file.helper';
+type OwnerFiles = {
+  identificationCardImage?: Express.Multer.File[];
+};
 
 @Injectable()
 export class OwnerService {
+  private readonly logger = new Logger(OwnerService.name);
+
   constructor(
     private readonly dataSource: DataSource,
-
     @InjectRepository(Owner)
     private readonly ownerRepository: Repository<Owner>,
   ) {}
@@ -50,24 +50,40 @@ export class OwnerService {
     const { page = 1, limit = 10, search } = paginationDto;
 
     const safePage = Math.max(page, 1);
-
     const safeLimit = Math.min(Math.max(limit, 1), 50);
 
-    const qb = this.ownerRepository.createQueryBuilder('owner');
-    qb.leftJoinAndSelect('owner.user', 'user')
+    const qb = this.ownerRepository
+      .createQueryBuilder('owner')
+      .leftJoinAndSelect('owner.user', 'user')
       .leftJoinAndSelect('user.profile', 'profile')
       .leftJoinAndSelect('profile.gender', 'gender')
       .leftJoinAndSelect('owner.business', 'business');
 
-    if (search) {
+    const term = search?.trim();
+
+    if (term) {
+      const escapedTerm = term.replace(/[\\%_]/g, '\\$&');
+
+      const pattern = `%${escapedTerm}%`;
+
       qb.andWhere(
-        '(profile.name ILIKE :search OR profile.lastName ILIKE :search OR owner.razonSocial ILIKE :search OR business.name ILIKE :search)',
-        { search: `%${search}%` },
+        new Brackets((query) => {
+          query
+            .where('profile.name ILIKE :term')
+            .orWhere('profile.lastName ILIKE :term')
+            .orWhere(
+              `CONCAT_WS(' ', profile.name, profile.lastName) ILIKE :term`,
+            )
+            .orWhere('owner.razonSocial ILIKE :term')
+            .orWhere('business.name ILIKE :term');
+        }),
+        { term: pattern },
       );
     }
 
     const [data, total] = await qb
       .orderBy('owner.createdAt', 'DESC')
+      .addOrderBy('owner.id', 'DESC')
       .skip((safePage - 1) * safeLimit)
       .take(safeLimit)
       .getManyAndCount();
@@ -76,95 +92,37 @@ export class OwnerService {
 
     return {
       data,
-
       pagination: {
         total,
-
         page: safePage,
-
         limit: safeLimit,
-
         lastPage,
-
         hasNextPage: safePage < lastPage,
       },
     };
   }
 
-  async findOne(userId: number) {
-    const owner = await this.dataSource.getRepository(Owner).findOne({
-      where: {
-        user: {
-          id: userId,
-        },
-      },
-
-      relations: {
-        user: {
-          profile: {
-            gender: true,
-          },
-        },
-
-        business: true,
-      },
-    });
-
-    if (!owner) {
-      throw new NotFoundException('Propietario no encontrado');
-    }
-
-    return owner;
+  async findOne(userId: number): Promise<Owner> {
+    return this.findOwnerOrFail({ user: { id: userId } });
   }
 
-  async findOneByAdmin(id: number) {
-    const owner = await this.dataSource.getRepository(Owner).findOne({
-      where: {
-        id,
-      },
-
-      relations: {
-        user: {
-          profile: {
-            gender: true,
-          },
-        },
-
-        business: {
-          products: true,
-        },
-      },
-    });
-
-    if (!owner) {
-      throw new NotFoundException('Propietario no encontrado');
-    }
-
-    return owner;
+  async findOneByAdmin(id: number): Promise<Owner> {
+    return this.findOwnerOrFail({ id }, true);
   }
 
   async create(
     createOwnerDto: CreateOwnerDto,
     authUser: AuthUser,
-
-    files?: {
-      identificationCardImage?: Express.Multer.File[];
-    },
+    files?: OwnerFiles,
   ) {
-    const queryRunner = this.dataSource.createQueryRunner();
-
-    await queryRunner.connect();
-
-    await queryRunner.startTransaction();
-
-    const identificationCardImage = files?.identificationCardImage?.[0];
+    const image = files?.identificationCardImage?.[0];
 
     try {
-      if (!identificationCardImage) {
+      if (!image) {
         throw new BadRequestException('La imagen de la cédula es obligatoria');
       }
 
-      validateImage(identificationCardImage, 'identificationCardImage');
+      validateImage(image, 'identificationCardImage');
 
       const isAdmin = authUser.roles?.some(
         (role) => role.toLowerCase() === 'admin',
@@ -173,247 +131,123 @@ export class OwnerService {
       const userId =
         isAdmin && createOwnerDto.user ? createOwnerDto.user : authUser.id;
 
-      const user = await queryRunner.manager.findOne(User, {
-        where: {
-          id: userId,
-        },
-
-        relations: ['userRoles', 'userRoles.role'],
-      });
-
-      if (!user) {
-        throw new NotFoundException('El usuario no existe');
-      }
-
-      const existingOwner = await queryRunner.manager.findOne(Owner, {
-        where: {
-          user: {
-            id: userId,
-          },
-        },
-      });
-
-      if (existingOwner) {
-        throw new BadRequestException('Este usuario ya tiene un owner');
-      }
-
-      const city = await queryRunner.manager.findOne(City, {
-        where: {
-          id: createOwnerDto.business.city,
-        },
-      });
-
-      if (!city) {
-        throw new NotFoundException('Ciudad no encontrada');
-      }
-
-      const owner = queryRunner.manager.create(Owner, {
-        razonSocial: createOwnerDto.razonSocial,
-
-        user: {
-          id: userId,
-        },
-
-        identificationCardImage: identificationCardImage.filename,
-      });
-
-      await queryRunner.manager.save(owner);
-
-      const userWithRoles = await queryRunner.manager.findOne(User, {
-        where: {
-          id: userId,
-        },
-
-        relations: ['userRoles', 'userRoles.role'],
-      });
-
-      if (!userWithRoles) {
-        throw new NotFoundException('Usuario no encontrado');
-      }
-
-      const hasOwnerRole = userWithRoles.userRoles.some(
-        (ur) => ur.role.name.toLowerCase() === 'owner',
-      );
-
-      if (!hasOwnerRole) {
-        const ownerRole = await queryRunner.manager.findOne(Roles, {
-          where: {
-            name: 'owner',
-          },
+      return await this.dataSource.transaction(async (manager) => {
+        const user = await manager.findOne(User, {
+          where: { id: userId },
+          relations: ['userRoles', 'userRoles.role'],
         });
 
-        if (!ownerRole) {
-          throw new NotFoundException('Rol owner no existe');
+        if (!user) {
+          throw new NotFoundException('El usuario no existe');
         }
 
-        const userRole = queryRunner.manager.create(UserRole, {
-          user: {
-            id: userWithRoles.id,
-          },
+        const existingOwner = await manager.findOne(Owner, {
+          where: { user: { id: userId } },
+        });
 
-          role: {
-            id: ownerRole.id,
+        if (existingOwner) {
+          throw new BadRequestException('Este usuario ya tiene un owner');
+        }
+
+        const city = await manager.findOne(City, {
+          where: {
+            id: createOwnerDto.business.city,
           },
         });
 
-        await queryRunner.manager.save(UserRole, userRole);
-      }
+        if (!city) {
+          throw new NotFoundException('Ciudad no encontrada');
+        }
 
-      const business = queryRunner.manager.create(Business, {
-        ...createOwnerDto.business,
+        const owner = manager.create(Owner, {
+          razonSocial: createOwnerDto.razonSocial,
+          user: { id: userId },
+          identificationCardImage: image.filename,
+        });
 
-        owner,
+        await manager.save(owner);
 
-        city,
+        const hasOwnerRole = user.userRoles.some(
+          (userRole) => userRole.role.name.toLowerCase() === 'owner',
+        );
+
+        if (!hasOwnerRole) {
+          const ownerRole = await manager.findOne(Roles, {
+            where: { name: 'owner' },
+          });
+
+          if (!ownerRole) {
+            throw new NotFoundException('Rol owner no existe');
+          }
+
+          const userRole = manager.create(UserRole, {
+            user: { id: user.id },
+            role: { id: ownerRole.id },
+          });
+
+          await manager.save(UserRole, userRole);
+        }
+
+        const business = manager.create(Business, {
+          ...createOwnerDto.business,
+          owner,
+          city,
+        });
+
+        await manager.save(business);
+
+        return {
+          message: 'Owner y negocio creados correctamente',
+          owner,
+          business,
+        };
       });
-
-      await queryRunner.manager.save(business);
-
-      await queryRunner.commitTransaction();
-
-      return {
-        message: 'Owner y negocio creados correctamente',
-
-        owner,
-
-        business,
-      };
     } catch (error) {
-      await queryRunner.rollbackTransaction();
-
-      if (identificationCardImage) {
-        this.removeFile(identificationCardImage.filename);
+      if (image?.filename) {
+        await this.removeFile(image.filename);
       }
 
       this.handleDBException(error);
-    } finally {
-      await queryRunner.release();
     }
   }
 
   async updateMe(
     userId: number,
-    updateOwnerDto: UpdateOwnerDto,
-
-    files?: {
-      identificationCardImage?: Express.Multer.File[];
-    },
-  ) {
-    const owner = await this.ownerRepository.findOne({
-      where: {
-        user: {
-          id: userId,
-        },
-      },
-
-      relations: {
-        user: {
-          profile: {
-            gender: true,
-          },
-        },
-
-        business: true,
-      },
-    });
-
-    if (!owner) {
-      throw new NotFoundException('Propietario no encontrado');
-    }
-
-    if (updateOwnerDto.razonSocial !== undefined) {
-      owner.razonSocial = updateOwnerDto.razonSocial;
-    }
-
-    if (updateOwnerDto.email) {
-      owner.user.email = updateOwnerDto.email;
-    }
-
-    if (updateOwnerDto.profile?.name) {
-      owner.user.profile.name = updateOwnerDto.profile.name;
-    }
-
-    if (updateOwnerDto.profile?.lastName) {
-      owner.user.profile.lastName = updateOwnerDto.profile.lastName;
-    }
-
-    if (updateOwnerDto.profile?.cellphone) {
-      owner.user.profile.cellphone = updateOwnerDto.profile.cellphone;
-    }
-
-    if (updateOwnerDto.profile?.genderId) {
-      const gender = await this.dataSource.getRepository(Gender).findOne({
-        where: {
-          id: updateOwnerDto.profile.genderId,
-        },
-      });
-
-      if (!gender) {
-        throw new NotFoundException('Gender no encontrado');
-      }
-
-      owner.user.profile.gender = gender;
-    }
-
-    if (updateOwnerDto.businessName && owner.business) {
-      owner.business.name = updateOwnerDto.businessName;
-    }
-
-    const identificationCardImage = files?.identificationCardImage?.[0];
-
-    if (identificationCardImage) {
-      validateImage(identificationCardImage, 'identificationCardImage');
-    }
-
-    processImage(
-      owner,
-      identificationCardImage,
-      'identificationCardImage',
-      this.removeFile.bind(this),
+    dto: UpdateOwnerDto,
+    files?: OwnerFiles,
+  ): Promise<Owner> {
+    return this.updateOwner(
+      { user: { id: userId } },
+      dto,
+      files?.identificationCardImage?.[0],
     );
-
-    try {
-      return await this.dataSource.transaction(async (manager) => {
-        await manager.save(owner.user.profile);
-
-        await manager.save(owner.user);
-
-        if (owner.business) {
-          await manager.save(owner.business);
-        }
-
-        return await manager.save(owner);
-      });
-    } catch (error) {
-      if (identificationCardImage) {
-        this.removeFile(identificationCardImage.filename);
-      }
-
-      this.handleDBException(error);
-    }
   }
 
   async updateByAdmin(
     ownerId: number,
-    updateOwnerDto: UpdateOwnerDto,
+    dto: UpdateOwnerDto,
+    files?: OwnerFiles,
+  ): Promise<Owner> {
+    return this.updateOwner(
+      { id: ownerId },
+      dto,
+      files?.identificationCardImage?.[0],
+    );
+  }
 
-    files?: {
-      identificationCardImage?: Express.Multer.File[];
-    },
-  ) {
+  private async findOwnerOrFail(
+    where: FindOptionsWhere<Owner>,
+    includeProducts = false,
+  ): Promise<Owner> {
     const owner = await this.ownerRepository.findOne({
-      where: {
-        id: ownerId,
-      },
-
+      where,
       relations: {
         user: {
           profile: {
             gender: true,
           },
         },
-
-        business: true,
+        business: includeProducts ? { products: true } : true,
       },
     });
 
@@ -421,59 +255,84 @@ export class OwnerService {
       throw new NotFoundException('Propietario no encontrado');
     }
 
-    if (updateOwnerDto.razonSocial) {
-      owner.razonSocial = updateOwnerDto.razonSocial;
-    }
+    return owner;
+  }
 
-    if (updateOwnerDto.email) {
-      owner.user.email = updateOwnerDto.email;
-    }
-
-    if (updateOwnerDto.profile?.name) {
-      owner.user.profile.name = updateOwnerDto.profile.name;
-    }
-
-    if (updateOwnerDto.profile?.lastName) {
-      owner.user.profile.lastName = updateOwnerDto.profile.lastName;
-    }
-
-    if (updateOwnerDto.profile?.cellphone) {
-      owner.user.profile.cellphone = updateOwnerDto.profile.cellphone;
-    }
-
-    if (updateOwnerDto.profile?.genderId) {
-      const gender = await this.dataSource.getRepository(Gender).findOne({
-        where: {
-          id: updateOwnerDto.profile.genderId,
-        },
-      });
-
-      if (!gender) {
-        throw new NotFoundException('Gender no encontrado');
-      }
-
-      owner.user.profile.gender = gender;
-    }
-
-    if (updateOwnerDto.businessName && owner.business) {
-      owner.business.name = updateOwnerDto.businessName;
-    }
-
-    const identificationCardImage = files?.identificationCardImage?.[0];
-
-    if (identificationCardImage) {
-      validateImage(identificationCardImage, 'identificationCardImage');
-    }
-
-    processImage(
-      owner,
-      identificationCardImage,
-      'identificationCardImage',
-      this.removeFile.bind(this),
-    );
+  private async updateOwner(
+    where: FindOptionsWhere<Owner>,
+    dto: UpdateOwnerDto,
+    image?: Express.Multer.File,
+  ): Promise<Owner> {
+    let previousImage: string | null | undefined;
 
     try {
-      return await this.dataSource.transaction(async (manager) => {
+      if (image) {
+        validateImage(image, 'identificationCardImage');
+      }
+
+      const savedOwner = await this.dataSource.transaction(async (manager) => {
+        const owner = await manager.findOne(Owner, {
+          where,
+          relations: {
+            user: {
+              profile: {
+                gender: true,
+              },
+            },
+            business: true,
+          },
+        });
+
+        if (!owner) {
+          throw new NotFoundException('Propietario no encontrado');
+        }
+
+        if (dto.razonSocial !== undefined) {
+          if (typeof dto.razonSocial !== 'string' || !dto.razonSocial.trim()) {
+            throw new BadRequestException('La razón social no puede vaciarse');
+          }
+
+          owner.razonSocial = dto.razonSocial.trim();
+        }
+
+        if (dto.email) {
+          owner.user.email = dto.email;
+        }
+
+        if (dto.profile) {
+          const profile = owner.user.profile;
+
+          profile.name = dto.profile.name ?? profile.name;
+
+          profile.lastName = dto.profile.lastName ?? profile.lastName;
+
+          profile.cellphone = dto.profile.cellphone ?? profile.cellphone;
+
+          if (dto.profile.genderId != null) {
+            const gender = await manager.findOne(Gender, {
+              where: {
+                id: dto.profile.genderId,
+              },
+            });
+
+            if (!gender) {
+              throw new NotFoundException('Gender no encontrado');
+            }
+
+            profile.gender = gender;
+          }
+        }
+
+        if (dto.businessName && owner.business) {
+          owner.business.name = dto.businessName;
+        }
+
+        if (image) {
+          previousImage = owner.identificationCardImage;
+
+          owner.identificationCardImage = image.filename;
+        }
+
         await manager.save(owner.user.profile);
 
         await manager.save(owner.user);
@@ -482,42 +341,54 @@ export class OwnerService {
           await manager.save(owner.business);
         }
 
-        return await manager.save(owner);
+        return manager.save(owner);
       });
+
+      if (image && previousImage && previousImage !== image.filename) {
+        await this.removeFile(previousImage);
+      }
+
+      return savedOwner;
     } catch (error) {
-      if (identificationCardImage) {
-        this.removeFile(identificationCardImage.filename);
+      if (image?.filename) {
+        await this.removeFile(image.filename);
       }
 
       this.handleDBException(error);
     }
   }
 
-  private removeFile(filename: string) {
-    const filePath = path.join('./uploads/owners', filename);
+  private async removeFile(filename: string): Promise<void> {
+    const safeFilename = path.basename(filename);
 
-    if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath);
+    const filePath = path.resolve('uploads/owners', safeFilename);
+
+    try {
+      await unlink(filePath);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+        this.logger.warn(`No se pudo eliminar el archivo ${safeFilename}`);
+      }
     }
   }
 
-  private handleDBException(error: unknown) {
-    console.log(error);
+  private handleDBException(error: unknown): never {
+    if (error instanceof HttpException) {
+      throw error;
+    }
 
     if (error instanceof QueryFailedError) {
-      const err = error as QueryFailedError & {
-        driverError: {
-          code?: string;
-
-          detail?: string;
-        };
+      const driverError = error.driverError as {
+        code?: string;
       };
 
-      if (err.driverError?.code === '23505') {
-        throw new BadRequestException('Dato duplicado');
+      if (driverError?.code === '23505') {
+        throw new ConflictException('El registro ya existe');
       }
     }
 
-    throw new InternalServerErrorException('Error en la base de datos');
+    this.logger.error('Error inesperado al gestionar propietarios');
+
+    throw new InternalServerErrorException('No se pudo completar la operación');
   }
 }
