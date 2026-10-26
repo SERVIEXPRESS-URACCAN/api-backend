@@ -43,14 +43,14 @@ export class CityService {
       const city = await this.cityRepository.update(id, cityDto);
 
       if (city.affected === 0) {
-        throw new NotFoundException(`City #${id} not found`);
+        throw new NotFoundException(`Ciudad ${cityDto.name} no encontrada`);
       }
 
       return this.cityRepository.findOneBy({ id });
     } catch (error) {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       if (error.code === '23505') {
-        throw new ConflictException('La ciudad ya existe');
+        throw new ConflictException(`La ciudad ${cityDto.name} ya existe`);
       }
 
       throw error;
