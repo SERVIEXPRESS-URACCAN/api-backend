@@ -1,10 +1,10 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { DataSource } from 'typeorm';
-import { Mandadero } from '../../entities/mandadero.entity';
 import { Motorcycle } from 'src/module/motorcycles/entities/motorcycle.entity';
 import { CreateMandaderoSolicitudDto } from '../../dto/dto-solicitud/create-solicitud.dto';
 import { AuthUser } from 'src/module/auth/interfaces/auth-user.interface';
@@ -13,6 +13,7 @@ import { User } from 'src/module/users/entities/user.entity';
 import { ApprovalStatus } from 'src/common/enum/approval-status.enum';
 import { deleteFile } from 'src/common/helper/removeOldImage.helper';
 import { MandaderoPolicyService } from '../mandadero-policy.service';
+import { MandaderoSolicitudOperationsService } from './mandadero-solicitud-operation.service';
 
 @Injectable()
 export class MandaderoSolicitudService {
@@ -20,6 +21,8 @@ export class MandaderoSolicitudService {
     private readonly dataSource: DataSource,
 
     private readonly mandaderoPolicyService: MandaderoPolicyService,
+
+    private readonly mandaderoSolicitudOperationsService: MandaderoSolicitudOperationsService,
   ) {}
 
   async create(
@@ -38,11 +41,24 @@ export class MandaderoSolicitudService {
     const imageIdentification = files?.imageIdentification?.[0];
     const circulation = files?.circulationImage?.[0];
     const insurance = files?.insuranceImage?.[0];
+    let transactionCommitted = false;
 
     try {
+      if (!imageIdentification || !circulation || !insurance) {
+        const missingFiles = [
+          !imageIdentification && 'imageIdentification',
+          !circulation && 'circulationImage',
+          !insurance && 'insuranceImage',
+        ].filter(Boolean);
+
+        throw new BadRequestException(
+          `Missing required files: ${missingFiles.join(', ')}`,
+        );
+      }
+
       const user = await queryRunner.manager.findOne(User, {
         where: { id: authUser.id },
-        relations: ['mandadero'],
+        relations: ['mandadero', 'mandadero.motorcycle'],
       });
 
       if (!user) {
@@ -51,54 +67,63 @@ export class MandaderoSolicitudService {
 
       this.mandaderoPolicyService.validateCreate(user);
 
-      const mandadero = queryRunner.manager.create(
-        Mandadero,
-        this.mandaderoPolicyService.buildNewMandadero(
-          user,
-          imageIdentification!.filename,
-        ),
-      );
-
-      const savedMandadero = await queryRunner.manager.save(mandadero);
-
       const plate = dto.licensePlate.trim().replace(/\s+/g, '').toUpperCase();
+
+      const mandaderoExists = user.mandadero;
       const exists = await queryRunner.manager.findOne(Motorcycle, {
         where: { licensePlate: plate },
       });
-      if (exists) {
+      if (exists && exists.id !== mandaderoExists?.motorcycle?.id) {
         throw new ConflictException('License plate already registered');
       }
 
-      const motorcycle = queryRunner.manager.create(Motorcycle, {
-        licensePlate: plate,
-        circulationImage: circulation!.filename,
-        insuranceImage: insurance!.filename,
-        status: ApprovalStatus.PENDING,
-        mandadero: savedMandadero,
-      });
-
-      const savedMotorcycle = await queryRunner.manager.save(motorcycle);
+      const result =
+        await this.mandaderoSolicitudOperationsService.saveApplication(
+          queryRunner,
+          user,
+          plate,
+          dto.brand,
+          dto.model,
+          dto.color,
+          imageIdentification,
+          circulation,
+          insurance,
+        );
+      const { savedMandadero, savedMotorcycle, oldFiles } = result;
 
       await queryRunner.commitTransaction();
+      transactionCommitted = true;
 
+      oldFiles.forEach(({ filename, folder }) => {
+        deleteFile(filename, folder);
+      });
       return {
-        message: 'Solicitud creada correctamente',
+        message: result.isRetrying
+          ? 'Solicitud reenviada correctamente'
+          : 'Solicitud creada correctamente',
         mandaderoId: savedMandadero.id,
         motorcycleId: savedMotorcycle.id,
         status: ApprovalStatus.PENDING,
       };
     } catch (error) {
-      await queryRunner.rollbackTransaction();
+      if (queryRunner.isTransactionActive) {
+        await queryRunner.rollbackTransaction();
+      }
 
-      const cleanupFiles = [
-        { file: imageIdentification, folder: 'mandaderos' },
-        { file: circulation, folder: 'motorcycles' },
-        { file: insurance, folder: 'motorcycles' },
-      ];
+      if (!transactionCommitted) {
+        const cleanupFiles = [
+          { file: imageIdentification, folder: 'mandaderos' },
+          { file: circulation, folder: 'motorcycles' },
+          { file: insurance, folder: 'motorcycles' },
+        ];
 
-      cleanupFiles.forEach(({ file, folder }) => {
-        if (file?.filename) deleteFile(file.filename, folder);
-      });
+        cleanupFiles.forEach(({ file, folder }) => {
+          if (file?.filename) {
+            deleteFile(file.filename, folder);
+          }
+        });
+      }
+
       throw error;
     } finally {
       await queryRunner.release();

@@ -8,11 +8,12 @@ import { MandaderoPolicyService } from './service/mandadero-policy.service';
 import { MandaderoStatusService } from './service/mandadero-status.service';
 
 import { MandaderoSolicitudController } from './controller/mandaderoSolicitud/mandadero-solicitud.controller';
-import { MandaderoSolicitudService } from './service/MandaderoSolicitud/Mandadero-solicitud.service';
+import { MandaderoSolicitudService } from './service/MandaderoSolicitud/mandadero-solicitud.service';
 import { Motorcycle } from '../motorcycles/entities/motorcycle.entity';
 
 import { MandaderoAdminController } from './controller/mandaderoSolicitud/mandadero-admin.controller';
 import { MandaderoAdminService } from './service/MandaderoSolicitud/mandadero-solicitud-admin.service';
+import { MandaderoSolicitudOperationsService } from './service/MandaderoSolicitud/mandadero-solicitud-operation.service';
 
 @Module({
   imports: [TypeOrmModule.forFeature([Mandadero, User, Motorcycle])],
@@ -22,6 +23,7 @@ import { MandaderoAdminService } from './service/MandaderoSolicitud/mandadero-so
     MandaderoPolicyService,
     MandaderoSolicitudService,
     MandaderoAdminService,
+    MandaderoSolicitudOperationsService,
   ],
   controllers: [
     MandaderoController,
