@@ -5,10 +5,10 @@ import {
 } from '@nestjs/common';
 import { Cart } from 'src/module/cart/entities/cart.entity';
 import { CartStatus } from 'src/module/cart/enum/cart-status.enum';
+import { OrderItem } from 'src/module/order-items/entities/order-item.entity';
 import { DataSource } from 'typeorm';
 import { Order } from '../entities/order.entity';
 import { OrderStatus } from '../enum/orderStatus';
-import { OrderItem } from 'src/module/order-items/entities/order-item.entity';
 
 @Injectable()
 export class OrderCreationService {
@@ -55,7 +55,22 @@ export class OrderCreationService {
         }
         const product = item.product;
 
+        if (!product.status) {
+          throw new BadRequestException(
+            `Product ${product.id} is not available`,
+          );
+        }
+
+        if (!Number.isInteger(item.quantity) || item.quantity <= 0) {
+          throw new BadRequestException('Invalid quantity');
+        }
+
         const price = Number(product.price);
+
+        if (!Number.isFinite(price) || price < 0) {
+          throw new BadRequestException('Invalid product price');
+        }
+
         const subtotal = price * item.quantity;
 
         total += subtotal;
