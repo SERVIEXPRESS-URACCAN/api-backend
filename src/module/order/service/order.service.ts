@@ -81,7 +81,7 @@ export class OrderService {
       where: { userId },
       take: safeLimit,
       skip: (page - 1) * safeLimit,
-      relations: ['items', 'items.product'],
+      relations: ['business', 'items', 'items.product'],
       order: {
         createdAt: 'DESC',
       },
@@ -103,7 +103,7 @@ export class OrderService {
   async getOrderById(orderId: number, userId: number) {
     const order = await this.orderRepository.findOne({
       where: { id: orderId, userId },
-      relations: ['items', 'items.product'],
+      relations: ['business', 'items', 'items.product'],
     });
 
     if (!order) {
