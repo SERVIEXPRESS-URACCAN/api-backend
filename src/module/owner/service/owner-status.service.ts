@@ -6,6 +6,7 @@ import {
 import { DataSource } from 'typeorm';
 
 import { Owner } from '../entities/owner.entity';
+import { User } from 'src/module/users/entities/user.entity';
 import { Roles } from 'src/module/roles/entities/roles.entity';
 import { UserRole } from 'src/module/user-roles/entities/user-roles.entity';
 import { ApprovalStatus } from 'src/common/enum/approval-status.enum';
@@ -16,17 +17,12 @@ export class OwnerStatusService {
 
   async approve(id: number) {
     return this.dataSource.transaction(async (manager) => {
-      const owner = await manager.findOne(Owner, {
-        where: { id },
-        relations: {
-          user: {
-            userRoles: {
-              role: true,
-            },
-          },
-        },
-        lock: { mode: 'pessimistic_write' },
-      });
+      const owner = await manager
+        .getRepository(Owner)
+        .createQueryBuilder('owner')
+        .where('owner.id = :id', { id })
+        .setLock('pessimistic_write')
+        .getOne();
 
       if (!owner) {
         throw new NotFoundException('Solicitud no encontrada');
@@ -38,29 +34,50 @@ export class OwnerStatusService {
         );
       }
 
-      const role = await manager.findOne(Roles, {
-        where: { name: 'owner' },
+      const ownerWithUser = await manager.findOne(Owner, {
+        where: { id: owner.id },
+        relations: {
+          user: true,
+        },
       });
 
-      if (!role) {
-        throw new NotFoundException('Rol owner no encontrado');
+      if (!ownerWithUser?.user) {
+        throw new NotFoundException('Usuario asociado no encontrado');
       }
 
-      const alreadyHasRole = owner.user.userRoles.some(
-        (ur) => ur.role?.name.toLowerCase() === 'owner',
+      const user = await manager.findOne(User, {
+        where: { id: ownerWithUser.user.id },
+        relations: ['userRoles', 'userRoles.role'],
+      });
+
+      if (!user) {
+        throw new NotFoundException('El usuario no existe');
+      }
+
+      const hasOwnerRole = user.userRoles.some(
+        (userRole) => userRole.role.name.toLowerCase() === 'owner',
       );
 
-      if (!alreadyHasRole) {
-        const userRole = manager.create(UserRole, {
-          user: owner.user,
-          role,
+      if (!hasOwnerRole) {
+        const ownerRole = await manager.findOne(Roles, {
+          where: { name: 'owner' },
         });
 
-        await manager.save(userRole);
+        if (!ownerRole) {
+          throw new NotFoundException('Rol owner no existe');
+        }
+
+        const userRole = manager.create(UserRole, {
+          user: { id: user.id },
+          role: { id: ownerRole.id },
+        });
+
+        await manager.save(UserRole, userRole);
       }
 
       owner.status = ApprovalStatus.APPROVED;
-      await manager.save(owner);
+
+      await manager.save(Owner, owner);
 
       return {
         message: 'Solicitud aprobada correctamente',
@@ -72,10 +89,12 @@ export class OwnerStatusService {
 
   async reject(id: number) {
     return this.dataSource.transaction(async (manager) => {
-      const owner = await manager.findOne(Owner, {
-        where: { id },
-        lock: { mode: 'pessimistic_write' },
-      });
+      const owner = await manager
+        .getRepository(Owner)
+        .createQueryBuilder('owner')
+        .where('owner.id = :id', { id })
+        .setLock('pessimistic_write')
+        .getOne();
 
       if (!owner) {
         throw new NotFoundException('Solicitud no encontrada');
@@ -88,7 +107,8 @@ export class OwnerStatusService {
       }
 
       owner.status = ApprovalStatus.REJECTED;
-      await manager.save(owner);
+
+      await manager.save(Owner, owner);
 
       return {
         message: 'Solicitud rechazada correctamente',

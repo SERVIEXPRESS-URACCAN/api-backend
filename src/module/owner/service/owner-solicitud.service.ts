@@ -1,13 +1,13 @@
 import {
   BadRequestException,
   ConflictException,
+  HttpException,
   Injectable,
+  InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, Repository } from 'typeorm';
-import { unlink } from 'node:fs/promises';
-import * as path from 'node:path';
+import { DataSource, QueryFailedError, Repository } from 'typeorm';
 
 import { Owner } from '../entities/owner.entity';
 import { Business } from 'src/module/business/entities/business.entity';
@@ -17,7 +17,10 @@ import { AuthUser } from 'src/module/auth/interfaces/auth-user.interface';
 import { ApprovalStatus } from 'src/common/enum/approval-status.enum';
 import { CreateOwnerDto } from '../dto/create-owner.dto';
 import { validateImage } from '../helper/file.helper';
-
+import { Logger } from '@nestjs/common';
+import { unlink } from 'node:fs/promises';
+import * as path from 'node:path';
+import { formatPhone } from '../helper/phone.helper';
 type OwnerFiles = {
   identificationCardImage?: Express.Multer.File[];
 };
@@ -30,18 +33,84 @@ export class OwnerSolicitudService {
     @InjectRepository(Owner)
     private readonly ownerRepository: Repository<Owner>,
   ) {}
+  private readonly logger = new Logger(OwnerSolicitudService.name);
 
-  async create(dto: CreateOwnerDto, files: OwnerFiles, authUser: AuthUser) {
-    const image = files?.identificationCardImage?.[0];
+  private async removeFile(filename: string): Promise<void> {
+    const safeFilename = path.basename(filename);
 
-    if (!image) {
-      throw new BadRequestException('La imagen de la cédula es obligatoria');
-    }
+    const filePath = path.resolve('uploads/owners', safeFilename);
 
     try {
+      await unlink(filePath);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+        this.logger.warn(`No se pudo eliminar el archivo ${safeFilename}`);
+      }
+    }
+  }
+  private handleDBException(error: unknown): never {
+    if (error instanceof HttpException) {
+      throw error;
+    }
+
+    if (error instanceof QueryFailedError) {
+      const driverError = error.driverError as {
+        code?: string;
+        constraint?: string;
+        detail?: string;
+      };
+
+      if (driverError.code === '23505') {
+        if (
+          driverError.constraint?.includes('phone') ||
+          driverError.detail?.includes('(phone)=')
+        ) {
+          throw new ConflictException(
+            'Este número de teléfono ya está registrado en otro negocio',
+          );
+        }
+
+        throw new ConflictException('Ya existe un registro con estos datos');
+      }
+    }
+
+    this.logger.error(
+      'Error inesperado al gestionar la solicitud de Owner',
+      error instanceof Error ? error.stack : String(error),
+    );
+
+    throw new InternalServerErrorException('No se pudo completar la solicitud');
+  }
+  async findAllSolicitudes(status: ApprovalStatus = ApprovalStatus.PENDING) {
+    return this.ownerRepository.find({
+      where: { status },
+      relations: {
+        user: {
+          profile: true,
+        },
+        business: {
+          city: true,
+        },
+      },
+      order: {
+        createdAt: 'DESC',
+      },
+    });
+  }
+  async create(dto: CreateOwnerDto, files: OwnerFiles, authUser: AuthUser) {
+    const image = files?.identificationCardImage?.[0];
+    let committed = false;
+
+    try {
+      if (!image) {
+        throw new BadRequestException('La imagen de la cédula es obligatoria');
+      }
+
       validateImage(image, 'identificationCardImage');
 
-      return await this.dataSource.transaction(async (manager) => {
+      const phone = formatPhone(dto.business.phone);
+
+      const result = await this.dataSource.transaction(async (manager) => {
         const user = await manager.findOne(User, {
           where: { id: authUser.id },
         });
@@ -69,22 +138,38 @@ export class OwnerSolicitudService {
           throw new NotFoundException('Ciudad no encontrada');
         }
 
+        const existingBusiness = await manager.findOne(Business, {
+          where: { phone },
+          relations: { owner: true },
+        });
+
+        if (
+          existingBusiness &&
+          existingBusiness.owner?.id !== existingOwner?.id
+        ) {
+          throw new ConflictException(
+            'Este número de teléfono ya está registrado en otro negocio',
+          );
+        }
+
         if (existingOwner) {
-          const previousImage = existingOwner.identificationCardImage;
-
-          existingOwner.razonSocial = dto.razonSocial?.trim() || null;
-          existingOwner.identificationCardImage = image.filename;
-          existingOwner.status = ApprovalStatus.PENDING;
-
           const business = existingOwner.business;
 
           if (!business) {
             throw new NotFoundException('Negocio asociado no encontrado');
           }
 
-          business.name = dto.business.name;
-          business.phone = dto.business.phone;
-          business.address = dto.business.address;
+          const previousImage = existingOwner.identificationCardImage;
+
+          existingOwner.razonSocial = dto.razonSocial?.trim() || null;
+
+          existingOwner.identificationCardImage = image.filename;
+
+          existingOwner.status = ApprovalStatus.PENDING;
+
+          business.name = dto.business.name.trim();
+          business.phone = phone;
+          business.address = dto.business.address.trim();
           business.city = city;
 
           await manager.save(business);
@@ -108,9 +193,9 @@ export class OwnerSolicitudService {
         const savedOwner = await manager.save(owner);
 
         const business = manager.create(Business, {
-          name: dto.business.name,
-          phone: dto.business.phone,
-          address: dto.business.address,
+          name: dto.business.name.trim(),
+          phone,
+          address: dto.business.address.trim(),
           city,
           owner: savedOwner,
         });
@@ -121,15 +206,29 @@ export class OwnerSolicitudService {
           message: 'Solicitud creada correctamente',
           ownerId: savedOwner.id,
           status: ApprovalStatus.PENDING,
-          previousImage: null,
+          previousImage: null as string | null,
         };
       });
+
+      committed = true;
+
+      if (result.previousImage && result.previousImage !== image.filename) {
+        await this.removeFile(result.previousImage);
+      }
+
+      return {
+        message: result.message,
+        ownerId: result.ownerId,
+        status: result.status,
+      };
     } catch (error) {
-      await this.removeImage(image.filename);
-      throw error;
+      if (!committed && image?.filename) {
+        await this.removeFile(image.filename);
+      }
+
+      this.handleDBException(error);
     }
   }
-
   async findMySolicitud(authUser: AuthUser) {
     const owner = await this.ownerRepository.findOne({
       where: { user: { id: authUser.id } },
@@ -159,17 +258,5 @@ export class OwnerSolicitudService {
         : null,
       createdAt: owner.createdAt,
     };
-  }
-
-  private async removeImage(filename: string) {
-    const filePath = path.resolve('uploads/owners', path.basename(filename));
-
-    try {
-      await unlink(filePath);
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
-        throw error;
-      }
-    }
   }
 }
