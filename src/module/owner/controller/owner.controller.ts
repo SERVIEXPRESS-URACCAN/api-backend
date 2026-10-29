@@ -96,7 +96,7 @@ export class OwnerController {
     return this.ownerStatusService.reject(id);
   }
 
-  @Auth('admin', 'client')
+  @Auth('admin')
   @Post()
   @UseInterceptors(
     FileFieldsInterceptor([{ name: 'identificationCardImage', maxCount: 1 }], {
