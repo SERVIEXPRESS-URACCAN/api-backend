@@ -21,10 +21,14 @@ import { CreateOwnerDto } from '../dto/create-owner.dto';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { UpdateOwnerDto } from '../dto/update-owner.dto';
 import { OwnerService } from '../service/owner.service';
+import { OwnerSolicitudService } from '../service/owner-solicitud.service';
 
 @Controller('owner')
 export class OwnerController {
-  constructor(private readonly ownerService: OwnerService) {}
+  constructor(
+    private readonly ownerService: OwnerService,
+    private readonly ownerSolicitudService: OwnerSolicitudService,
+  ) {}
 
   @Get()
   @Auth('admin')
@@ -46,6 +50,11 @@ export class OwnerController {
   @Auth('admin')
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.ownerService.findOneByAdmin(id);
+  }
+  @Get('application/status')
+  @Auth('client', 'owner')
+  findMySolicitud(@GetUser() user: AuthUser) {
+    return this.ownerSolicitudService.findMySolicitud(user);
   }
 
   @Auth('admin', 'client')
