@@ -14,7 +14,7 @@ import { ApprovalStatus } from 'src/common/enum/approval-status.enum';
 import { deleteFile } from 'src/common/helper/removeOldImage.helper';
 import { MandaderoPolicyService } from '../mandadero-policy.service';
 import { MandaderoSolicitudOperationsService } from './mandadero-solicitud-operation.service';
-
+import { Mandadero } from '../../entities/mandadero.entity';
 @Injectable()
 export class MandaderoSolicitudService {
   constructor(
@@ -128,5 +128,34 @@ export class MandaderoSolicitudService {
     } finally {
       await queryRunner.release();
     }
+  }
+
+  async findMySolicitud(authUser: AuthUser) {
+    const mandadero = await this.dataSource.getRepository(Mandadero).findOne({
+      where: {
+        user: { id: authUser.id },
+      },
+      relations: {
+        motorcycle: true,
+      },
+    });
+
+    if (!mandadero) {
+      return null;
+    }
+
+    return {
+      id: mandadero.id,
+      status: mandadero.status,
+      isActive: mandadero.isActive,
+      motorcycle: mandadero.motorcycle
+        ? {
+            licensePlate: mandadero.motorcycle.licensePlate,
+            brand: mandadero.motorcycle.brand,
+            model: mandadero.motorcycle.model,
+            color: mandadero.motorcycle.color,
+          }
+        : null,
+    };
   }
 }

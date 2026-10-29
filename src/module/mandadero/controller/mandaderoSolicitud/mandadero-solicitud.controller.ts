@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Get,
   Post,
   UploadedFiles,
   UseInterceptors,
@@ -68,5 +69,11 @@ export class MandaderoSolicitudController {
     validateFile({ imageIdentification, circulationImage, insuranceImage });
 
     return this.mandaderoSolicitudService.create(body, files, user);
+  }
+
+  @Get('solicitud/me')
+  @Auth('client', 'mandadero', 'admin')
+  findMySolicitud(@GetUser() user: AuthUser) {
+    return this.mandaderoSolicitudService.findMySolicitud(user);
   }
 }
