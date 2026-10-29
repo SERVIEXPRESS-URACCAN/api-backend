@@ -103,7 +103,6 @@ export class OrderController {
     @Body('status') status: OrderStatus,
     @GetUser() user: AuthUser,
   ) {
-    console.log(user.roles);
     return this.orderService.updateStatus(id, status, user);
   }
 
