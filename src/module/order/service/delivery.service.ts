@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import { Order } from '../entities/order.entity';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { AuthUser } from 'src/module/auth/interfaces/auth-user.interface';
 import { DeliveryStatus, OrderStatus } from '../enum/orderStatus';
 
@@ -23,6 +23,23 @@ export class DeliveryService {
       throw new BadRequestException('Only delivery users can accept orders');
     }
 
+    const activeOrders = await this.orderRepository.count({
+      where: {
+        mandaderoId: user.id,
+        deliveryStatus: In([
+          DeliveryStatus.ASSIGNED,
+          DeliveryStatus.PICKED_UP,
+          DeliveryStatus.ON_THE_WAY,
+        ]),
+      },
+    });
+
+    if (activeOrders >= 3) {
+      throw new BadRequestException(
+        'Ya tenés 3 pedidos activos. Completá una entrega para aceptar otro.',
+      );
+    }
+
     const result = await this.orderRepository.update(
       {
         id: orderId,
@@ -36,7 +53,9 @@ export class DeliveryService {
     );
 
     if (result.affected === 0) {
-      throw new BadRequestException('Order already taken');
+      throw new BadRequestException(
+        'Este pedido ya fue asignado o no está disponible.',
+      );
     }
 
     return this.orderRepository.findOne({
