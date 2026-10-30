@@ -31,6 +31,7 @@ import { CreateOwnerDto } from '../dto/create-owner.dto';
 import { UpdateOwnerDto } from '../dto/update-owner.dto';
 import { Owner } from '../entities/owner.entity';
 import { validateImage } from '../helper/file.helper';
+import { ApprovalStatus } from 'src/common/enum/approval-status.enum';
 
 type OwnerFiles = {
   identificationCardImage?: Express.Multer.File[];
@@ -163,6 +164,7 @@ export class OwnerService {
           razonSocial: createOwnerDto.razonSocial,
           user: { id: userId },
           identificationCardImage: image.filename,
+          status: ApprovalStatus.APPROVED,
         });
 
         await manager.save(owner);

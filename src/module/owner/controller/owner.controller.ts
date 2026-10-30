@@ -9,6 +9,7 @@ import {
   Query,
   UploadedFiles,
   UseInterceptors,
+  ParseEnumPipe,
 } from '@nestjs/common';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
@@ -21,10 +22,16 @@ import { CreateOwnerDto } from '../dto/create-owner.dto';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { UpdateOwnerDto } from '../dto/update-owner.dto';
 import { OwnerService } from '../service/owner.service';
-
+import { OwnerSolicitudService } from '../service/owner-solicitud.service';
+import { OwnerStatusService } from '../service/owner-status.service';
+import { ApprovalStatus } from 'src/common/enum/approval-status.enum';
 @Controller('owner')
 export class OwnerController {
-  constructor(private readonly ownerService: OwnerService) {}
+  constructor(
+    private readonly ownerService: OwnerService,
+    private readonly ownerSolicitudService: OwnerSolicitudService,
+    private readonly ownerStatusService: OwnerStatusService,
+  ) {}
 
   @Get()
   @Auth('admin')
@@ -42,13 +49,63 @@ export class OwnerController {
     return this.ownerService.findOne(user.id);
   }
 
+  @Get('application/status')
+  @Auth('client', 'owner')
+  findMySolicitud(@GetUser() user: AuthUser) {
+    return this.ownerSolicitudService.findMySolicitud(user);
+  }
+  @Get('applications')
+  @Auth('admin')
+  findAllSolicitudes(
+    @Query('status', new ParseEnumPipe(ApprovalStatus, { optional: true }))
+    status?: ApprovalStatus,
+  ) {
+    return this.ownerSolicitudService.findAllSolicitudes(status);
+  }
+
   @Get(':id')
   @Auth('admin')
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.ownerService.findOneByAdmin(id);
   }
+  @Post('apply')
+  @Auth('client', 'mandadero')
+  @UseInterceptors(
+    FileFieldsInterceptor([{ name: 'identificationCardImage', maxCount: 1 }], {
+      storage: diskStorage({
+        destination: './uploads/owners',
+        filename: (req, file, cb) => {
+          const uniqueName =
+            Date.now() + '-' + Math.random().toString(36).substring(2);
 
-  @Auth('admin', 'client')
+          cb(null, uniqueName + extname(file.originalname));
+        },
+      }),
+    }),
+  )
+  createSolicitud(
+    @Body() dto: CreateOwnerDto,
+    @UploadedFiles()
+    files: {
+      identificationCardImage?: Express.Multer.File[];
+    },
+    @GetUser() user: AuthUser,
+  ) {
+    return this.ownerSolicitudService.create(dto, files, user);
+  }
+  @Patch(':id/approve')
+  @Auth('admin')
+  approve(@Param('id', ParseIntPipe) id: number) {
+    return this.ownerStatusService.approve(id);
+  }
+
+  @Patch(':id/reject')
+  @Auth('admin')
+  reject(@Param('id', ParseIntPipe) id: number) {
+    return this.ownerStatusService.reject(id);
+  }
+
+  @Auth('admin')
   @Post()
   @UseInterceptors(
     FileFieldsInterceptor([{ name: 'identificationCardImage', maxCount: 1 }], {

@@ -1,3 +1,4 @@
+import { ApprovalStatus } from 'src/common/enum/approval-status.enum';
 import { Business } from 'src/module/business/entities/business.entity';
 import { User } from 'src/module/users/entities/user.entity';
 import {
@@ -28,6 +29,13 @@ export class Owner {
 
   @Column({ nullable: false })
   identificationCardImage: string;
+
+  @Column({
+    type: 'enum',
+    enum: ApprovalStatus,
+    default: ApprovalStatus.PENDING,
+  })
+  status: ApprovalStatus;
 
   @CreateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   createdAt: Date;
