@@ -9,7 +9,6 @@ import {
   Query,
   UploadedFiles,
   UseInterceptors,
-  ParseEnumPipe,
 } from '@nestjs/common';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
@@ -19,12 +18,12 @@ import { GetUser } from 'src/module/auth/decorator/getUser.decorator';
 import { AuthUser } from 'src/module/auth/interfaces/auth-user.interface';
 import { CreateOwnerDto } from '../dto/create-owner.dto';
 // import { UpdateOwnerDto } from '../dto/update-owner.dto';
-import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { UpdateOwnerDto } from '../dto/update-owner.dto';
 import { OwnerService } from '../service/owner.service';
 import { OwnerSolicitudService } from '../service/owner-solicitud.service';
 import { OwnerStatusService } from '../service/owner-status.service';
-import { ApprovalStatus } from 'src/common/enum/approval-status.enum';
+
+import { OwnerApplicationsPaginationDto } from '../dto/application-owner.dto';
 @Controller('owner')
 export class OwnerController {
   constructor(
@@ -35,7 +34,7 @@ export class OwnerController {
 
   @Get()
   @Auth('admin')
-  async findAll(@Query() paginationDto: PaginationDto) {
+  async findAll(@Query() paginationDto: OwnerApplicationsPaginationDto) {
     const data = await this.ownerService.findAll(paginationDto);
 
     return {
@@ -56,11 +55,11 @@ export class OwnerController {
   }
   @Get('applications')
   @Auth('admin')
-  findAllSolicitudes(
-    @Query('status', new ParseEnumPipe(ApprovalStatus, { optional: true }))
-    status?: ApprovalStatus,
-  ) {
-    return this.ownerSolicitudService.findAllSolicitudes(status);
+  findAllSolicitudes(@Query() paginationDto: OwnerApplicationsPaginationDto) {
+    return this.ownerSolicitudService.findAllSolicitudes(
+      paginationDto,
+      paginationDto.status,
+    );
   }
 
   @Get(':id')
