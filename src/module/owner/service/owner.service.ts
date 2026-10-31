@@ -47,7 +47,7 @@ export class OwnerService {
     private readonly ownerRepository: Repository<Owner>,
   ) {}
 
-  async findAll(paginationDto: PaginationDto) {
+  async findAll(paginationDto: PaginationDto & { status?: ApprovalStatus }) {
     const { page = 1, limit = 10, search } = paginationDto;
 
     const safePage = Math.max(page, 1);
@@ -59,6 +59,12 @@ export class OwnerService {
       .leftJoinAndSelect('user.profile', 'profile')
       .leftJoinAndSelect('profile.gender', 'gender')
       .leftJoinAndSelect('owner.business', 'business');
+
+    if (paginationDto.status) {
+      qb.andWhere('owner.status = :status', {
+        status: paginationDto.status,
+      });
+    }
 
     const term = search?.trim();
 
