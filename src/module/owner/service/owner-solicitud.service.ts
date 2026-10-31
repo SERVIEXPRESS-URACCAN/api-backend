@@ -21,6 +21,7 @@ import { Logger } from '@nestjs/common';
 import { unlink } from 'node:fs/promises';
 import * as path from 'node:path';
 import { formatPhone } from '../helper/phone.helper';
+import { PaginationDto } from 'src/common/dto/pagination.dto';
 type OwnerFiles = {
   identificationCardImage?: Express.Multer.File[];
 };
@@ -81,21 +82,38 @@ export class OwnerSolicitudService {
 
     throw new InternalServerErrorException('No se pudo completar la solicitud');
   }
-  async findAllSolicitudes(status: ApprovalStatus = ApprovalStatus.PENDING) {
-    return this.ownerRepository.find({
+  async findAllSolicitudes(
+    paginationDto: PaginationDto,
+    status: ApprovalStatus = ApprovalStatus.PENDING,
+  ) {
+    const { page = 1, limit = 10 } = paginationDto;
+
+    const safePage = Math.max(page, 1);
+    const safeLimit = Math.min(Math.max(limit, 1), 50);
+
+    const [data, total] = await this.ownerRepository.findAndCount({
       where: { status },
       relations: {
-        user: {
-          profile: true,
-        },
-        business: {
-          city: true,
-        },
+        user: { profile: true },
+        business: { city: true },
       },
-      order: {
-        createdAt: 'DESC',
-      },
+      order: { createdAt: 'DESC' },
+      skip: (safePage - 1) * safeLimit,
+      take: safeLimit,
     });
+
+    const lastPage = Math.ceil(total / safeLimit);
+
+    return {
+      data,
+      pagination: {
+        total,
+        page: safePage,
+        limit: safeLimit,
+        lastPage,
+        hasNextPage: safePage < lastPage,
+      },
+    };
   }
   async create(dto: CreateOwnerDto, files: OwnerFiles, authUser: AuthUser) {
     const image = files?.identificationCardImage?.[0];
