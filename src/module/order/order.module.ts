@@ -10,10 +10,11 @@ import { Business } from '../business/entities/business.entity';
 import { OrderCreationService } from './service/orderCreation.service';
 import { StatusUpdateService } from './service/orderUpdate.service';
 import { DeliveryService } from './service/delivery.service';
+import { Mandadero } from '../mandadero/entities/mandadero.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Order, OrderItem, Cart, Business]),
+    TypeOrmModule.forFeature([Order, OrderItem, Cart, Business, Mandadero]),
     BusinessModule,
   ],
   controllers: [OrderController],
