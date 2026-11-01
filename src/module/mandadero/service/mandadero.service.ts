@@ -117,6 +117,7 @@ export class MandaderoService {
       where: { user: { id: user.id } },
       relations: [
         'user',
+        'user.profile',
         'user.userRoles',
         'user.userRoles.role',
         'motorcycle',
