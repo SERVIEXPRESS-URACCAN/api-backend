@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -8,12 +9,15 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { AuthUser } from 'src/module/auth/interfaces/auth-user.interface';
 import { DeliveryStatus, OrderStatus } from '../enum/orderStatus';
+import { Business } from 'src/module/business/entities/business.entity';
 
 @Injectable()
 export class StatusUpdateService {
   constructor(
     @InjectRepository(Order)
     private readonly orderRepository: Repository<Order>,
+    @InjectRepository(Business)
+    private readonly businessRepository: Repository<Business>,
   ) {}
   async updateStatus(orderId: number, status: OrderStatus, user: AuthUser) {
     const order = await this.orderRepository.findOne({
@@ -26,6 +30,20 @@ export class StatusUpdateService {
     const isClient = user.roles.includes('client');
 
     if (isOwner) {
+      const business = await this.businessRepository.findOne({
+        where: {
+          id: order.businessId,
+          owner: {
+            user: { id: user.id },
+          },
+        },
+      });
+
+      if (!business) {
+        throw new ForbiddenException(
+          'You cannot modify orders from another business',
+        );
+      }
       const validTransitions: Record<OrderStatus, OrderStatus[]> = {
         PENDING: [OrderStatus.ACCEPTED, OrderStatus.CANCELLED],
         ACCEPTED: [OrderStatus.PREPARING, OrderStatus.CANCELLED],
@@ -49,6 +67,9 @@ export class StatusUpdateService {
     }
 
     if (isClient) {
+      if (order.userId !== user.id) {
+        throw new ForbiddenException('You cannot cancel another user order');
+      }
       if (status !== OrderStatus.CANCELLED) {
         throw new BadRequestException('Clients can only cancel orders');
       }
@@ -99,7 +120,7 @@ export class StatusUpdateService {
           data: order,
         };
       }
-      throw new BadRequestException('Invalid user role for status update');
+      throw new BadRequestException('Invalid order status for cancellation');
     }
   }
 }

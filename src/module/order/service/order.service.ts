@@ -185,9 +185,10 @@ export class OrderService {
         { search: `%${search}%` },
       );
     }
-    qb.orderBy('order.createdAt', 'DESC')
-      .take(limit)
-      .skip((page - 1) * limit);
+    qb.orderBy(
+      'order.createdAt',
+      status === OrderStatus.PENDING ? 'ASC' : 'DESC',
+    ).addOrderBy('order.id', status === OrderStatus.PENDING ? 'ASC' : 'DESC');
 
     const [orders, total] = await qb.getManyAndCount();
 
