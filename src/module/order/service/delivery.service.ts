@@ -8,12 +8,16 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { AuthUser } from 'src/module/auth/interfaces/auth-user.interface';
 import { DeliveryStatus, OrderStatus } from '../enum/orderStatus';
+import { Mandadero } from 'src/module/mandadero/entities/mandadero.entity';
+import { ApprovalStatus } from 'src/common/enum/approval-status.enum';
 
 @Injectable()
 export class DeliveryService {
   constructor(
     @InjectRepository(Order)
     private readonly orderRepository: Repository<Order>,
+    @InjectRepository(Mandadero)
+    private readonly mandaderoRepository: Repository<Mandadero>,
   ) {}
 
   async acceptOrderMandadero(orderId: number, user: AuthUser) {
@@ -23,6 +27,27 @@ export class DeliveryService {
       throw new BadRequestException('Only delivery users can accept orders');
     }
 
+    const mandadero = await this.mandaderoRepository.findOne({
+      where: {
+        user: { id: user.id },
+      },
+    });
+
+    if (
+      !mandadero ||
+      !mandadero.isActive ||
+      mandadero.status !== ApprovalStatus.APPROVED
+    ) {
+      throw new BadRequestException(
+        'Tu cuenta de mandadero no está activa o aprobada.',
+      );
+    }
+
+    if (!mandadero.available) {
+      throw new BadRequestException(
+        'No puedes aceptar pedidos porque estás fuera de servicio.',
+      );
+    }
     const activeOrders = await this.orderRepository.count({
       where: {
         mandaderoId: user.id,

@@ -124,4 +124,13 @@ export class OrderController {
   ) {
     return this.orderService.updateDeliveryStatus(id, status, user);
   }
+
+  @Get(':id/mandadero')
+  @Auth('mandadero')
+  getMandaderoOrderById(
+    @Param('id', ParseIntPipe) id: number,
+    @GetUser() user: AuthUser,
+  ) {
+    return this.orderService.getMandaderoOrderById(id, user.id);
+  }
 }

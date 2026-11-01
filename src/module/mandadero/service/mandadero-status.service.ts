@@ -1,6 +1,6 @@
 import { InjectRepository } from '@nestjs/typeorm';
 import { Mandadero } from '../entities/mandadero.entity';
-import { DataSource, EntityManager, Repository } from 'typeorm';
+import { DataSource, EntityManager, In, Repository } from 'typeorm';
 import { AuthUser } from 'src/module/auth/interfaces/auth-user.interface';
 import {
   BadRequestException,
@@ -11,6 +11,8 @@ import { ApprovalStatus } from 'src/common/enum/approval-status.enum';
 import { Roles } from 'src/module/roles/entities/roles.entity';
 import { UserRole } from 'src/module/user-roles/entities/user-roles.entity';
 import { MandaderoPolicyService } from './mandadero-policy.service';
+import { Order } from 'src/module/order/entities/order.entity';
+import { DeliveryStatus } from 'src/module/order/enum/orderStatus';
 
 @Injectable()
 export class MandaderoStatusService {
@@ -19,6 +21,8 @@ export class MandaderoStatusService {
     private readonly mandaderoRepository: Repository<Mandadero>,
     private readonly dataSource: DataSource,
     private readonly policy: MandaderoPolicyService,
+    @InjectRepository(Order)
+    private readonly orderRepository: Repository<Order>,
   ) {}
 
   async approve(id: number) {
@@ -92,11 +96,31 @@ export class MandaderoStatusService {
       where: { user: { id: user.id } },
       relations: ['user'],
     });
+
     if (!mandadero) {
       throw new NotFoundException('Mandadero not found');
     }
 
     this.policy.validateAvailabilityChange(mandadero);
+
+    if (!available) {
+      const activeOrders = await this.orderRepository.count({
+        where: {
+          mandaderoId: user.id,
+          deliveryStatus: In([
+            DeliveryStatus.ASSIGNED,
+            DeliveryStatus.PICKED_UP,
+            DeliveryStatus.ON_THE_WAY,
+          ]),
+        },
+      });
+
+      if (activeOrders > 0) {
+        throw new BadRequestException(
+          'No puedes cambiar tu disponibilidad porque tienes pedidos pendientes. Completa tus entregas para poder ponerte fuera de servicio.',
+        );
+      }
+    }
 
     mandadero.available = available;
 
