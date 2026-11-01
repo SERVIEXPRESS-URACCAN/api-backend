@@ -299,4 +299,34 @@ export class OrderService {
       },
     };
   }
+
+  async getMandaderoOrderById(orderId: number, mandaderoId: number) {
+    const order = await this.orderRepository.findOne({
+      where: [
+        {
+          id: orderId,
+          mandaderoId,
+        },
+        {
+          id: orderId,
+          status: OrderStatus.READY,
+          deliveryStatus: DeliveryStatus.WAITING,
+        },
+      ],
+      relations: [
+        'user',
+        'user.profile',
+        'business',
+        'items',
+        'mandadero',
+        'mandadero.profile',
+      ],
+    });
+
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+
+    return order;
+  }
 }
