@@ -14,9 +14,10 @@ import { Motorcycle } from '../motorcycles/entities/motorcycle.entity';
 import { MandaderoAdminController } from './controller/mandaderoSolicitud/mandadero-admin.controller';
 import { MandaderoAdminService } from './service/MandaderoSolicitud/mandadero-solicitud-admin.service';
 import { MandaderoSolicitudOperationsService } from './service/MandaderoSolicitud/mandadero-solicitud-operation.service';
+import { Order } from '../order/entities/order.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Mandadero, User, Motorcycle])],
+  imports: [TypeOrmModule.forFeature([Mandadero, User, Motorcycle, Order])],
   providers: [
     MandaderoService,
     MandaderoStatusService,
