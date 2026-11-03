@@ -1,5 +1,6 @@
 import {
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -13,6 +14,8 @@ import { DataSource, Repository } from 'typeorm';
 import { UpdateProfileDto } from '../dto/update-profile.dto';
 import { Profile } from '../entities/profile.entity';
 import { processProfileImage } from '../helper/profile-file.helper';
+import { Order } from 'src/module/order/entities/order.entity';
+import { User } from 'src/module/users/entities/user.entity';
 
 @Injectable()
 export class ProfileService {
@@ -21,6 +24,85 @@ export class ProfileService {
     @InjectRepository(Profile)
     private readonly profileRepository: Repository<Profile>,
   ) {}
+
+  async findPublicProfile(
+    userId: number,
+    requesterId: number,
+    orderId: number,
+  ) {
+    const order = await this.dataSource.getRepository(Order).findOne({
+      where: { id: orderId },
+      relations: ['business', 'business.owner', 'business.owner.user'],
+    });
+
+    if (!order) {
+      throw new NotFoundException('Pedido no encontrado');
+    }
+
+    const ownerId = order.business.owner.user.id;
+
+    const participants = [order.userId, order.mandaderoId, ownerId].filter(
+      (id): id is number => id != null,
+    );
+
+    if (!participants.includes(requesterId) || !participants.includes(userId)) {
+      throw new ForbiddenException(
+        'No tienes permiso para consultar este perfil',
+      );
+    }
+
+    const profile = await this.profileRepository.findOne({
+      where: {
+        user: { id: userId },
+      },
+      relations: ['user'],
+    });
+
+    if (!profile) {
+      throw new NotFoundException('Perfil no encontrado');
+    }
+
+    const isMandadero = order.mandaderoId === userId;
+
+    let motorcycle: {
+      licensePlate: string;
+      brand: string;
+      color: string;
+    } | null = null;
+
+    if (isMandadero) {
+      const mandaderoUser = await this.dataSource.getRepository(User).findOne({
+        where: { id: userId },
+        relations: ['mandadero', 'mandadero.motorcycle'],
+      });
+
+      const vehicle = mandaderoUser?.mandadero?.motorcycle;
+
+      if (vehicle) {
+        motorcycle = {
+          licensePlate: vehicle.licensePlate,
+          brand: vehicle.brand ?? '',
+          color: vehicle.color ?? '',
+        };
+      }
+    }
+
+    return {
+      id: profile.user.id,
+      role: isMandadero
+        ? 'mandadero'
+        : order.userId === userId
+          ? 'client'
+          : 'owner',
+      profile: {
+        name: profile.name,
+        lastName: profile.lastName,
+        profileImage: profile.profileImage,
+        cellphone: profile.cellphone,
+      },
+      motorcycle,
+    };
+  }
 
   async findOne(userId: number) {
     const profile = await this.dataSource.getRepository(Profile).findOne({

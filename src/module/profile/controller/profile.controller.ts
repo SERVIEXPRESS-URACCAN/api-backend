@@ -22,6 +22,16 @@ import { PaginationDto } from 'src/common/dto/pagination.dto';
 export class ProfileController {
   constructor(private readonly profileService: ProfileService) {}
 
+  @Get('public/:orderId/:userId')
+  @Auth('mandadero', 'owner', 'client')
+  getPublicProfile(
+    @Param('orderId', ParseIntPipe) orderId: number,
+    @Param('userId', ParseIntPipe) userId: number,
+    @GetUser() user: AuthUser,
+  ) {
+    return this.profileService.findPublicProfile(userId, user.id, orderId);
+  }
+
   @Get('me')
   @Auth('mandadero', 'owner', 'client')
   getMyProfile(@GetUser() user: AuthUser) {
