@@ -255,7 +255,11 @@ export class OwnerService {
             gender: true,
           },
         },
-        business: includeProducts ? { products: true } : true,
+        business: {
+          city: true,
+          categories: true,
+          ...(includeProducts && { products: true }),
+        },
       },
     });
 
