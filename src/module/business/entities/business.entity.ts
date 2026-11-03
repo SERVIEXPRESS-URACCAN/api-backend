@@ -42,6 +42,9 @@ export class Business {
   @Column({ type: 'varchar', nullable: false, unique: true })
   phone: string;
 
+  @Column({ type: 'boolean', default: true })
+  isOpen: boolean;
+
   @Column({ type: 'varchar', nullable: true })
   logoImage?: string;
 

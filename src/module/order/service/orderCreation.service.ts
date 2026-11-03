@@ -9,6 +9,7 @@ import { OrderItem } from 'src/module/order-items/entities/order-item.entity';
 import { DataSource } from 'typeorm';
 import { Order } from '../entities/order.entity';
 import { OrderStatus } from '../enum/orderStatus';
+import { Business } from 'src/module/business/entities/business.entity';
 
 @Injectable()
 export class OrderCreationService {
@@ -36,6 +37,20 @@ export class OrderCreationService {
 
       if (!cart.items.length) {
         throw new BadRequestException('Cart is empty');
+      }
+
+      const business = await queryRunner.manager.findOne(Business, {
+        where: { id: cart.businessId },
+      });
+
+      if (!business) {
+        throw new NotFoundException('Business not found');
+      }
+
+      if (!business.isOpen) {
+        throw new BadRequestException(
+          'Este negocio está cerrado y no puede recibir pedidos por el momento',
+        );
       }
 
       const order = queryRunner.manager.create(Order, {

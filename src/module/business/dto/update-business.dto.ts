@@ -1,6 +1,7 @@
 import { Transform, Type } from 'class-transformer';
 import {
   IsArray,
+  IsBoolean,
   IsNotEmpty,
   IsNumber,
   IsOptional,
@@ -32,6 +33,10 @@ export class UpdateBusinessDto {
   @IsOptional()
   @IsPhoneNumber('NI')
   phone?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  isOpen?: boolean;
 
   @IsOptional()
   @IsArray()
