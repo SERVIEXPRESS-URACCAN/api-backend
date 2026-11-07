@@ -137,13 +137,32 @@ export class OrderService {
         'items.product',
         'mandadero',
         'mandadero.profile',
+        'mandadero.mandadero.motorcycle',
       ],
     });
 
     if (!order) {
       throw new NotFoundException('Order not found');
     }
-    return order;
+    const assignedUser = order.mandadero;
+
+    return {
+      ...order,
+      mandadero: assignedUser
+        ? {
+            id: assignedUser.id,
+            email: assignedUser.email,
+            profile: assignedUser.profile,
+            motorcycle: assignedUser.mandadero?.motorcycle
+              ? {
+                  licensePlate: assignedUser.mandadero.motorcycle.licensePlate,
+                  brand: assignedUser.mandadero.motorcycle.brand,
+                  color: assignedUser.mandadero.motorcycle.color,
+                }
+              : null,
+          }
+        : null,
+    };
   }
 
   async getBusinessOrders(userId: number, query: GetBusinessOrderDto) {
