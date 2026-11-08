@@ -1,21 +1,29 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Motorcycle } from '../entities/motorcycle.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { AuthUser } from 'src/module/auth/interfaces/auth-user.interface';
 
 import { UpdateMotorcycleDto } from '../dto/update-motorcycle.dto';
+import { MotorcycleBrand } from 'src/module/motorcycle-brands/entities/motorcycle-brand.entity';
 @Injectable()
 export class MotorcyclesService {
   constructor(
     @InjectRepository(Motorcycle)
     private readonly motorcycleRepository: Repository<Motorcycle>,
+
+    @InjectRepository(MotorcycleBrand)
+    private readonly brandRepository: Repository<MotorcycleBrand>,
   ) {}
 
   async findMine(user: AuthUser) {
     const motorcycles = await this.motorcycleRepository.findOne({
       where: { mandadero: { user: { id: user.id } } },
-      relations: ['mandadero', 'mandadero.user'],
+      relations: ['mandadero', 'mandadero.user', 'brand'],
     });
     if (!motorcycles) {
       throw new BadRequestException('Motorcycle not found');
@@ -25,14 +33,14 @@ export class MotorcyclesService {
 
   async findAll() {
     return this.motorcycleRepository.find({
-      relations: ['mandadero'],
+      relations: ['mandadero', 'brand'],
     });
   }
 
   async findOne(id: number) {
     const motorcycle = await this.motorcycleRepository.findOne({
       where: { id },
-      relations: ['mandadero'],
+      relations: ['mandadero', 'brand'],
     });
     if (!motorcycle) {
       throw new BadRequestException('Motorcycle not found');
@@ -52,7 +60,26 @@ export class MotorcyclesService {
         throw new BadRequestException('License plate already registered');
       }
     }
-    Object.assign(motorcycle, dto);
+
+    if (dto.brandId !== undefined) {
+      const brand = await this.brandRepository.findOne({
+        where: { id: dto.brandId },
+      });
+
+      if (!brand) {
+        throw new NotFoundException('Marca no encontrada');
+      }
+
+      motorcycle.brand = brand;
+    }
+
+    const motorcycleData = {
+      model: dto.model,
+      color: dto.color,
+      licensePlate: dto.licensePlate,
+    };
+
+    Object.assign(motorcycle, motorcycleData);
 
     return this.motorcycleRepository.save(motorcycle);
   }
@@ -70,7 +97,25 @@ export class MotorcyclesService {
       }
     }
 
-    Object.assign(motorcycle, dto);
+    if (dto.brandId !== undefined) {
+      const brand = await this.brandRepository.findOne({
+        where: { id: dto.brandId },
+      });
+
+      if (!brand) {
+        throw new NotFoundException('Marca no encontrada');
+      }
+
+      motorcycle.brand = brand;
+    }
+
+    const motorcycleData = {
+      model: dto.model,
+      color: dto.color,
+      licensePlate: dto.licensePlate,
+    };
+
+    Object.assign(motorcycle, motorcycleData);
 
     return this.motorcycleRepository.save(motorcycle);
   }
