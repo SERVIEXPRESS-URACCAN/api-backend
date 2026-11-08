@@ -1,3 +1,4 @@
+import { Type } from 'class-transformer';
 import { IsInt, IsString } from 'class-validator';
 
 export class CreateMandaderoAdminDto {
@@ -16,8 +17,9 @@ export class CreateMandaderoAdminDto {
   @IsString()
   licensePlate: string;
 
-  @IsString()
-  brand: string;
+  @Type(() => Number)
+  @IsInt()
+  brandId: number;
 
   @IsString()
   model: string;

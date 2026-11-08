@@ -1,13 +1,14 @@
-import { IsNotEmpty, IsString } from 'class-validator';
+import { Type } from 'class-transformer';
+import { IsInt, IsNotEmpty, IsString } from 'class-validator';
 
 export class CreateMandaderoSolicitudDto {
   @IsString()
   @IsNotEmpty()
   licensePlate: string;
 
-  @IsString()
-  @IsNotEmpty()
-  brand: string;
+  @Type(() => Number)
+  @IsInt()
+  brandId: number;
 
   @IsString()
   @IsNotEmpty()
