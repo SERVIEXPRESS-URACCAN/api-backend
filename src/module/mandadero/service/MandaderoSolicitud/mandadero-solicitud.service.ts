@@ -136,7 +136,9 @@ export class MandaderoSolicitudService {
         user: { id: authUser.id },
       },
       relations: {
-        motorcycle: true,
+        motorcycle: {
+          brand: true,
+        },
       },
     });
 
