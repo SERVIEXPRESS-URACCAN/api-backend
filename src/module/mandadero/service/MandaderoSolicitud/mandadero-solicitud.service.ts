@@ -82,7 +82,7 @@ export class MandaderoSolicitudService {
           queryRunner,
           user,
           plate,
-          dto.brand,
+          dto.brandId,
           dto.model,
           dto.color,
           imageIdentification,
