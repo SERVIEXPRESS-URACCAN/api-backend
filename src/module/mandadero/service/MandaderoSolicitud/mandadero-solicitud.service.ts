@@ -82,7 +82,7 @@ export class MandaderoSolicitudService {
           queryRunner,
           user,
           plate,
-          dto.brand,
+          dto.brandId,
           dto.model,
           dto.color,
           imageIdentification,
@@ -136,7 +136,9 @@ export class MandaderoSolicitudService {
         user: { id: authUser.id },
       },
       relations: {
-        motorcycle: true,
+        motorcycle: {
+          brand: true,
+        },
       },
     });
 

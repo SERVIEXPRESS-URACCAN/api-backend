@@ -81,7 +81,7 @@ export class ProfileService {
       if (vehicle) {
         motorcycle = {
           licensePlate: vehicle.licensePlate,
-          brand: vehicle.brand ?? '',
+          brand: vehicle.brand?.name ?? '',
           color: vehicle.color ?? '',
         };
       }

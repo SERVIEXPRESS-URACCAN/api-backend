@@ -1,5 +1,6 @@
 import { ApprovalStatus } from 'src/common/enum/approval-status.enum';
 import { Mandadero } from 'src/module/mandadero/entities/mandadero.entity';
+import { MotorcycleBrand } from 'src/module/motorcycle-brands/entities/motorcycle-brand.entity';
 
 import {
   Column,
@@ -7,6 +8,7 @@ import {
   DeleteDateColumn,
   Entity,
   JoinColumn,
+  ManyToOne,
   OneToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
@@ -28,8 +30,11 @@ export class Motorcycle {
   @JoinColumn({ name: 'mandadero_id', referencedColumnName: 'id' })
   mandadero: Mandadero;
 
-  @Column({ type: 'varchar', length: 20, nullable: true })
-  brand?: string;
+  @ManyToOne(() => MotorcycleBrand, (brand) => brand.motorcycles, {
+    nullable: true,
+  })
+  @JoinColumn({ name: 'brand_id' })
+  brand: MotorcycleBrand;
 
   @Column({ type: 'varchar', length: 20, nullable: true })
   model?: string;
