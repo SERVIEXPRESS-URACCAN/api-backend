@@ -30,6 +30,12 @@ export class BusinessController {
     return this.businessService.findOne(user.id);
   }
 
+  @Get(':id/public-profile')
+  @Auth('client', 'mandadero', 'owner')
+  getPublicBusiness(@Param('id', ParseIntPipe) id: number) {
+    return this.businessService.findPublicBusiness(id);
+  }
+
   @Auth('owner')
   @Patch('me')
   @UseInterceptors(

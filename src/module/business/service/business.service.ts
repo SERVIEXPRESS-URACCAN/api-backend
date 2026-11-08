@@ -29,6 +29,29 @@ export class BusinessService {
     private readonly businessRelationsService: BusinessRelationsService,
   ) {}
 
+  async findPublicBusiness(id: number) {
+    const business = await this.businessRepository.findOne({
+      where: { id },
+      relations: ['city'],
+    });
+
+    if (!business) {
+      throw new NotFoundException('Negocio no encontrado');
+    }
+
+    return {
+      id: business.id,
+      name: business.name,
+      description: business.description,
+      address: business.address,
+      phone: business.phone,
+      logoImage: business.logoImage,
+      bannerImage: business.bannerImage,
+      city: business.city,
+      categories: business.categories,
+    };
+  }
+
   async findAll(paginationDto: PaginationDto, cityId?: number) {
     const { page = 1, limit = 10, search } = paginationDto;
 
