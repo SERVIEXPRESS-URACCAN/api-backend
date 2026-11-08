@@ -16,9 +16,6 @@ export class MotorcycleBrand {
   @Column({ type: 'varchar', length: 50, unique: true })
   name: string;
 
-  @Column({ type: 'boolean', default: true })
-  isActive: boolean;
-
   @OneToMany(() => Motorcycle, (motorcycle) => motorcycle.brand)
   motorcycles: Motorcycle[];
 
