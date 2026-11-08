@@ -11,6 +11,7 @@ import { Motorcycle } from 'src/module/motorcycles/entities/motorcycle.entity';
 import { CreateMandaderoAdminDto } from '../../dto/dto-solicitud/create-mandadero-admin.dto';
 import { deleteFile } from 'src/common/helper/removeOldImage.helper';
 import { MandaderoStatusService } from '../mandadero-status.service';
+import { MotorcycleBrand } from 'src/module/motorcycle-brands/entities/motorcycle-brand.entity';
 
 @Injectable()
 export class MandaderoAdminService {
@@ -49,6 +50,16 @@ export class MandaderoAdminService {
       if (alreadyMandadero) {
         throw new ConflictException('Este usuario ya es mandadero');
       }
+
+      const brand = await queryRunner.manager.findOne(MotorcycleBrand, {
+        where: {
+          id: dto.brandId,
+        },
+      });
+
+      if (!brand) {
+        throw new NotFoundException('La marca seleccionada no existe');
+      }
       const mandadero = queryRunner.manager.create(Mandadero, {
         user,
         available: false,
@@ -71,7 +82,7 @@ export class MandaderoAdminService {
       }
 
       const motorcycle = queryRunner.manager.create(Motorcycle, {
-        brand: dto.brand,
+        brand,
         model: dto.model,
         color: dto.color,
         licensePlate: plate,

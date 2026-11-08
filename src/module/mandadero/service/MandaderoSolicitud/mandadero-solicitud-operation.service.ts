@@ -6,6 +6,7 @@ import { Motorcycle } from 'src/module/motorcycles/entities/motorcycle.entity';
 import { User } from 'src/module/users/entities/user.entity';
 import { ApprovalStatus } from 'src/common/enum/approval-status.enum';
 import { MandaderoPolicyService } from '../mandadero-policy.service';
+import { MotorcycleBrand } from 'src/module/motorcycle-brands/entities/motorcycle-brand.entity';
 
 type OldFile = {
   filename: string;
@@ -22,7 +23,7 @@ export class MandaderoSolicitudOperationsService {
     queryRunner: QueryRunner,
     user: User,
     plate: string,
-    brand: string,
+    brandId: number,
     model: string,
     color: string,
     imageIdentification: Express.Multer.File,
@@ -31,6 +32,15 @@ export class MandaderoSolicitudOperationsService {
   ) {
     const mandaderoExisting = user.mandadero;
 
+    const brand = await queryRunner.manager.findOne(MotorcycleBrand, {
+      where: {
+        id: brandId,
+      },
+    });
+
+    if (!brand) {
+      throw new NotFoundException('La marca seleccionada no existe ');
+    }
     if (this.mandaderoPolicyService.canRetryApplication(user)) {
       if (!mandaderoExisting?.motorcycle) {
         throw new NotFoundException(
@@ -109,7 +119,7 @@ export class MandaderoSolicitudOperationsService {
 
     const motorcycle = queryRunner.manager.create(Motorcycle, {
       licensePlate: plate,
-      brand: brand,
+      brand,
       model: model,
       color: color,
       circulationImage: circulation.filename,
