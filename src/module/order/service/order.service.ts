@@ -207,7 +207,11 @@ export class OrderService {
     qb.orderBy(
       'order.createdAt',
       status === OrderStatus.PENDING ? 'ASC' : 'DESC',
-    ).addOrderBy('order.id', status === OrderStatus.PENDING ? 'ASC' : 'DESC');
+    )
+      .addOrderBy('order.id', status === OrderStatus.PENDING ? 'ASC' : 'DESC')
+
+      .take(limit)
+      .skip((page - 1) * limit);
 
     const [orders, total] = await qb.getManyAndCount();
 
