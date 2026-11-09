@@ -24,7 +24,7 @@ export class ProductService {
   ) {}
 
   async findAllForCatalog(query: CatalogProductsDto) {
-    const { page = 1, limit = 12, search, categoryId } = query;
+    const { page = 1, limit = 12, search, categoryId, businessId } = query;
 
     const safePage = Math.max(page, 1);
     const safeLimit = Math.min(Math.max(limit, 1), 24);
@@ -45,6 +45,10 @@ export class ProductService {
         'category.id',
         'category.name',
       ]);
+
+    if (businessId !== undefined) {
+      qb.andWhere('business.id = :businessId', { businessId });
+    }
 
     if (categoryId !== undefined) {
       qb.innerJoin(
